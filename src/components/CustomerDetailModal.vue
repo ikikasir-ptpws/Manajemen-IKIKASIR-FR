@@ -47,7 +47,7 @@ const sendWhatsApp = () => {
 </script>
 
 <template>
-  <div v-if="isOpen && customer" class="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4">
+  <div v-if="isOpen && customer" class="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-3 sm:p-4">
     <!-- Backdrop -->
     <div 
       class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs transition-opacity duration-200"
@@ -55,28 +55,28 @@ const sendWhatsApp = () => {
     ></div>
 
     <!-- Modal Box -->
-    <div class="relative bg-white w-full max-w-lg rounded-3xl shadow-2xl border border-slate-100 overflow-hidden z-10 animate-in fade-in zoom-in-95 duration-200">
+    <div class="relative bg-white w-full max-w-lg rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-100 overflow-hidden z-10 animate-in fade-in zoom-in-95 duration-200">
       <!-- Header -->
-      <div class="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center">
-            <User class="w-5 h-5" />
+      <div class="px-4 py-3.5 sm:px-6 sm:py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+        <div class="flex items-center gap-2.5 sm:gap-3">
+          <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0">
+            <User class="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
           <div>
-            <h3 class="text-base font-bold text-slate-900">{{ customer.name }}</h3>
-            <p class="text-xs text-slate-500">{{ customer.businessName || 'Pelanggan IKI KASIR' }}</p>
+            <h3 class="text-sm sm:text-base font-bold text-slate-900">{{ customer.name }}</h3>
+            <p class="text-[11px] sm:text-xs text-slate-500">{{ customer.businessName || 'Pelanggan IKI KASIR' }}</p>
           </div>
         </div>
         <button 
           @click="emit('close')"
-          class="w-8 h-8 rounded-full bg-slate-100 text-slate-400 hover:text-slate-700 flex items-center justify-center transition-colors cursor-pointer"
+          class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-slate-100 text-slate-400 hover:text-slate-700 flex items-center justify-center transition-colors cursor-pointer shrink-0"
         >
           <X class="w-4 h-4" />
         </button>
       </div>
 
       <!-- Content -->
-      <div class="p-6 space-y-5">
+      <div class="p-4 sm:p-6 space-y-4 sm:space-y-5">
         <!-- Status Card -->
         <div 
           class="p-4 rounded-2xl flex items-center justify-between"

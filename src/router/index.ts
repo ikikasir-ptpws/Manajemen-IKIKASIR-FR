@@ -28,13 +28,41 @@ const router = createRouter({
       name: 'follow-up',
       component: () => import('../views/crm-client/FollowUpIndex.vue')
     },
-    { path: '/semua-pelanggan', redirect: '/' },
-    { path: '/langganan', redirect: '/' },
-    { path: '/expired', redirect: '/' },
-    { path: '/arus-kas', redirect: '/' },
-    { path: '/laba-rugi', redirect: '/' },
-    { path: '/neraca', redirect: '/' },
-    { path: '/laporan-harian', redirect: '/' },
+    {
+      path: '/laporan-harian',
+      name: 'laporan-harian',
+      component: () => import('../views/laporan/LaporanHarianIndex.vue')
+    },
+    {
+      path: '/semua-pelanggan',
+      name: 'semua-pelanggan',
+      component: () => import('../views/crm-client/SemuaPelangganIndex.vue')
+    },
+    {
+      path: '/langganan',
+      name: 'langganan',
+      component: () => import('../views/crm-client/LanggananIndex.vue')
+    },
+    {
+      path: '/expired',
+      name: 'expired',
+      component: () => import('../views/crm-client/ExpiredIndex.vue')
+    },
+    {
+      path: '/arus-kas',
+      name: 'arus-kas',
+      component: () => import('../views/laporan/ArusKasIndex.vue')
+    },
+    {
+      path: '/laba-rugi',
+      name: 'laba-rugi',
+      component: () => import('../views/laporan/LabaRugiIndex.vue')
+    },
+    {
+      path: '/neraca',
+      name: 'neraca',
+      component: () => import('../views/laporan/NeracaIndex.vue')
+    },
     { path: '/:pathMatch(.*)*', redirect: '/' }
   ],
 })

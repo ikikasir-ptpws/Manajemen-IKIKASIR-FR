@@ -150,7 +150,7 @@ const handleSubmit = () => {
 </script>
 
 <template>
-  <div v-if="isOpen" class="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-3 sm:p-5">
+  <div v-if="isOpen" class="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-2.5 sm:p-5">
     <!-- Backdrop Blur -->
     <div 
       class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity duration-300"
@@ -158,41 +158,41 @@ const handleSubmit = () => {
     ></div>
 
     <!-- Modal Dialog -->
-    <div class="relative bg-white w-full max-w-3xl rounded-3xl shadow-2xl border border-slate-100 overflow-hidden flex flex-col my-auto z-10 animate-in fade-in zoom-in-95 duration-200 max-h-[92vh]">
+    <div class="relative bg-white w-full max-w-3xl rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-100 overflow-hidden flex flex-col my-auto z-10 animate-in fade-in zoom-in-95 duration-200 max-h-[94vh]">
       
       <!-- Top Bar / Gradient Header -->
-      <div class="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-slate-50 via-indigo-50/40 to-slate-50">
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-200">
-            <UserPlus class="w-5 h-5" />
+      <div class="px-4 py-3.5 sm:px-6 sm:py-5 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-slate-50 via-indigo-50/40 to-slate-50">
+        <div class="flex items-center gap-2.5 sm:gap-3">
+          <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-200 shrink-0">
+            <UserPlus class="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
           <div>
-            <div class="flex items-center gap-2">
-              <h2 class="text-lg font-bold text-slate-900">
-                {{ clientToEdit ? 'Edit Data Calon Client' : 'Tambah Calon Client Baru' }}
+            <div class="flex items-center gap-1.5 sm:gap-2">
+              <h2 class="text-base sm:text-lg font-bold text-slate-900">
+                {{ clientToEdit ? 'Edit Calon Client' : 'Tambah Calon Client' }}
               </h2>
-              <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-700">
-                <Sparkles class="w-3 h-3" /> FORM CRM
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold bg-indigo-100 text-indigo-700">
+                <Sparkles class="w-2.5 h-2.5" /> CRM
               </span>
             </div>
-            <p class="text-xs text-slate-500 mt-0.5">Kelola prospek calon pelanggan kasir dan rencana follow up.</p>
+            <p class="text-[11px] sm:text-xs text-slate-500 mt-0.5">Kelola prospek calon pelanggan kasir.</p>
           </div>
         </div>
 
         <button 
           @click="emit('close')"
-          class="w-8 h-8 rounded-full bg-slate-100 text-slate-400 hover:text-slate-700 hover:bg-slate-200 flex items-center justify-center transition-colors cursor-pointer"
+          class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-slate-100 text-slate-400 hover:text-slate-700 hover:bg-slate-200 flex items-center justify-center transition-colors cursor-pointer shrink-0"
         >
           <X class="w-4 h-4" />
         </button>
       </div>
 
-      <!-- Navigation Tabs -->
-      <div class="px-6 border-b border-slate-100 bg-white flex items-center gap-2 text-xs font-bold pt-2">
+      <!-- Navigation Tabs (Horizontal scrollable with no-scrollbar on mobile) -->
+      <div class="px-4 sm:px-6 border-b border-slate-100 bg-white flex items-center gap-2 text-xs font-bold pt-2 overflow-x-auto no-scrollbar whitespace-nowrap">
         <button 
           type="button"
           @click="activeTab = 'contact'"
-          class="pb-2.5 px-3 border-b-2 transition-all cursor-pointer flex items-center gap-1.5"
+          class="pb-2.5 px-3 border-b-2 transition-all cursor-pointer flex items-center gap-1.5 shrink-0"
           :class="activeTab === 'contact' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-800'"
         >
           <User class="w-3.5 h-3.5" />
@@ -201,7 +201,7 @@ const handleSubmit = () => {
         <button 
           type="button"
           @click="activeTab = 'business'"
-          class="pb-2.5 px-3 border-b-2 transition-all cursor-pointer flex items-center gap-1.5"
+          class="pb-2.5 px-3 border-b-2 transition-all cursor-pointer flex items-center gap-1.5 shrink-0"
           :class="activeTab === 'business' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-800'"
         >
           <Store class="w-3.5 h-3.5" />
@@ -210,7 +210,7 @@ const handleSubmit = () => {
         <button 
           type="button"
           @click="activeTab = 'crm'"
-          class="pb-2.5 px-3 border-b-2 transition-all cursor-pointer flex items-center gap-1.5"
+          class="pb-2.5 px-3 border-b-2 transition-all cursor-pointer flex items-center gap-1.5 shrink-0"
           :class="activeTab === 'crm' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-800'"
         >
           <Compass class="w-3.5 h-3.5" />
@@ -219,7 +219,7 @@ const handleSubmit = () => {
       </div>
 
       <!-- Main Body Container -->
-      <div class="flex-1 overflow-y-auto p-6 sm:p-7 space-y-5">
+      <div class="flex-1 overflow-y-auto p-4 sm:p-7 space-y-4 sm:space-y-5">
         
         <!-- TAB 1: KONTAK & PERSONAL -->
         <div v-if="activeTab === 'contact'" class="space-y-4 animate-in fade-in duration-150">
@@ -424,21 +424,21 @@ const handleSubmit = () => {
       </div>
 
       <!-- Footer Buttons -->
-      <div class="px-6 py-4 bg-slate-50/80 border-t border-slate-100 flex items-center justify-between">
+      <div class="px-4 py-3 sm:px-6 sm:py-4 bg-slate-50/80 border-t border-slate-100 flex items-center justify-between gap-2">
         <button 
           @click="emit('close')"
           type="button"
-          class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
+          class="px-3 sm:px-4 py-2 rounded-xl text-xs font-semibold text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
         >
           Batal
         </button>
 
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-1.5 sm:gap-2">
           <button 
             v-if="activeTab !== 'crm'"
             type="button"
             @click="activeTab = activeTab === 'contact' ? 'business' : 'crm'"
-            class="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-white transition-all cursor-pointer flex items-center gap-1"
+            class="px-3 sm:px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-white transition-all cursor-pointer flex items-center gap-1"
           >
             <span>Selanjutnya</span>
             <ArrowRight class="w-3.5 h-3.5" />
@@ -448,10 +448,10 @@ const handleSubmit = () => {
             type="button"
             @click="handleSubmit"
             :disabled="isSubmitting"
-            class="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-md shadow-indigo-200 transition-all cursor-pointer disabled:opacity-50"
+            class="flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-md shadow-indigo-200 transition-all cursor-pointer disabled:opacity-50"
           >
             <CheckCircle2 class="w-4 h-4" />
-            <span>{{ isSubmitting ? 'Menyimpan...' : (clientToEdit ? 'Simpan Perubahan' : 'Simpan Calon Client') }}</span>
+            <span>{{ isSubmitting ? 'Menyimpan...' : (clientToEdit ? 'Simpan' : 'Simpan Client') }}</span>
           </button>
         </div>
       </div>

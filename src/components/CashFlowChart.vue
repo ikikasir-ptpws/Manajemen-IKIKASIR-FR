@@ -46,13 +46,13 @@ const getY = (val: number) => {
 
 // Catmull-Rom or Cardinal Spline for super smooth curves matching the screenshot
 function getSmoothPath(points: { x: number; y: number }[]): string {
-  if (points.length === 0) return ''
+  if (points.length === 0 || !points[0]) return ''
   let d = `M ${points[0].x},${points[0].y}`
   for (let i = 0; i < points.length - 1; i++) {
-    const p0 = i > 0 ? points[i - 1] : points[0]
-    const p1 = points[i]
-    const p2 = points[i + 1]
-    const p3 = i < points.length - 2 ? points[i + 2] : p2
+    const p0 = (i > 0 ? points[i - 1] : points[0]) ?? points[0]
+    const p1 = points[i] ?? points[0]
+    const p2 = points[i + 1] ?? points[0]
+    const p3 = (i < points.length - 2 ? points[i + 2] : p2) ?? p2
 
     const cp1x = p1.x + (p2.x - p0.x) / 6
     const cp1y = p1.y + (p2.y - p0.y) / 6
@@ -74,14 +74,23 @@ const expensePath = computed(() => getSmoothPath(expenseCoords.value))
 
 const balanceArea = computed(() => {
   const pts = balanceCoords.value
-  if (!pts.length) return ''
-  return `${balancePath.value} L ${pts[pts.length - 1].x},${padding.top + chartHeight} L ${pts[0].x},${padding.top + chartHeight} Z`
+  const first = pts[0]
+  const last = pts[pts.length - 1]
+  if (!pts.length || !first || !last) return ''
+  return `${balancePath.value} L ${last.x},${padding.top + chartHeight} L ${first.x},${padding.top + chartHeight} Z`
 })
 
 const incomeArea = computed(() => {
   const pts = incomeCoords.value
-  if (!pts.length) return ''
-  return `${incomePath.value} L ${pts[pts.length - 1].x},${padding.top + chartHeight} L ${pts[0].x},${padding.top + chartHeight} Z`
+  const first = pts[0]
+  const last = pts[pts.length - 1]
+  if (!pts.length || !first || !last) return ''
+  return `${incomePath.value} L ${last.x},${padding.top + chartHeight} L ${first.x},${padding.top + chartHeight} Z`
+})
+
+const hoveredDataPoint = computed(() => {
+  if (hoveredIndex.value === null) return null
+  return dataPoints.value[hoveredIndex.value] || null
 })
 
 const yAxisLabels = [
@@ -99,33 +108,33 @@ const formatRupiah = (valInMillions: number) => {
 </script>
 
 <template>
-  <div class="bg-white rounded-2xl p-6 shadow-xs border border-slate-100 relative">
+  <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-xs border border-slate-100 dark:border-slate-700 relative h-full">
     <!-- Header of Chart Section -->
     <div class="flex items-center justify-between mb-4">
       <div>
-        <h2 class="text-base font-bold text-slate-800 tracking-tight">Grafik Arus Kas</h2>
+        <h2 class="text-base font-bold text-slate-800 dark:text-white tracking-tight">Grafik Arus Kas</h2>
       </div>
 
       <!-- Period Filter Dropdown -->
       <div class="relative">
         <button 
           @click="showPeriodDropdown = !showPeriodDropdown"
-          class="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer"
+          class="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-2xs cursor-pointer"
         >
           <span>{{ selectedPeriod }}</span>
-          <ChevronDown class="w-3.5 h-3.5 text-slate-400" />
+          <ChevronDown class="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
         </button>
 
         <div 
           v-if="showPeriodDropdown"
-          class="absolute right-0 mt-1.5 w-32 bg-white rounded-xl shadow-lg border border-slate-100 py-1.5 z-30 animate-in fade-in zoom-in-95 duration-100"
+          class="absolute right-0 mt-1.5 w-32 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-100 dark:border-slate-700 py-1.5 z-30 animate-in fade-in zoom-in-95 duration-100"
         >
           <button 
             v-for="p in periods" 
             :key="p"
             @click="selectedPeriod = p; showPeriodDropdown = false"
-            class="w-full text-left px-3.5 py-1.5 text-xs text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 transition-colors font-medium flex items-center justify-between"
-            :class="selectedPeriod === p ? 'text-indigo-600 font-semibold bg-indigo-50/50' : ''"
+            class="w-full text-left px-3.5 py-1.5 text-xs text-slate-700 dark:text-slate-300 hover:bg-indigo-50 dark:hover:bg-slate-700 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors font-medium flex items-center justify-between"
+            :class="selectedPeriod === p ? 'text-indigo-600 dark:text-indigo-400 font-semibold bg-indigo-50/50 dark:bg-slate-700/50' : ''"
           >
             <span>{{ p }}</span>
             <span v-if="selectedPeriod === p" class="w-1.5 h-1.5 rounded-full bg-indigo-600"></span>
@@ -134,19 +143,19 @@ const formatRupiah = (valInMillions: number) => {
       </div>
     </div>
 
-    <!-- Chart Legends -->
-    <div class="flex items-center justify-center gap-6 mb-3 text-xs">
+    <!-- Chart Legends (Responsive wrap on mobile) -->
+    <div class="flex items-center justify-center gap-4 sm:gap-6 flex-wrap mb-3 text-xs">
       <div class="flex items-center gap-2">
         <span class="w-2.5 h-2.5 rounded-full bg-[#10B981] inline-block shadow-xs"></span>
-        <span class="font-medium text-slate-600">Pemasukan</span>
+        <span class="font-medium text-slate-600 dark:text-slate-400">Pemasukan</span>
       </div>
       <div class="flex items-center gap-2">
         <span class="w-2.5 h-2.5 rounded-full bg-[#EF4444] inline-block shadow-xs"></span>
-        <span class="font-medium text-slate-600">Pengeluaran</span>
+        <span class="font-medium text-slate-600 dark:text-slate-400">Pengeluaran</span>
       </div>
       <div class="flex items-center gap-2">
         <span class="w-2.5 h-2.5 rounded-full bg-[#4F46E5] inline-block shadow-xs"></span>
-        <span class="font-medium text-slate-600">Saldo</span>
+        <span class="font-medium text-slate-600 dark:text-slate-400">Saldo</span>
       </div>
     </div>
 
@@ -175,15 +184,17 @@ const formatRupiah = (valInMillions: number) => {
               :y1="getY(yLabel.val)" 
               :x2="width - padding.right" 
               :y2="getY(yLabel.val)" 
-              stroke="#F1F5F9" 
+              stroke="#cbd5e1" 
               stroke-width="1.2" 
+              class="dark:opacity-20"
             />
             <text 
               :x="padding.left - 12" 
               :y="getY(yLabel.val) + 4" 
               text-anchor="end" 
               font-size="11" 
-              fill="#94A3B8" 
+              fill="currentColor"
+              class="text-slate-400 dark:text-slate-500" 
               font-weight="500"
             >
               {{ yLabel.text }}
@@ -201,33 +212,37 @@ const formatRupiah = (valInMillions: number) => {
           :d="balancePath" 
           fill="none" 
           stroke="#4F46E5" 
-          stroke-width="2.6" 
+          stroke-width="2.5" 
           stroke-linecap="round"
-          class="transition-all duration-300"
+          stroke-linejoin="round"
         />
+
         <!-- Pemasukan (Emerald Green) -->
         <path 
           :d="incomePath" 
           fill="none" 
           stroke="#10B981" 
-          stroke-width="2.6" 
+          stroke-width="2.5" 
           stroke-linecap="round"
-          class="transition-all duration-300"
+          stroke-linejoin="round"
         />
+
         <!-- Pengeluaran (Rose Red) -->
         <path 
           :d="expensePath" 
           fill="none" 
           stroke="#EF4444" 
-          stroke-width="2.6" 
+          stroke-width="2.5" 
           stroke-linecap="round"
-          class="transition-all duration-300"
+          stroke-linejoin="round"
         />
 
         <!-- Circles on Data Points -->
-        <!-- Saldo points -->
-        <g v-for="(pt, idx) in balanceCoords" :key="`b-${idx}`">
+        <g class="data-circles">
+          <!-- Saldo Points -->
           <circle 
+            v-for="(pt, idx) in balanceCoords" 
+            :key="`bal-${idx}`"
             :cx="pt.x" 
             :cy="pt.y" 
             r="3.5" 
@@ -236,11 +251,11 @@ const formatRupiah = (valInMillions: number) => {
             stroke-width="2.2"
             class="transition-transform duration-150 hover:scale-150"
           />
-        </g>
 
-        <!-- Income points -->
-        <g v-for="(pt, idx) in incomeCoords" :key="`i-${idx}`">
+          <!-- Pemasukan Points -->
           <circle 
+            v-for="(pt, idx) in incomeCoords" 
+            :key="`inc-${idx}`"
             :cx="pt.x" 
             :cy="pt.y" 
             r="3.5" 
@@ -249,11 +264,11 @@ const formatRupiah = (valInMillions: number) => {
             stroke-width="2.2"
             class="transition-transform duration-150 hover:scale-150"
           />
-        </g>
 
-        <!-- Expense points -->
-        <g v-for="(pt, idx) in expenseCoords" :key="`e-${idx}`">
+          <!-- Pengeluaran Points -->
           <circle 
+            v-for="(pt, idx) in expenseCoords" 
+            :key="`exp-${idx}`"
             :cx="pt.x" 
             :cy="pt.y" 
             r="3.5" 
@@ -273,15 +288,16 @@ const formatRupiah = (valInMillions: number) => {
             :y="height - 8" 
             text-anchor="middle" 
             font-size="11" 
-            fill="#94A3B8" 
+            fill="currentColor" 
+            class="text-slate-400 dark:text-slate-500"
             font-weight="500"
           >
-            {{ dataPoints[idx].label }}
+            {{ dataPoints[idx]?.label }}
           </text>
         </g>
 
         <!-- Hover Indicator vertical line & interactive trigger rectangles -->
-        <g v-if="hoveredIndex !== null">
+        <g v-if="hoveredIndex !== null && hoveredDataPoint">
           <line 
             :x1="getX(hoveredIndex)" 
             :y1="padding.top" 
@@ -293,7 +309,7 @@ const formatRupiah = (valInMillions: number) => {
           />
           <circle 
             :cx="getX(hoveredIndex)" 
-            :cy="getY(dataPoints[hoveredIndex].balance)" 
+            :cy="getY(hoveredDataPoint.balance)" 
             r="5" 
             fill="#4F46E5" 
             stroke="#FFFFFF" 
@@ -301,7 +317,7 @@ const formatRupiah = (valInMillions: number) => {
           />
           <circle 
             :cx="getX(hoveredIndex)" 
-            :cy="getY(dataPoints[hoveredIndex].income)" 
+            :cy="getY(hoveredDataPoint.income)" 
             r="5" 
             fill="#10B981" 
             stroke="#FFFFFF" 
@@ -309,7 +325,7 @@ const formatRupiah = (valInMillions: number) => {
           />
           <circle 
             :cx="getX(hoveredIndex)" 
-            :cy="getY(dataPoints[hoveredIndex].expense)" 
+            :cy="getY(hoveredDataPoint.expense)" 
             r="5" 
             fill="#EF4444" 
             stroke="#FFFFFF" 
@@ -333,36 +349,36 @@ const formatRupiah = (valInMillions: number) => {
 
       <!-- Hover Tooltip -->
       <div 
-        v-if="hoveredIndex !== null"
+        v-if="hoveredIndex !== null && hoveredDataPoint"
         class="absolute pointer-events-none z-30 bg-slate-900/90 backdrop-blur-xs text-white p-3 rounded-xl shadow-xl text-xs space-y-1 transform -translate-x-1/2 -translate-y-full border border-slate-700/50 min-w-44 transition-all duration-100"
         :style="{
           left: `${(getX(hoveredIndex) / width) * 100}%`,
-          top: `${Math.min(getY(dataPoints[hoveredIndex].balance) - 10, 110)}px`
+          top: `${Math.min(getY(hoveredDataPoint.balance) - 10, 110)}px`
         }"
       >
         <div class="font-bold text-slate-200 border-b border-slate-700 pb-1 mb-1.5 flex items-center justify-between">
-          <span>{{ dataPoints[hoveredIndex].fullDate }}</span>
+          <span>{{ hoveredDataPoint.fullDate }}</span>
         </div>
         <div class="flex items-center justify-between gap-3 text-emerald-400 font-semibold">
           <span class="flex items-center gap-1.5">
             <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
             Pemasukan:
           </span>
-          <span>{{ formatRupiah(dataPoints[hoveredIndex].income) }}</span>
+          <span>{{ formatRupiah(hoveredDataPoint.income) }}</span>
         </div>
         <div class="flex items-center justify-between gap-3 text-rose-400 font-semibold">
           <span class="flex items-center gap-1.5">
             <span class="w-2 h-2 rounded-full bg-rose-400"></span>
             Pengeluaran:
           </span>
-          <span>{{ formatRupiah(dataPoints[hoveredIndex].expense) }}</span>
+          <span>{{ formatRupiah(hoveredDataPoint.expense) }}</span>
         </div>
         <div class="flex items-center justify-between gap-3 text-indigo-300 font-bold pt-1 border-t border-slate-800">
           <span class="flex items-center gap-1.5">
             <span class="w-2 h-2 rounded-full bg-indigo-400"></span>
             Saldo Kas:
           </span>
-          <span>{{ formatRupiah(dataPoints[hoveredIndex].balance) }}</span>
+          <span>{{ formatRupiah(hoveredDataPoint.balance) }}</span>
         </div>
       </div>
     </div>

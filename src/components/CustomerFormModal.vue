@@ -93,13 +93,16 @@ const durations = [
   { months: 12, label: '1 Tahun', discount: 20, bestValue: true }
 ]
 
+const defaultPackage = packages[0]!
+const defaultDuration = durations[0]!
+
 // Calculations
 const selectedPackageInfo = computed(() => {
-  return packages.find(p => p.type === form.value.packageType) || packages[0]
+  return packages.find(p => p.type === form.value.packageType) ?? defaultPackage
 })
 
 const selectedDurationInfo = computed(() => {
-  return durations.find(d => d.months === form.value.durationMonths) || durations[0]
+  return durations.find(d => d.months === form.value.durationMonths) ?? defaultDuration
 })
 
 const calculatedTotal = computed(() => {
@@ -185,7 +188,7 @@ const handleSubmit = () => {
 </script>
 
 <template>
-  <div v-if="isOpen" class="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-3 sm:p-5">
+  <div v-if="isOpen" class="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-2.5 sm:p-5">
     <!-- Backdrop Blur -->
     <div 
       class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity duration-300"
@@ -193,50 +196,50 @@ const handleSubmit = () => {
     ></div>
 
     <!-- Modal Dialog -->
-    <div class="relative bg-white w-full max-w-4xl rounded-3xl shadow-2xl border border-slate-100 overflow-hidden flex flex-col my-auto z-10 animate-in fade-in zoom-in-95 duration-200 max-h-[92vh]">
+    <div class="relative bg-white w-full max-w-4xl rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-100 overflow-hidden flex flex-col my-auto z-10 animate-in fade-in zoom-in-95 duration-200 max-h-[94vh]">
       
       <!-- Top Bar / Gradient Header -->
-      <div class="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-slate-50 via-indigo-50/40 to-slate-50">
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-200">
-            <Store class="w-5 h-5" />
+      <div class="px-4 py-3.5 sm:px-6 sm:py-5 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-slate-50 via-indigo-50/40 to-slate-50">
+        <div class="flex items-center gap-2.5 sm:gap-3">
+          <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-200 shrink-0">
+            <Store class="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
           <div>
-            <div class="flex items-center gap-2">
-              <h2 class="text-lg font-bold text-slate-900">Registrasi Pelanggan & Toko Kasir Baru</h2>
-              <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-indigo-100 text-indigo-700">
-                <Sparkles class="w-3 h-3" /> FORM PREMIUM
+            <div class="flex items-center gap-1.5 sm:gap-2">
+              <h2 class="text-base sm:text-lg font-bold text-slate-900">Registrasi Pelanggan Kasir</h2>
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] sm:text-[11px] font-semibold bg-indigo-100 text-indigo-700">
+                <Sparkles class="w-2.5 h-2.5 sm:w-3 sm:h-3" /> FORM
               </span>
             </div>
-            <p class="text-xs text-slate-500 mt-0.5">Lengkapi data usaha, aktivasi lisensi kasir, dan kelola sistem pelanggan.</p>
+            <p class="text-[11px] sm:text-xs text-slate-500 mt-0.5">Lengkapi data usaha dan aktivasi lisensi kasir.</p>
           </div>
         </div>
 
         <button 
           @click="emit('close')"
-          class="w-8 h-8 rounded-full bg-slate-100 text-slate-400 hover:text-slate-700 hover:bg-slate-200 flex items-center justify-center transition-colors cursor-pointer"
+          class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-slate-100 text-slate-400 hover:text-slate-700 hover:bg-slate-200 flex items-center justify-center transition-colors cursor-pointer shrink-0"
         >
           <X class="w-4 h-4" />
         </button>
       </div>
 
-      <!-- Step Indicator Navigation -->
-      <div class="px-8 py-3 bg-white border-b border-slate-100 flex items-center justify-between">
-        <div class="flex items-center gap-2 sm:gap-4 w-full">
+      <!-- Step Indicator Navigation (Compact on mobile) -->
+      <div class="px-4 sm:px-8 py-2.5 sm:py-3 bg-white border-b border-slate-100 flex items-center justify-between">
+        <div class="flex items-center gap-1.5 sm:gap-4 w-full">
           <!-- Step 1 -->
           <button 
             @click="currentStep = 1"
-            class="flex items-center gap-2 cursor-pointer group"
+            class="flex items-center gap-1.5 sm:gap-2 cursor-pointer group shrink-0"
           >
             <span 
-              class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all"
+              class="w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center text-[11px] sm:text-xs font-bold transition-all"
               :class="currentStep === 1 ? 'bg-indigo-600 text-white shadow-xs' : (currentStep > 1 ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-500')"
             >
-              <CheckCircle2 v-if="currentStep > 1" class="w-4 h-4" />
+              <CheckCircle2 v-if="currentStep > 1" class="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               <span v-else>1</span>
             </span>
             <span class="text-xs font-bold" :class="currentStep === 1 ? 'text-indigo-600' : 'text-slate-600'">
-              1. Identitas Usaha
+              <span class="hidden sm:inline">1. </span>Usaha
             </span>
           </button>
 
@@ -245,17 +248,17 @@ const handleSubmit = () => {
           <!-- Step 2 -->
           <button 
             @click="currentStep = 2"
-            class="flex items-center gap-2 cursor-pointer group"
+            class="flex items-center gap-1.5 sm:gap-2 cursor-pointer group shrink-0"
           >
             <span 
-              class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all"
+              class="w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center text-[11px] sm:text-xs font-bold transition-all"
               :class="currentStep === 2 ? 'bg-indigo-600 text-white shadow-xs' : (currentStep > 2 ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-500')"
             >
-              <CheckCircle2 v-if="currentStep > 2" class="w-4 h-4" />
+              <CheckCircle2 v-if="currentStep > 2" class="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               <span v-else>2</span>
             </span>
             <span class="text-xs font-bold" :class="currentStep === 2 ? 'text-indigo-600' : 'text-slate-600'">
-              2. Paket Kasir
+              <span class="hidden sm:inline">2. </span>Paket
             </span>
           </button>
 
@@ -264,16 +267,16 @@ const handleSubmit = () => {
           <!-- Step 3 -->
           <button 
             @click="currentStep = 3"
-            class="flex items-center gap-2 cursor-pointer group"
+            class="flex items-center gap-1.5 sm:gap-2 cursor-pointer group shrink-0"
           >
             <span 
-              class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all"
+              class="w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center text-[11px] sm:text-xs font-bold transition-all"
               :class="currentStep === 3 ? 'bg-indigo-600 text-white shadow-xs' : 'bg-slate-100 text-slate-500'"
             >
-              3
+              <span>3</span>
             </span>
             <span class="text-xs font-bold" :class="currentStep === 3 ? 'text-indigo-600' : 'text-slate-600'">
-              3. Pembayaran & Kas
+              <span class="hidden sm:inline">3. </span>Bayar
             </span>
           </button>
         </div>

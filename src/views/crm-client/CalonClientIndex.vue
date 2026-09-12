@@ -13,7 +13,11 @@ import {
   ChevronRight, 
   ChevronDown,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  Phone,
+  Mail,
+  Store,
+  Clock
 } from 'lucide-vue-next'
 import ClientFormModal from '../../components/crm/ClientFormModal.vue'
 import ClientDetailModal from '../../components/crm/ClientDetailModal.vue'
@@ -245,7 +249,7 @@ const handleClientSaved = (savedClient: ClientLead) => {
 
 const handleConvertConfirmed = (client: ClientLead) => {
   const index = clients.value.findIndex(c => c.id === client.id)
-  if (index !== -1) {
+  if (index !== -1 && clients.value[index]) {
     clients.value[index].status = 'Converted'
     showToast(`Client "${client.name}" berhasil dikonversi menjadi Pelanggan Aktif!`)
   }
@@ -282,22 +286,22 @@ const sendWhatsAppDirect = (client: ClientLead) => {
 </script>
 
 <template>
-  <div class="p-6 md:p-8 space-y-6 max-w-[1400px] mx-auto select-none">
+  <div class="p-3.5 sm:p-6 md:p-8 space-y-4 sm:space-y-6 max-w-[1400px] mx-auto select-none">
     
-    <!-- VIEW 1: TABLE VIEW -->
-    <div v-if="currentView === 'table'" class="space-y-6 animate-in fade-in duration-150">
-      <!-- Top Header matching screenshot -->
-      <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <!-- VIEW 1: TABLE / CARDS VIEW -->
+    <div v-if="currentView === 'table'" class="space-y-4 sm:space-y-6 animate-in fade-in duration-150">
+      <!-- Top Header -->
+      <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
         <div>
-          <h1 class="text-2xl font-extrabold text-slate-800 tracking-tight">Calon Client</h1>
-          <p class="text-xs text-slate-500 mt-1 font-medium">Kelola data calon pelanggan dan proses follow up.</p>
+          <h1 class="text-xl sm:text-2xl font-extrabold text-slate-800 tracking-tight">Calon Client</h1>
+          <p class="text-[11px] sm:text-xs text-slate-500 mt-0.5 sm:mt-1 font-medium">Kelola data calon pelanggan dan proses follow up.</p>
         </div>
 
-        <!-- "+ Tambah Client" button matching screenshot -->
-        <div>
+        <!-- "+ Tambah Client" button -->
+        <div class="flex items-center">
           <button 
             @click="openAddModal"
-            class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-md shadow-indigo-200 transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
+            class="w-full sm:w-auto flex items-center justify-center gap-2 px-3.5 py-2.5 sm:px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white text-xs font-bold shadow-md shadow-indigo-200 transition-all cursor-pointer"
           >
             <Plus class="w-4 h-4" />
             <span>Tambah Client</span>
@@ -305,8 +309,8 @@ const sendWhatsAppDirect = (client: ClientLead) => {
         </div>
       </header>
 
-      <!-- Filter & Search Toolbar matching screenshot -->
-      <div class="bg-white rounded-2xl p-4 shadow-xs border border-slate-100 flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
+      <!-- Filter & Search Toolbar -->
+      <div class="bg-white rounded-2xl p-3 sm:p-4 shadow-xs border border-slate-100 flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
         
         <!-- Search Input -->
         <div class="relative flex-1">
@@ -315,26 +319,26 @@ const sendWhatsAppDirect = (client: ClientLead) => {
             v-model="searchQuery"
             type="text" 
             placeholder="Cari nama / HP / email..."
-            class="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 text-xs font-medium text-slate-700 placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all"
+            class="w-full pl-10 pr-4 py-2 sm:py-2.5 rounded-xl border border-slate-200 text-xs font-medium text-slate-700 placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all"
           />
         </div>
 
         <!-- Filter Controls -->
-        <div class="flex items-center flex-wrap gap-2.5 text-xs">
+        <div class="flex items-center flex-wrap gap-2 text-xs">
           
           <!-- Dropdown Status -->
-          <div class="relative">
+          <div class="relative flex-1 sm:flex-none">
             <button 
               @click="showStatusDropdown = !showStatusDropdown"
-              class="flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 bg-white font-medium text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer shadow-2xs"
+              class="w-full sm:w-auto flex items-center justify-between gap-2 px-3 py-2 rounded-xl border border-slate-200 bg-white font-medium text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer shadow-2xs"
             >
-              <span>{{ selectedStatus }}</span>
-              <ChevronDown class="w-3.5 h-3.5 text-slate-400" />
+              <span class="truncate max-w-[100px] sm:max-w-none">{{ selectedStatus }}</span>
+              <ChevronDown class="w-3.5 h-3.5 text-slate-400 shrink-0" />
             </button>
 
             <div 
               v-if="showStatusDropdown"
-              class="absolute right-0 mt-1.5 w-40 bg-white rounded-xl shadow-lg border border-slate-100 py-1 z-30 animate-in fade-in zoom-in-95 duration-100"
+              class="absolute left-0 sm:left-auto sm:right-0 mt-1.5 w-44 bg-white rounded-xl shadow-lg border border-slate-100 py-1 z-30 animate-in fade-in zoom-in-95 duration-100"
             >
               <button 
                 v-for="st in statusOptions" 
@@ -350,18 +354,18 @@ const sendWhatsAppDirect = (client: ClientLead) => {
           </div>
 
           <!-- Dropdown Sumber -->
-          <div class="relative">
+          <div class="relative flex-1 sm:flex-none">
             <button 
               @click="showSourceDropdown = !showSourceDropdown"
-              class="flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 bg-white font-medium text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer shadow-2xs"
+              class="w-full sm:w-auto flex items-center justify-between gap-2 px-3 py-2 rounded-xl border border-slate-200 bg-white font-medium text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer shadow-2xs"
             >
-              <span>{{ selectedSource }}</span>
-              <ChevronDown class="w-3.5 h-3.5 text-slate-400" />
+              <span class="truncate max-w-[100px] sm:max-w-none">{{ selectedSource }}</span>
+              <ChevronDown class="w-3.5 h-3.5 text-slate-400 shrink-0" />
             </button>
 
             <div 
               v-if="showSourceDropdown"
-              class="absolute right-0 mt-1.5 w-44 bg-white rounded-xl shadow-lg border border-slate-100 py-1 z-30 animate-in fade-in zoom-in-95 duration-100"
+              class="absolute left-0 sm:left-auto sm:right-0 mt-1.5 w-44 bg-white rounded-xl shadow-lg border border-slate-100 py-1 z-30 animate-in fade-in zoom-in-95 duration-100"
             >
               <button 
                 v-for="src in sourceOptions" 
@@ -377,7 +381,7 @@ const sendWhatsAppDirect = (client: ClientLead) => {
           </div>
 
           <!-- Filter Tanggal -->
-          <div class="relative">
+          <div class="relative hidden sm:block">
             <button 
               @click="showDateDropdown = !showDateDropdown"
               class="flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 bg-white font-medium text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer shadow-2xs"
@@ -401,17 +405,122 @@ const sendWhatsAppDirect = (client: ClientLead) => {
           <!-- Reset Button -->
           <button 
             @click="resetFilter"
-            class="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 font-semibold transition-colors cursor-pointer"
+            class="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 font-semibold transition-colors cursor-pointer"
+            title="Reset Filter"
           >
             <RotateCcw class="w-3.5 h-3.5" />
-            <span>Reset</span>
+            <span class="hidden sm:inline">Reset</span>
           </button>
         </div>
 
       </div>
 
-      <!-- Data Table Card matching screenshot -->
-      <div class="bg-white rounded-2xl shadow-xs border border-slate-100 overflow-hidden">
+      <!-- MOBILE VIEW: RESPONSIVE CARDS (Visible only on < md screens) -->
+      <div class="block md:hidden space-y-3">
+        <div 
+          v-for="(client, idx) in filteredClients" 
+          :key="client.id"
+          class="bg-white rounded-2xl p-4 border border-slate-100 shadow-xs space-y-3 transition-all active:scale-[0.99]"
+        >
+          <!-- Top Card Row: Name, Business & Status Badge -->
+          <div class="flex items-start justify-between gap-2">
+            <div class="flex items-center gap-2.5">
+              <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-700 font-bold flex items-center justify-center text-sm border border-indigo-100 shrink-0">
+                {{ client.name.charAt(0) }}
+              </div>
+              <div>
+                <div class="font-bold text-sm text-slate-900 leading-snug">{{ client.name }}</div>
+                <div class="text-[11px] text-slate-400 font-medium">{{ client.businessName }} ({{ client.businessCategory || 'Retail' }})</div>
+              </div>
+            </div>
+
+            <!-- Status Badge -->
+            <span 
+              class="px-2.5 py-0.5 rounded-full text-[10px] font-bold shrink-0 inline-block"
+              :class="statusBadges[client.status]?.bg"
+            >
+              {{ client.status }}
+            </span>
+          </div>
+
+          <!-- Middle Info: Phone, Email, Last Follow-up -->
+          <div class="bg-slate-50/70 rounded-xl p-2.5 text-xs space-y-1.5 text-slate-600 border border-slate-100">
+            <div class="flex items-center justify-between">
+              <span class="text-slate-400 text-[11px] flex items-center gap-1">
+                <Phone class="w-3 h-3 text-slate-400" /> WhatsApp
+              </span>
+              <span class="font-bold font-mono text-[11px] text-slate-700">
+                {{ client.phone.replace(/(\d{4})(\d{4})(\d+)/, '$1-$2-xxxx') }}
+              </span>
+            </div>
+
+            <div class="flex items-center justify-between">
+              <span class="text-slate-400 text-[11px] flex items-center gap-1">
+                <Mail class="w-3 h-3 text-slate-400" /> Email
+              </span>
+              <span class="font-medium text-[11px] text-slate-700 truncate max-w-[180px]">
+                {{ client.email }}
+              </span>
+            </div>
+
+            <div class="flex items-center justify-between pt-1 border-t border-slate-100">
+              <span class="text-slate-400 text-[10px] flex items-center gap-1">
+                <Clock class="w-3 h-3 text-slate-400" /> Follow Up Terakhir
+              </span>
+              <span class="text-[10px] font-semibold text-indigo-600">
+                {{ client.lastFollowUp }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Bottom Action Buttons: 1-Tap WhatsApp, Detail, Edit, Delete -->
+          <div class="flex items-center gap-2 pt-1">
+            <!-- 1-Tap Direct WhatsApp Button (Green & prominent) -->
+            <button 
+              @click.stop="sendWhatsAppDirect(client)"
+              class="flex-1 py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition-all active:scale-95 cursor-pointer"
+            >
+              <MessageSquare class="w-3.5 h-3.5" />
+              <span>WhatsApp</span>
+            </button>
+
+            <!-- Detail Button -->
+            <button 
+              @click.stop="openDetailModal(client)"
+              title="Lihat Detail Client"
+              class="py-2 px-3 rounded-xl bg-slate-100 hover:bg-indigo-50 text-slate-700 hover:text-indigo-600 text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer"
+            >
+              <Eye class="w-3.5 h-3.5" />
+              <span>Detail</span>
+            </button>
+
+            <!-- Edit Button -->
+            <button 
+              @click.stop="openEditModal(client)"
+              title="Edit Data Client"
+              class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-indigo-50 text-slate-600 hover:text-indigo-600 flex items-center justify-center transition-all cursor-pointer"
+            >
+              <Edit3 class="w-3.5 h-3.5" />
+            </button>
+
+            <!-- Delete Button -->
+            <button 
+              @click.stop="deleteClient(client.id, client.name)"
+              title="Hapus Data Client"
+              class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-rose-50 text-slate-400 hover:text-rose-600 flex items-center justify-center transition-all cursor-pointer"
+            >
+              <Trash2 class="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+
+        <div v-if="filteredClients.length === 0" class="bg-white rounded-2xl p-8 text-center text-slate-400 text-xs border border-slate-100">
+          Tidak ada calon client yang cocok dengan pencarian / filter.
+        </div>
+      </div>
+
+      <!-- DESKTOP VIEW: FULL TABLE (Visible on >= md screens) -->
+      <div class="hidden md:block bg-white rounded-2xl shadow-xs border border-slate-100 overflow-hidden">
         <div class="overflow-x-auto">
           <table class="w-full text-left text-xs">
             <thead>
@@ -465,7 +574,7 @@ const sendWhatsAppDirect = (client: ClientLead) => {
                   {{ client.lastFollowUp }}
                 </td>
 
-                <!-- Aksi (Edit, Eye, WhatsApp, Trash) matching screenshot -->
+                <!-- Aksi (Edit, Eye, WhatsApp, Trash) -->
                 <td class="py-3.5 px-4" @click.stop>
                   <div class="flex items-center justify-center gap-1.5">
                     <!-- Edit Button -->
@@ -515,69 +624,63 @@ const sendWhatsAppDirect = (client: ClientLead) => {
             </tbody>
           </table>
         </div>
+      </div>
 
-        <!-- Pagination Footer matching screenshot -->
-        <div class="px-5 py-3.5 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
-          <div>
-            Menampilkan 1 - {{ filteredClients.length }} dari 24 data
-          </div>
+      <!-- Pagination Footer (Responsive on mobile) -->
+      <div class="bg-white rounded-2xl px-4 sm:px-5 py-3 sm:py-3.5 border border-slate-100 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
+        <div>
+          Menampilkan 1 - {{ filteredClients.length }} dari 24 data
+        </div>
 
-          <div class="flex items-center gap-1.5 select-none">
-            <button 
-              @click="currentPage = Math.max(1, currentPage - 1)"
-              class="w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center hover:bg-slate-50 transition-colors disabled:opacity-40 cursor-pointer"
-              :disabled="currentPage === 1"
-            >
-              <ChevronLeft class="w-3.5 h-3.5 text-slate-500" />
-            </button>
+        <div class="flex items-center gap-1.5 select-none">
+          <button 
+            @click="currentPage = Math.max(1, currentPage - 1)"
+            class="px-2.5 sm:px-0 sm:w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center hover:bg-slate-50 transition-colors disabled:opacity-40 cursor-pointer text-xs"
+            :disabled="currentPage === 1"
+          >
+            <ChevronLeft class="w-3.5 h-3.5 text-slate-500 sm:mx-auto" />
+            <span class="sm:hidden ml-1">Prev</span>
+          </button>
 
-            <button 
-              @click="currentPage = 1"
-              class="w-7 h-7 rounded-lg font-bold flex items-center justify-center transition-colors cursor-pointer"
-              :class="currentPage === 1 ? 'bg-indigo-600 text-white' : 'hover:bg-slate-100 text-slate-700'"
-            >
-              1
-            </button>
+          <button 
+            @click="currentPage = 1"
+            class="w-7 h-7 rounded-lg font-bold flex items-center justify-center transition-colors cursor-pointer"
+            :class="currentPage === 1 ? 'bg-indigo-600 text-white' : 'hover:bg-slate-100 text-slate-700'"
+          >
+            1
+          </button>
 
-            <button 
-              @click="currentPage = 2"
-              class="w-7 h-7 rounded-lg font-bold flex items-center justify-center transition-colors cursor-pointer"
-              :class="currentPage === 2 ? 'bg-indigo-600 text-white' : 'hover:bg-slate-100 text-slate-700'"
-            >
-              2
-            </button>
+          <button 
+            @click="currentPage = 2"
+            class="w-7 h-7 rounded-lg font-bold flex items-center justify-center transition-colors cursor-pointer"
+            :class="currentPage === 2 ? 'bg-indigo-600 text-white' : 'hover:bg-slate-100 text-slate-700'"
+          >
+            2
+          </button>
 
-            <button 
-              @click="currentPage = 3"
-              class="w-7 h-7 rounded-lg font-bold flex items-center justify-center transition-colors cursor-pointer"
-              :class="currentPage === 3 ? 'bg-indigo-600 text-white' : 'hover:bg-slate-100 text-slate-700'"
-            >
-              3
-            </button>
+          <button 
+            @click="currentPage = 3"
+            class="w-7 h-7 rounded-lg font-bold flex items-center justify-center transition-colors cursor-pointer hidden sm:flex"
+            :class="currentPage === 3 ? 'bg-indigo-600 text-white' : 'hover:bg-slate-100 text-slate-700'"
+          >
+            3
+          </button>
 
-            <button 
-              @click="currentPage = 4"
-              class="w-7 h-7 rounded-lg font-bold flex items-center justify-center transition-colors cursor-pointer"
-              :class="currentPage === 4 ? 'bg-indigo-600 text-white' : 'hover:bg-slate-100 text-slate-700'"
-            >
-              4
-            </button>
+          <span class="px-1 text-slate-400 hidden sm:inline">...</span>
 
-            <span class="px-1 text-slate-400">...</span>
-
-            <button 
-              @click="currentPage = currentPage + 1"
-              class="w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center hover:bg-slate-50 transition-colors cursor-pointer"
-            >
-              <ChevronRight class="w-3.5 h-3.5 text-slate-500" />
-            </button>
-          </div>
+          <button 
+            @click="currentPage = currentPage + 1"
+            class="px-2.5 sm:px-0 sm:w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center hover:bg-slate-50 transition-colors cursor-pointer text-xs"
+          >
+            <span class="sm:hidden mr-1">Next</span>
+            <ChevronRight class="w-3.5 h-3.5 text-slate-500 sm:mx-auto" />
+          </button>
         </div>
       </div>
     </div>
 
-    <!-- VIEW 2: DETAIL CLIENT FULL PAGE VIEW (MATCHING SCREENSHOT) -->
-    <div v-else-if="currentView === 'detail' && selectedClient" class="space-y-6 animate-in fade-in duration-150">
+    <!-- VIEW 2: DETAIL CLIENT FULL PAGE VIEW -->
+    <div v-else-if="currentView === 'detail' && selectedClient" class="space-y-4 sm:space-y-6 animate-in fade-in duration-150">
       <!-- Breadcrumb Navigation -->
       <div class="flex items-center gap-1.5 text-xs text-slate-400 font-medium">
         <button 
@@ -591,27 +694,27 @@ const sendWhatsAppDirect = (client: ClientLead) => {
         <span class="text-slate-700 font-semibold">Detail Client</span>
       </div>
 
-      <!-- Detail Client Header matching screenshot -->
-      <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <!-- Detail Client Header -->
+      <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
         <div>
-          <h1 class="text-2xl font-extrabold text-slate-800 tracking-tight">Detail Client</h1>
-          <p class="text-xs text-slate-500 mt-1 font-medium">Kelola informasi lengkap calon client.</p>
+          <h1 class="text-xl sm:text-2xl font-extrabold text-slate-800 tracking-tight">Detail Client</h1>
+          <p class="text-xs text-slate-500 mt-0.5 sm:mt-1 font-medium">Kelola informasi lengkap calon client.</p>
         </div>
 
-        <div class="flex items-center flex-wrap gap-2.5">
+        <div class="flex items-center flex-wrap gap-2">
           <!-- Follow Up WhatsApp Button (Green) -->
           <button 
             @click="sendWhatsAppDirect(selectedClient)"
-            class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
+            class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
           >
             <MessageSquare class="w-4 h-4" />
             <span>Follow Up WhatsApp</span>
           </button>
 
-          <!-- Edit Client Button (Purple) -->
+          <!-- Edit Client Button -->
           <button 
             @click="openEditModal(selectedClient)"
-            class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
+            class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
           >
             <Edit3 class="w-4 h-4" />
             <span>Edit Client</span>
@@ -621,7 +724,7 @@ const sendWhatsAppDirect = (client: ClientLead) => {
           <button 
             v-if="selectedClient.status !== 'Converted'"
             @click="openConvertModal(selectedClient)"
-            class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-black text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
+            class="w-full sm:w-auto flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-900 hover:bg-black text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
           >
             <CheckCircle2 class="w-4 h-4 text-emerald-400" />
             <span>Konversi ke Pelanggan</span>
@@ -629,20 +732,20 @@ const sendWhatsAppDirect = (client: ClientLead) => {
         </div>
       </header>
 
-      <!-- Main Detail Grid matching screenshot: Left Profile Card, Right Info & Timeline Cards -->
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      <!-- Main Detail Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 items-start">
         
         <!-- Left Profile Card (4 cols) -->
-        <div class="lg:col-span-4 bg-white rounded-2xl p-6 border border-slate-100 shadow-xs flex flex-col items-center text-center">
+        <div class="lg:col-span-4 bg-white rounded-2xl p-5 sm:p-6 border border-slate-100 shadow-xs flex flex-col items-center text-center">
           <!-- Avatar Picture -->
-          <div class="w-24 h-24 rounded-full bg-slate-100 border-2 border-slate-200 flex items-center justify-center text-3xl font-extrabold text-slate-700 mb-3 shadow-inner">
+          <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-slate-100 border-2 border-slate-200 flex items-center justify-center text-2xl sm:text-3xl font-extrabold text-slate-700 mb-3 shadow-inner">
             👤
           </div>
 
           <h2 class="text-base font-bold text-slate-800">{{ selectedClient.name }}</h2>
 
-          <!-- Status badge matching screenshot -->
-          <div class="mt-1.5 mb-5">
+          <!-- Status badge -->
+          <div class="mt-1.5 mb-4 sm:mb-5">
             <span 
               class="px-3 py-0.5 rounded-full text-xs font-bold inline-block"
               :class="statusBadges[selectedClient.status]?.bg"
@@ -651,8 +754,8 @@ const sendWhatsAppDirect = (client: ClientLead) => {
             </span>
           </div>
 
-          <!-- Contact info list matching screenshot -->
-          <div class="w-full border-t border-slate-100 pt-4 space-y-3.5 text-left text-xs">
+          <!-- Contact info list -->
+          <div class="w-full border-t border-slate-100 pt-4 space-y-3 text-left text-xs">
             <div>
               <span class="text-slate-400 block text-[11px] mb-0.5">No. WhatsApp:</span>
               <p class="font-bold text-slate-800 font-mono">{{ selectedClient.phone }}</p>
@@ -660,7 +763,7 @@ const sendWhatsAppDirect = (client: ClientLead) => {
 
             <div>
               <span class="text-slate-400 block text-[11px] mb-0.5">Email:</span>
-              <p class="font-bold text-slate-800">{{ selectedClient.email }}</p>
+              <p class="font-bold text-slate-800 break-all">{{ selectedClient.email }}</p>
             </div>
 
             <div>
@@ -676,10 +779,10 @@ const sendWhatsAppDirect = (client: ClientLead) => {
         </div>
 
         <!-- Right Column (8 cols): Informasi Client & Riwayat Follow Up -->
-        <div class="lg:col-span-8 space-y-6">
+        <div class="lg:col-span-8 space-y-4 sm:space-y-6">
           
-          <!-- Card 1: Informasi Client matching screenshot -->
-          <div class="bg-white rounded-2xl p-6 border border-slate-100 shadow-xs">
+          <!-- Card 1: Informasi Client -->
+          <div class="bg-white rounded-2xl p-5 sm:p-6 border border-slate-100 shadow-xs">
             <h3 class="text-sm font-bold text-slate-800 pb-3 border-b border-slate-100 mb-4">Informasi Client</h3>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
@@ -707,8 +810,8 @@ const sendWhatsAppDirect = (client: ClientLead) => {
             </div>
           </div>
 
-          <!-- Card 2: Riwayat Follow Up Timeline matching screenshot -->
-          <div class="bg-white rounded-2xl p-6 border border-slate-100 shadow-xs">
+          <!-- Card 2: Riwayat Follow Up Timeline -->
+          <div class="bg-white rounded-2xl p-5 sm:p-6 border border-slate-100 shadow-xs">
             <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <h3 class="text-sm font-bold text-slate-800">Riwayat Follow Up</h3>
               <button 
@@ -720,10 +823,10 @@ const sendWhatsAppDirect = (client: ClientLead) => {
               </button>
             </div>
 
-            <!-- Inline Input for Add Follow Up -->
-            <div v-if="showAddFollowUp" class="mb-5 p-3.5 rounded-xl bg-indigo-50/50 border border-indigo-100 space-y-2 text-xs">
-              <div class="flex items-center gap-2">
-                <select v-model="newChannel" class="px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold bg-white">
+            <!-- Inline Input for Add Follow Up (Responsive on mobile) -->
+            <div v-if="showAddFollowUp" class="mb-5 p-3 sm:p-3.5 rounded-xl bg-indigo-50/50 border border-indigo-100 space-y-2 text-xs">
+              <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                <select v-model="newChannel" class="px-2.5 py-2 rounded-lg border border-slate-200 text-xs font-semibold bg-white">
                   <option value="WhatsApp">WhatsApp</option>
                   <option value="Telepon">Telepon</option>
                   <option value="Meeting">Meeting</option>
@@ -733,19 +836,19 @@ const sendWhatsAppDirect = (client: ClientLead) => {
                   v-model="newNote"
                   type="text" 
                   placeholder="Tulis ringkasan hasil follow up client..."
-                  class="flex-1 px-3 py-1.5 rounded-lg border border-slate-200 text-xs bg-white focus:outline-none focus:border-indigo-500"
-                  @keyup.enter="() => { handleAddFollowUp(selectedClient.id, newNote, newChannel); newNote = ''; showAddFollowUp = false; }"
+                  class="flex-1 px-3 py-2 rounded-lg border border-slate-200 text-xs bg-white focus:outline-none focus:border-indigo-500"
+                  @keyup.enter="() => { if (selectedClient) { handleAddFollowUp(selectedClient.id, newNote, newChannel); newNote = ''; showAddFollowUp = false; } }"
                 />
                 <button 
-                  @click="() => { handleAddFollowUp(selectedClient.id, newNote, newChannel); newNote = ''; showAddFollowUp = false; }"
-                  class="px-3.5 py-1.5 rounded-lg bg-indigo-600 text-white font-bold text-xs hover:bg-indigo-700 cursor-pointer"
+                  @click="() => { if (selectedClient) { handleAddFollowUp(selectedClient.id, newNote, newChannel); newNote = ''; showAddFollowUp = false; } }"
+                  class="px-4 py-2 rounded-lg bg-indigo-600 text-white font-bold text-xs hover:bg-indigo-700 cursor-pointer"
                 >
                   Simpan
                 </button>
               </div>
             </div>
 
-            <!-- Timeline items matching screenshot -->
+            <!-- Timeline items -->
             <div class="space-y-4 text-xs">
               <div 
                 v-for="fu in selectedClient.followUpHistory" 
@@ -783,7 +886,7 @@ const sendWhatsAppDirect = (client: ClientLead) => {
     </div>
 
     <!-- Modals -->
-    <!-- Form Tambah / Edit Client ("Sangat Bagus") -->
+    <!-- Form Tambah / Edit Client -->
     <ClientFormModal 
       :is-open="isFormModalOpen"
       :client-to-edit="clientToEdit"
@@ -812,7 +915,7 @@ const sendWhatsAppDirect = (client: ClientLead) => {
     <!-- Toast Notification Alert -->
     <div 
       v-if="toastMessage"
-      class="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-5 py-3.5 rounded-2xl shadow-2xl flex items-center gap-3 text-xs font-semibold border border-slate-700 animate-in slide-in-from-bottom-5 duration-200"
+      class="fixed bottom-20 md:bottom-6 right-4 sm:right-6 z-50 bg-slate-900 text-white px-4 sm:px-5 py-3 sm:py-3.5 rounded-2xl shadow-2xl flex items-center gap-3 text-xs font-semibold border border-slate-700 animate-in slide-in-from-bottom-5 duration-200"
     >
       <div class="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0">
         <CheckCircle2 class="w-4 h-4" />

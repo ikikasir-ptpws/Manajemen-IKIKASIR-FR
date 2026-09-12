@@ -17,12 +17,13 @@ const isSuccess = ref(false)
 const isConverting = ref(false)
 
 const handleConfirm = () => {
-  if (!props.client) return
+  const current = props.client
+  if (!current) return
   isConverting.value = true
   setTimeout(() => {
     isConverting.value = false
     isSuccess.value = true
-    emit('confirmed', props.client)
+    emit('confirmed', current)
   }, 400)
 }
 
@@ -33,7 +34,7 @@ const handleClose = () => {
 </script>
 
 <template>
-  <div v-if="isOpen && client" class="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4">
+  <div v-if="isOpen && client" class="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-3.5 sm:p-4">
     <!-- Backdrop -->
     <div 
       class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity duration-200"
@@ -41,7 +42,7 @@ const handleClose = () => {
     ></div>
 
     <!-- Modal Box matching screenshot -->
-    <div class="relative bg-white w-full max-w-md rounded-3xl shadow-2xl border border-slate-100 p-7 text-center z-10 animate-in fade-in zoom-in-95 duration-200">
+    <div class="relative bg-white w-full max-w-md rounded-3xl shadow-2xl border border-slate-100 p-5 sm:p-7 text-center z-10 animate-in fade-in zoom-in-95 duration-200">
       
       <!-- Close Button -->
       <button 
