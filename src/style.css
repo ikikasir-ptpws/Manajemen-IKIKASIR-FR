@@ -194,8 +194,14 @@
 }
 
 .dark .divide-slate-50 > :not([hidden]) ~ :not([hidden]),
-.dark .divide-slate-100 > :not([hidden]) ~ :not([hidden]) {
+.dark .divide-slate-100 > :not([hidden]) ~ :not([hidden]),
+.dark .divide-y > :not([hidden]) ~ :not([hidden]) {
   border-color: #334155 !important; /* slate-700 */
+}
+
+/* Also ensure all borders within tables are dark */
+.dark table, .dark th, .dark td, .dark tr {
+  border-color: #334155 !important;
 }
 
 /* --- Table Heads --- */
@@ -406,10 +412,51 @@
   }
   .dark h1, .dark h2, .dark h3, .dark h4 {
     color: #1e293b !important;
-  }
+}
   .dark .text-slate-800,
   .dark .text-slate-700 {
     color: #334155 !important;
   }
 }
+
+/* ============================================
+   SLEEK RGB NEON BORDER FOR KPI CARDS (DARK MODE)
+   ============================================ */
+@property --kpi-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes spin-kpi-border {
+  0% { --kpi-angle: 0deg; }
+  100% { --kpi-angle: 360deg; }
+}
+
+.dark .kpi-card {
+  border: 1.5px solid transparent !important;
+  background: 
+    linear-gradient(#1e293b, #1e293b) padding-box,
+    conic-gradient(from var(--kpi-angle), 
+      rgba(99, 102, 241, 0.05) 0deg, 
+      rgba(168, 85, 247, 0.9) 120deg, 
+      rgba(236, 72, 153, 0.9) 240deg, 
+      rgba(99, 102, 241, 0.05) 360deg
+    ) border-box !important;
+  animation: spin-kpi-border 5s linear infinite;
+  box-shadow: 0 4px 25px -5px rgba(168, 85, 247, 0.2) !important;
+}
+
+/* Override for the primary 'Saldo Bersih' card which has a gradient background */
+.dark .kpi-card.kpi-primary {
+  background: 
+    linear-gradient(#1e1b4b, #312e81) padding-box,
+    conic-gradient(from var(--kpi-angle), 
+      rgba(56, 189, 248, 0.1) 0deg, 
+      rgba(168, 85, 247, 1) 120deg, 
+      rgba(56, 189, 248, 1) 240deg, 
+      rgba(56, 189, 248, 0.1) 360deg
+    ) border-box !important;
+}
+
 

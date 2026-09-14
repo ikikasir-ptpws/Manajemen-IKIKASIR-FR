@@ -351,7 +351,7 @@ const handleCustomerRenewed = (customerId: string, days: number) => {
     <section class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
       
       <!-- Card 1: Total Pelanggan -->
-      <div class="bg-white dark:bg-slate-800 rounded-2xl p-3.5 sm:p-5 shadow-xs border border-slate-100 dark:border-slate-700 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 card-hover animate-fade-in-up animate-delay-1 cursor-pointer" @click="router.push('/semua-pelanggan')">
+      <div class="kpi-card bg-white dark:bg-slate-800 rounded-2xl p-3.5 sm:p-5 shadow-xs border border-slate-100 dark:border-slate-700 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 card-hover animate-fade-in-up animate-delay-1 cursor-pointer" @click="router.push('/semua-pelanggan')">
         <div class="w-10 h-10 sm:w-13 sm:h-13 rounded-2xl bg-[#EEF2FF] dark:bg-indigo-900/40 text-[#6366F1] dark:text-indigo-400 flex items-center justify-center shrink-0">
           <Users class="w-5 h-5 sm:w-6 sm:h-6" />
         </div>
@@ -368,7 +368,7 @@ const handleCustomerRenewed = (customerId: string, days: number) => {
       </div>
 
       <!-- Card 2: Pelanggan Aktif -->
-      <div class="bg-white dark:bg-slate-800 rounded-2xl p-3.5 sm:p-5 shadow-xs border border-slate-100 dark:border-slate-700 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 card-hover animate-fade-in-up animate-delay-2 cursor-pointer" @click="router.push('/langganan')">
+      <div class="kpi-card bg-white dark:bg-slate-800 rounded-2xl p-3.5 sm:p-5 shadow-xs border border-slate-100 dark:border-slate-700 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 card-hover animate-fade-in-up animate-delay-2 cursor-pointer" @click="router.push('/langganan')">
         <div class="w-10 h-10 sm:w-13 sm:h-13 rounded-2xl bg-[#ECFDF5] dark:bg-emerald-900/40 text-[#10B981] dark:text-emerald-400 flex items-center justify-center shrink-0">
           <UserCheck class="w-5 h-5 sm:w-6 sm:h-6" />
         </div>
@@ -385,7 +385,7 @@ const handleCustomerRenewed = (customerId: string, days: number) => {
       </div>
 
       <!-- Card 3: Akan Expired -->
-      <div class="bg-white dark:bg-slate-800 rounded-2xl p-3.5 sm:p-5 shadow-xs border border-slate-100 dark:border-slate-700 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 card-hover animate-fade-in-up animate-delay-3 cursor-pointer" @click="router.push('/expired')">
+      <div class="kpi-card bg-white dark:bg-slate-800 rounded-2xl p-3.5 sm:p-5 shadow-xs border border-slate-100 dark:border-slate-700 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 card-hover animate-fade-in-up animate-delay-3 cursor-pointer" @click="router.push('/expired')">
         <div class="w-10 h-10 sm:w-13 sm:h-13 rounded-2xl bg-[#FFFBEB] dark:bg-amber-900/40 text-[#F59E0B] dark:text-amber-400 flex items-center justify-center shrink-0">
           <Clock class="w-5 h-5 sm:w-6 sm:h-6" />
         </div>
@@ -405,7 +405,7 @@ const handleCustomerRenewed = (customerId: string, days: number) => {
       </div>
 
       <!-- Card 4: Pelanggan Expired -->
-      <div class="bg-white dark:bg-slate-800 rounded-2xl p-3.5 sm:p-5 shadow-xs border border-slate-100 dark:border-slate-700 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 card-hover animate-fade-in-up animate-delay-4 cursor-pointer" @click="router.push('/expired')">
+      <div class="kpi-card bg-white dark:bg-slate-800 rounded-2xl p-3.5 sm:p-5 shadow-xs border border-slate-100 dark:border-slate-700 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 card-hover animate-fade-in-up animate-delay-4 cursor-pointer" @click="router.push('/expired')">
         <div class="w-10 h-10 sm:w-13 sm:h-13 rounded-2xl bg-[#FEF2F2] dark:bg-rose-900/40 text-[#EF4444] dark:text-rose-400 flex items-center justify-center shrink-0">
           <XCircle class="w-5 h-5 sm:w-6 sm:h-6" />
         </div>

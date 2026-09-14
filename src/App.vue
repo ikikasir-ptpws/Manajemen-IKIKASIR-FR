@@ -284,7 +284,7 @@ const handleLogout = () => {
     </aside>
 
     <!-- Main Content Area -->
-    <main class="flex-1 flex flex-col h-full bg-[#F8F9FD] dark:bg-slate-900 transition-colors duration-300">
+    <main class="flex-1 min-w-0 flex flex-col h-full bg-[#F8F9FD] dark:bg-slate-900 transition-colors duration-300">
       
       <!-- DESKTOP TOP BAR (Visible only on md+ screens) -->
       <header class="hidden md:flex items-center justify-between px-8 py-4 bg-white dark:bg-slate-800 border-b border-slate-100 dark:border-slate-700/50 z-20 shrink-0 shadow-sm transition-colors duration-300">

@@ -127,14 +127,11 @@ const props = withDefaults(defineProps<{
   letter-spacing: 0.04em;
   line-height: 1;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 160px;
 }
 
-.iki-logo__tagline--sm { font-size: 9px; margin-top: 2px; }
-.iki-logo__tagline--md { font-size: 11px; margin-top: 3px; }
-.iki-logo__tagline--lg { font-size: 13px; margin-top: 4px; }
+.iki-logo__tagline--sm { font-size: 8px; margin-top: 2px; }
+.iki-logo__tagline--md { font-size: 9.5px; margin-top: 3px; }
+.iki-logo__tagline--lg { font-size: 11px; margin-top: 4px; }
 
 :root.dark .iki-logo__tagline,
 .dark .iki-logo__tagline {

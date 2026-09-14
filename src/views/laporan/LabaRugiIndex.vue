@@ -1,3 +1,4 @@
+
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { PieChart, Download, Calendar, ChevronDown, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, DollarSign, Minus } from 'lucide-vue-next'
@@ -140,7 +141,7 @@ const handleExport = () => {
 
     <!-- KPI Summary -->
     <section class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-      <div class="bg-white rounded-2xl p-5 shadow-xs border border-slate-100 hover:shadow-md transition-all">
+      <div class="kpi-card bg-white rounded-2xl p-5 shadow-xs border border-slate-100 hover:shadow-md transition-all">
         <div class="flex items-center justify-between mb-3">
           <span class="text-xs font-semibold text-slate-500">Total Pendapatan</span>
           <div class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
@@ -154,7 +155,7 @@ const handleExport = () => {
         </div>
       </div>
 
-      <div class="bg-white rounded-2xl p-5 shadow-xs border border-slate-100 hover:shadow-md transition-all">
+      <div class="kpi-card bg-white rounded-2xl p-5 shadow-xs border border-slate-100 hover:shadow-md transition-all">
         <div class="flex items-center justify-between mb-3">
           <span class="text-xs font-semibold text-slate-500">Total Beban / Biaya</span>
           <div class="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center">
@@ -168,7 +169,7 @@ const handleExport = () => {
         </div>
       </div>
 
-      <div class="rounded-2xl p-5 shadow-md hover:shadow-lg transition-all text-white"
+      <div class="kpi-card kpi-primary rounded-2xl p-5 shadow-md hover:shadow-lg transition-all text-white"
         :class="labaRugiBersih >= 0 ? 'bg-gradient-to-br from-emerald-600 to-teal-700' : 'bg-gradient-to-br from-rose-600 to-red-700'"
       >
         <div class="flex items-center justify-between mb-3">
@@ -192,14 +193,14 @@ const handleExport = () => {
       
       <!-- Pendapatan -->
       <div class="bg-white rounded-2xl shadow-xs border border-slate-100 overflow-hidden">
-        <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+        <div class="px-5 py-4 flex items-center justify-between">
           <h2 class="text-sm font-bold text-slate-800 flex items-center gap-2">
             <div class="w-2 h-2 rounded-full bg-emerald-500"></div>
             Rincian Pendapatan
           </h2>
           <span class="text-xs font-bold text-emerald-600">{{ formatCurrency(totalPendapatan) }}</span>
         </div>
-        <div class="divide-y divide-slate-50">
+        <div class="">
           <div v-for="item in pendapatanItems" :key="item.name" class="px-5 py-3.5 flex items-center justify-between hover:bg-slate-50/50 transition-colors">
             <span class="text-sm text-slate-700 font-medium">{{ item.name }}</span>
             <span class="text-sm font-bold text-emerald-600">{{ formatCurrency(item.amount) }}</span>
@@ -213,14 +214,14 @@ const handleExport = () => {
 
       <!-- Beban -->
       <div class="bg-white rounded-2xl shadow-xs border border-slate-100 overflow-hidden">
-        <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+        <div class="px-5 py-4 flex items-center justify-between">
           <h2 class="text-sm font-bold text-slate-800 flex items-center gap-2">
             <div class="w-2 h-2 rounded-full bg-rose-500"></div>
             Rincian Beban / Biaya
           </h2>
           <span class="text-xs font-bold text-rose-600">{{ formatCurrency(totalBeban) }}</span>
         </div>
-        <div class="divide-y divide-slate-50">
+        <div class="">
           <div v-for="item in bebanItems" :key="item.name" class="px-5 py-3.5 flex items-center justify-between hover:bg-slate-50/50 transition-colors">
             <span class="text-sm text-slate-700 font-medium">{{ item.name }}</span>
             <span class="text-sm font-bold text-rose-600">{{ formatCurrency(item.amount) }}</span>

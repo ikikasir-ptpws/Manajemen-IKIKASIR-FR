@@ -151,7 +151,7 @@ const handleExport = () => {
     <!-- KPI Summary Cards -->
     <section class="grid grid-cols-1 sm:grid-cols-3 gap-4">
       <!-- Pemasukan -->
-      <div class="bg-white rounded-2xl p-5 shadow-xs border border-slate-100 hover:shadow-md transition-all">
+      <div class="kpi-card bg-white rounded-2xl p-5 shadow-xs border border-slate-100 hover:shadow-md transition-all">
         <div class="flex items-center justify-between mb-3">
           <span class="text-xs font-semibold text-slate-500">Total Pemasukan</span>
           <div class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
@@ -166,7 +166,7 @@ const handleExport = () => {
       </div>
 
       <!-- Pengeluaran -->
-      <div class="bg-white rounded-2xl p-5 shadow-xs border border-slate-100 hover:shadow-md transition-all">
+      <div class="kpi-card bg-white rounded-2xl p-5 shadow-xs border border-slate-100 hover:shadow-md transition-all">
         <div class="flex items-center justify-between mb-3">
           <span class="text-xs font-semibold text-slate-500">Total Pengeluaran</span>
           <div class="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center">
@@ -181,7 +181,7 @@ const handleExport = () => {
       </div>
 
       <!-- Saldo Bersih -->
-      <div class="bg-gradient-to-br from-indigo-600 to-blue-700 rounded-2xl p-5 shadow-md hover:shadow-lg transition-all text-white">
+      <div class="kpi-card kpi-primary bg-gradient-to-br from-indigo-600 to-blue-700 rounded-2xl p-5 shadow-md hover:shadow-lg transition-all text-white">
         <div class="flex items-center justify-between mb-3">
           <span class="text-xs font-semibold text-indigo-200">Saldo Bersih</span>
           <div class="w-9 h-9 rounded-xl bg-white/15 text-white flex items-center justify-center">

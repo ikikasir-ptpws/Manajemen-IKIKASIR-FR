@@ -160,7 +160,7 @@ const handleExport = () => {
     </header>
 
     <!-- Balance Equation Summary -->
-    <section class="bg-white rounded-2xl p-5 shadow-xs border border-slate-100">
+    <section class="kpi-card bg-white rounded-2xl p-5 shadow-xs border border-slate-100">
       <div class="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-5 text-center">
         <div class="flex-1 w-full sm:w-auto">
           <div class="text-[11px] font-semibold text-slate-500 mb-1">Total Aset</div>

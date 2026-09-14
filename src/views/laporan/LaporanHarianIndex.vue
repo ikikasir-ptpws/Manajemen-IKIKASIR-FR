@@ -331,7 +331,7 @@ const handlePrint = () => {
     <!-- ========== RINGKASAN LAPORAN (KPI CARDS) ========== -->
     <section class="grid grid-cols-1 sm:grid-cols-3 gap-4">
       <!-- 1. Total Penjualan -->
-      <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-100 dark:border-slate-700/50 shadow-xs flex items-center justify-between">
+      <div class="kpi-card bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-100 dark:border-slate-700/50 shadow-xs flex items-center justify-between">
         <div>
           <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Total Penjualan</span>
           <h3 class="text-xl sm:text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-1 tracking-tight">
@@ -345,7 +345,7 @@ const handlePrint = () => {
       </div>
 
       <!-- 2. Jumlah Transaksi -->
-      <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-100 dark:border-slate-700/50 shadow-xs flex items-center justify-between">
+      <div class="kpi-card bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-100 dark:border-slate-700/50 shadow-xs flex items-center justify-between">
         <div>
           <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Jumlah Transaksi</span>
           <h3 class="text-xl sm:text-2xl font-extrabold text-slate-800 dark:text-white mt-1 tracking-tight">
@@ -359,7 +359,7 @@ const handlePrint = () => {
       </div>
 
       <!-- 3. Produk Terjual -->
-      <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-100 dark:border-slate-700/50 shadow-xs flex items-center justify-between">
+      <div class="kpi-card bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-100 dark:border-slate-700/50 shadow-xs flex items-center justify-between">
         <div>
           <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Produk Terjual</span>
           <h3 class="text-xl sm:text-2xl font-extrabold text-indigo-600 dark:text-indigo-400 mt-1 tracking-tight">
