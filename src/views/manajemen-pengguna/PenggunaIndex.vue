@@ -8,6 +8,21 @@ const users = ref([
   { id: 2, name: 'Siti Aisyah', email: 'siti@ikikasir.com', role: 'Admin', status: 'Active', lastLogin: '1 hari yang lalu' },
   { id: 3, name: 'Andi Wijaya', email: 'andi@ikikasir.com', role: 'Staff', status: 'Inactive', lastLogin: '1 minggu yang lalu' }
 ])
+
+const handleAdd = () => {
+  window.alert('Fitur Tambah Pengguna (Demo)')
+}
+
+const handleEdit = (user: any) => {
+  const newName = window.prompt('Edit Nama Pengguna:', user.name)
+  if (newName) user.name = newName
+}
+
+const handleDelete = (index: number) => {
+  if (window.confirm('Hapus pengguna ini?')) {
+    users.value.splice(index, 1)
+  }
+}
 </script>
 
 <template>
@@ -33,7 +48,10 @@ const users = ref([
             class="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
           />
         </div>
-        <button class="flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-200 shrink-0">
+        <button 
+          @click="handleAdd"
+          class="flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-200 shrink-0 cursor-pointer active:scale-95"
+        >
           <Plus class="w-4 h-4" />
           <span class="hidden sm:inline">Tambah Pengguna</span>
         </button>
@@ -86,11 +104,17 @@ const users = ref([
               <td class="px-6 py-4 text-slate-500 text-xs">{{ user.lastLogin }}</td>
               <td class="px-6 py-4">
                 <div class="flex items-center justify-end gap-2">
-                  <button class="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors">
-                    <Edit2 class="w-4 h-4" />
+                  <button 
+                    @click="handleEdit(user)"
+                    class="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer active:scale-95"
+                  >
+                    <Edit2 class="w-4 h-4" pointer-events="none" />
                   </button>
-                  <button class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors">
-                    <Trash2 class="w-4 h-4" />
+                  <button 
+                    @click="handleDelete(index)"
+                    class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer active:scale-95"
+                  >
+                    <Trash2 class="w-4 h-4" pointer-events="none" />
                   </button>
                 </div>
               </td>

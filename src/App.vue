@@ -42,13 +42,16 @@ const toggleTheme = () => {
   }
 }
 
-// Close drawer and scroll to top whenever route changes
-watch(() => route.path, () => {
+// Close drawer and scroll to top whenever route changes, and handle landing page theme reset
+watch(() => route.path, (newPath) => {
   isMobileDrawerOpen.value = false
+  if (newPath === '/landing') {
+    document.documentElement.classList.remove('dark')
+  }
   if (mainContent.value) {
     mainContent.value.scrollTo({ top: 0, behavior: 'smooth' })
   }
-})
+}, { immediate: true })
 
 const handleLogout = () => {
   showLogoutConfirm.value = true
@@ -56,7 +59,8 @@ const handleLogout = () => {
 </script>
 
 <template>
-  <div class="flex flex-col md:flex-row h-screen w-screen overflow-hidden bg-[#F8F9FD] dark:bg-slate-900 transition-colors duration-300">
+  <RouterView v-if="route.path === '/landing'" />
+  <div v-else class="flex flex-col md:flex-row h-screen w-screen overflow-hidden bg-[#F8F9FD] dark:bg-slate-900 transition-colors duration-300">
     
     <!-- MOBILE TOP BAR (Visible only on < md screens) -->
     <header class="md:hidden flex items-center justify-between px-4 py-3 bg-white dark:bg-slate-800 border-b border-slate-100 dark:border-slate-700/50 z-30 shrink-0 select-none shadow-xs">
@@ -164,15 +168,6 @@ const handleLogout = () => {
                 <UserPlus class="w-4 h-4 transition-transform duration-200 group-hover:scale-110" :class="route.path === '/calon-client' ? 'text-[#4F46E5]' : 'text-slate-400 group-hover:text-slate-600'" />
                 <span>Calon Client</span>
               </RouterLink>
-              <RouterLink 
-                to="/follow-up" 
-                @click="isMobileDrawerOpen = false"
-                class="flex items-center gap-3 px-3.5 py-2 rounded-xl text-sm font-medium transition-all duration-200 group"
-                :class="route.path === '/follow-up' ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-semibold' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50 hover:text-slate-900 dark:hover:text-slate-200'"
-              >
-                <MessageCircle class="w-4 h-4 transition-transform duration-200 group-hover:scale-110" :class="route.path === '/follow-up' ? 'text-[#4F46E5]' : 'text-slate-400 group-hover:text-slate-600'" />
-                <span>Follow Up</span>
-              </RouterLink>
             </div>
           </div>
 
@@ -257,15 +252,15 @@ const handleLogout = () => {
           <div>
             <h3 class="px-3 text-[11px] font-bold tracking-wider text-slate-400 uppercase mb-2">LANDING PAGE</h3>
             <div>
-              <a 
-                href="https://ikikasir.com" 
-                target="_blank"
-                rel="noopener noreferrer"
-                class="flex items-center gap-3 px-3.5 py-2 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50 hover:text-slate-900 dark:hover:text-slate-200 transition-all duration-200 group"
+              <RouterLink 
+                to="/landing" 
+                @click="isMobileDrawerOpen = false"
+                class="flex items-center gap-3 px-3.5 py-2 rounded-xl text-sm font-medium transition-all duration-200 group"
+                :class="route.path === '/landing' ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-semibold' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50 hover:text-slate-900 dark:hover:text-slate-200'"
               >
-                <Globe class="w-4 h-4 text-slate-400 group-hover:text-slate-600" />
+                <Globe class="w-4 h-4 transition-transform duration-200 group-hover:scale-110" :class="route.path === '/landing' ? 'text-[#4F46E5]' : 'text-slate-400 group-hover:text-slate-600'" />
                 <span>Landing Page</span>
-              </a>
+              </RouterLink>
             </div>
           </div>
         </nav>
@@ -369,16 +364,6 @@ const handleLogout = () => {
       >
         <UserPlus class="w-5 h-5 mb-0.5" />
         <span class="text-[10px] tracking-tight">Calon Client</span>
-      </RouterLink>
-
-      <!-- Follow Up -->
-      <RouterLink 
-        to="/follow-up" 
-        class="flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition-colors group"
-        :class="route.path === '/follow-up' ? 'text-indigo-600 font-bold' : 'text-slate-500 hover:text-slate-800'"
-      >
-        <MessageCircle class="w-5 h-5 mb-0.5" />
-        <span class="text-[10px] tracking-tight">Follow Up</span>
       </RouterLink>
 
       <!-- Semua Pelanggan -->

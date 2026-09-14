@@ -1,3 +1,4 @@
+
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { Calculator, Download, Calendar, ChevronDown, Scale, Building, Landmark, Wallet, ArrowRight } from 'lucide-vue-next'
@@ -183,7 +184,7 @@ const handleExport = () => {
           <div class="text-lg sm:text-xl font-extrabold text-emerald-700">{{ formatCurrency(totalEkuitas) }}</div>
         </div>
       </div>
-      <div class="mt-4 pt-3 border-t border-slate-100 text-center">
+      <div class="mt-4 pt-3 text-center">
         <span 
           class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold"
           :class="isBalanced ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'"
@@ -201,14 +202,14 @@ const handleExport = () => {
       <div class="space-y-4">
         <!-- Aset Lancar -->
         <div class="bg-white rounded-2xl shadow-xs border border-slate-100 overflow-hidden">
-          <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+          <div class="px-5 py-4 flex items-center justify-between">
             <h2 class="text-sm font-bold text-slate-800 flex items-center gap-2">
               <div class="w-2 h-2 rounded-full bg-blue-500"></div>
               Aset Lancar
             </h2>
             <span class="text-xs font-bold text-blue-600">{{ formatCurrency(totalAsetLancar) }}</span>
           </div>
-          <div class="divide-y divide-slate-50">
+          <div class="">
             <div v-for="item in asetLancar" :key="item.name" class="px-5 py-3 flex items-center justify-between hover:bg-slate-50/50 transition-colors">
               <span class="text-sm text-slate-700 font-medium">{{ item.name }}</span>
               <span class="text-sm font-bold text-slate-800">{{ formatCurrency(item.amount) }}</span>
@@ -218,14 +219,14 @@ const handleExport = () => {
 
         <!-- Aset Tetap -->
         <div class="bg-white rounded-2xl shadow-xs border border-slate-100 overflow-hidden">
-          <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+          <div class="px-5 py-4 flex items-center justify-between">
             <h2 class="text-sm font-bold text-slate-800 flex items-center gap-2">
               <div class="w-2 h-2 rounded-full bg-indigo-500"></div>
               Aset Tetap
             </h2>
             <span class="text-xs font-bold text-indigo-600">{{ formatCurrency(totalAsetTetap) }}</span>
           </div>
-          <div class="divide-y divide-slate-50">
+          <div class="">
             <div v-for="item in asetTetap" :key="item.name" class="px-5 py-3 flex items-center justify-between hover:bg-slate-50/50 transition-colors">
               <span class="text-sm text-slate-700 font-medium">{{ item.name }}</span>
               <span class="text-sm font-bold" :class="item.amount < 0 ? 'text-rose-600' : 'text-slate-800'">
@@ -249,14 +250,14 @@ const handleExport = () => {
       <div class="space-y-4">
         <!-- Kewajiban Lancar -->
         <div class="bg-white rounded-2xl shadow-xs border border-slate-100 overflow-hidden">
-          <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+          <div class="px-5 py-4 flex items-center justify-between">
             <h2 class="text-sm font-bold text-slate-800 flex items-center gap-2">
               <div class="w-2 h-2 rounded-full bg-rose-500"></div>
               Kewajiban Lancar
             </h2>
             <span class="text-xs font-bold text-rose-600">{{ formatCurrency(totalKewajibanLancar) }}</span>
           </div>
-          <div class="divide-y divide-slate-50">
+          <div class="">
             <div v-for="item in kewajibanLancar" :key="item.name" class="px-5 py-3 flex items-center justify-between hover:bg-slate-50/50 transition-colors">
               <span class="text-sm text-slate-700 font-medium">{{ item.name }}</span>
               <span class="text-sm font-bold text-slate-800">{{ formatCurrency(item.amount) }}</span>
@@ -266,14 +267,14 @@ const handleExport = () => {
 
         <!-- Kewajiban Jangka Panjang -->
         <div class="bg-white rounded-2xl shadow-xs border border-slate-100 overflow-hidden">
-          <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+          <div class="px-5 py-4 flex items-center justify-between">
             <h2 class="text-sm font-bold text-slate-800 flex items-center gap-2">
               <div class="w-2 h-2 rounded-full bg-orange-500"></div>
               Kewajiban Jangka Panjang
             </h2>
             <span class="text-xs font-bold text-orange-600">{{ formatCurrency(totalKewajibanJP) }}</span>
           </div>
-          <div class="divide-y divide-slate-50">
+          <div class="">
             <div v-for="item in kewajibanJangkaPanjang" :key="item.name" class="px-5 py-3 flex items-center justify-between hover:bg-slate-50/50 transition-colors">
               <span class="text-sm text-slate-700 font-medium">{{ item.name }}</span>
               <span class="text-sm font-bold text-slate-800">{{ formatCurrency(item.amount) }}</span>
@@ -283,14 +284,14 @@ const handleExport = () => {
 
         <!-- Ekuitas -->
         <div class="bg-white rounded-2xl shadow-xs border border-slate-100 overflow-hidden">
-          <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+          <div class="px-5 py-4 flex items-center justify-between">
             <h2 class="text-sm font-bold text-slate-800 flex items-center gap-2">
               <div class="w-2 h-2 rounded-full bg-emerald-500"></div>
               Ekuitas Pemilik
             </h2>
             <span class="text-xs font-bold text-emerald-600">{{ formatCurrency(totalEkuitas) }}</span>
           </div>
-          <div class="divide-y divide-slate-50">
+          <div class="">
             <div v-for="item in ekuitasItems" :key="item.name" class="px-5 py-3 flex items-center justify-between hover:bg-slate-50/50 transition-colors">
               <span class="text-sm text-slate-700 font-medium">{{ item.name }}</span>
               <span class="text-sm font-bold text-emerald-700">{{ formatCurrency(item.amount) }}</span>

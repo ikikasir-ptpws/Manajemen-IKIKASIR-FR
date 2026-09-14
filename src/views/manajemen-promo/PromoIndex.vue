@@ -8,6 +8,21 @@ const promos = ref([
   { id: 2, name: 'Promo Pengguna Baru', code: 'NEWUSER50', type: 'Fixed', value: 'Rp 50.000', status: 'Active', validUntil: 'Tidak terbatas' },
   { id: 3, name: 'Flash Sale Agustus', code: 'FLASH88', type: 'Percentage', value: '15%', status: 'Expired', validUntil: '15 Agu 2026' }
 ])
+
+const handleAdd = () => {
+  window.alert('Fitur Buat Promo (Demo)')
+}
+
+const handleEdit = (promo: any) => {
+  const newName = window.prompt('Edit Nama Promo:', promo.name)
+  if (newName) promo.name = newName
+}
+
+const handleDelete = (index: number) => {
+  if (window.confirm('Hapus promo ini?')) {
+    promos.value.splice(index, 1)
+  }
+}
 </script>
 
 <template>
@@ -33,7 +48,10 @@ const promos = ref([
             class="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
           />
         </div>
-        <button class="flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-200 shrink-0">
+        <button 
+          @click="handleAdd"
+          class="flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-200 shrink-0 cursor-pointer active:scale-95"
+        >
           <Plus class="w-4 h-4" />
           <span class="hidden sm:inline">Buat Promo</span>
         </button>
@@ -86,11 +104,17 @@ const promos = ref([
               </td>
               <td class="px-6 py-4">
                 <div class="flex items-center justify-end gap-2">
-                  <button class="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors">
-                    <Edit2 class="w-4 h-4" />
+                  <button 
+                    @click="handleEdit(promo)"
+                    class="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer active:scale-95"
+                  >
+                    <Edit2 class="w-4 h-4" pointer-events="none" />
                   </button>
-                  <button class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors">
-                    <Trash2 class="w-4 h-4" />
+                  <button 
+                    @click="handleDelete(index)"
+                    class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer active:scale-95"
+                  >
+                    <Trash2 class="w-4 h-4" pointer-events="none" />
                   </button>
                 </div>
               </td>

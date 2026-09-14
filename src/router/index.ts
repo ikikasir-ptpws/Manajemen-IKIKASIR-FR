@@ -24,11 +24,6 @@ const router = createRouter({
       component: () => import('../views/crm-client/CalonClientIndex.vue')
     },
     {
-      path: '/follow-up',
-      name: 'follow-up',
-      component: () => import('../views/crm-client/FollowUpIndex.vue')
-    },
-    {
       path: '/laporan-harian',
       name: 'laporan-harian',
       component: () => import('../views/laporan/LaporanHarianIndex.vue')
@@ -62,6 +57,11 @@ const router = createRouter({
       path: '/neraca',
       name: 'neraca',
       component: () => import('../views/laporan/NeracaIndex.vue')
+    },
+    {
+      path: '/landing',
+      name: 'landing',
+      component: () => import('../views/landing/LandingIndex.vue')
     },
     { path: '/:pathMatch(.*)*', redirect: '/' }
   ],
