@@ -53,11 +53,11 @@ const pendapatanItems = computed(() => {
   filteredSales.value.forEach(trx => {
     trx.items.forEach(item => {
       if (item.category === 'Lisensi POS') {
-        categoryTotals['Pendapatan Lisensi & Paket POS'] += item.price * item.qty
+        categoryTotals['Pendapatan Lisensi & Paket POS'] = (categoryTotals['Pendapatan Lisensi & Paket POS'] ?? 0) + item.price * item.qty
       } else if (item.category === 'Hardware') {
-        categoryTotals['Pendapatan Perangkat Hardware POS'] += item.price * item.qty
+        categoryTotals['Pendapatan Perangkat Hardware POS'] = (categoryTotals['Pendapatan Perangkat Hardware POS'] ?? 0) + item.price * item.qty
       } else if (item.category === 'Addon & Aksesoris') {
-        categoryTotals['Pendapatan Addon & Aksesoris'] += item.price * item.qty
+        categoryTotals['Pendapatan Addon & Aksesoris'] = (categoryTotals['Pendapatan Addon & Aksesoris'] ?? 0) + item.price * item.qty
       }
     })
   })

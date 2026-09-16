@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import IkiKasirLogo from '../../components/IkiKasirLogo.vue'
 import bannerImg from '../../images/benner.png'
@@ -26,11 +26,51 @@ import {
   Menu,
   X,
   Box,
-  ShoppingCart
+  ShoppingCart,
+  ChevronDown,
+  Users,
+  Award,
+  TrendingUp,
+  HelpCircle,
+  CheckCircle2,
+  Sparkles
 } from 'lucide-vue-next'
 
 const isMobileMenuOpen = ref(false)
 const activeTab = ref('Beranda')
+
+const openFaqIndex = ref<number | null>(0)
+
+const toggleFaq = (index: number) => {
+  openFaqIndex.value = openFaqIndex.value === index ? null : index
+}
+
+const faqs = [
+  {
+    question: 'Apakah IKI KASIR bisa digunakan secara gratis?',
+    answer: 'Ya, Anda dapat mengunduh dan mencoba IKI KASIR dengan masa uji coba gratis. Kami juga menyediakan berbagai pilihan paket berlangganan terjangkau yang dapat disesuaikan dengan kebutuhan bisnis Anda.'
+  },
+  {
+    question: 'Perangkat apa saja yang didukung oleh IKI KASIR?',
+    answer: 'Saat ini IKI KASIR dioptimalkan untuk smartphone dan tablet Android. Selain itu, Anda juga dapat mengakses dashboard manajemen bisnis & rekap laporan melalui web browser di laptop/PC.'
+  },
+  {
+    question: 'Apakah IKI KASIR tetap bisa digunakan tanpa koneksi internet (offline)?',
+    answer: 'Tentu saja! IKI KASIR dilengkapi dengan fitur mode offline. Transaksi kasir tetap berjalan lancar tanpa jaringan internet, dan data transaksi akan otomatis tersinkronisasi saat perangkat terhubung kembali.'
+  },
+  {
+    question: 'Apakah IKI KASIR bisa terhubung dengan printer thermal Bluetooth?',
+    answer: 'Sangat bisa! Aplikasi kami mendukung koneksi cepat ke berbagai merk printer thermal Bluetooth (ukuran 58mm & 80mm) untuk langsung mencetak struk belanja transaksi.'
+  },
+  {
+    question: 'Seberapa aman data penjualan dan stok barang toko saya?',
+    answer: 'Keamanan data Anda adalah prioritas utama kami. Seluruh data disimpankan di cloud server terenkripsi dengan sistem backup otomatis berkala untuk menjamin kerahasiaan dan keamanan data usaha Anda.'
+  },
+  {
+    question: 'Bagaimana cara menghubungi tim bantuan pelanggan (Customer Support)?',
+    answer: 'Tim Customer Support IKI KASIR siap melayani Anda 24/7. Anda dapat menghubungi kami melalui Live Chat WhatsApp, Email cs@ikikasir.id, maupun nomor telepon yang tersedia.'
+  }
+]
 
 // Particle Canvas Animation Logic
 const canvasRef = ref<HTMLCanvasElement | null>(null)
@@ -101,6 +141,59 @@ function loopParticles() {
   animId = requestAnimationFrame(loopParticles)
 }
 
+let observer: IntersectionObserver | null = null
+let secObserver: IntersectionObserver | null = null
+
+function initScrollObserver() {
+  const options = {
+    root: null,
+    rootMargin: '0px 0px 50px 0px',
+    threshold: 0.05
+  }
+
+  observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        entry.target.setAttribute('data-revealed', 'true')
+        entry.target.classList.add('is-revealed')
+        if (observer) observer.unobserve(entry.target)
+      }
+    })
+  }, options)
+
+  const elements = document.querySelectorAll('.reveal-up, .reveal-left, .reveal-right, .reveal-scale')
+  elements.forEach((el) => observer?.observe(el))
+}
+
+function initActiveSectionObserver() {
+  const sections = document.querySelectorAll('section[id]')
+  secObserver = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        const id = entry.target.getAttribute('id')
+        const foundNav = navLinks.find(l => l.href === `#${id}`)
+        if (foundNav) {
+          activeTab.value = foundNav.name
+        }
+      }
+    })
+  }, { threshold: 0.3 })
+
+  sections.forEach(sec => secObserver?.observe(sec))
+}
+
+const liveTrxNotifications = [
+  { text: '🎉 Transaksi Baru: Rp 45.000 (Tunai)', time: 'Baru saja' },
+  { text: '✨ Stok Terupdate: Kopi Latte (Restok)', time: '1 mnt lalu' },
+  { text: '⚡ Transaksi Baru: Rp 125.000 (QRIS)', time: 'Baru saja' },
+  { text: '🖨️ Struk Thermal Berhasil Dicetak', time: '2 mnt lalu' }
+]
+const activeNotificationIndex = ref(0)
+const activeNotification = computed<{ text: string; time: string }>(() => {
+  return liveTrxNotifications[activeNotificationIndex.value] ?? liveTrxNotifications[0] ?? { text: '🎉 Transaksi Baru', time: 'Baru saja' }
+})
+let notifTimer: ReturnType<typeof setInterval> | null = null
+
 function handleResize() {
   const canvas = canvasRef.value
   if (!canvas) return
@@ -113,11 +206,22 @@ onMounted(() => {
   handleResize()
   window.addEventListener('resize', handleResize)
   loopParticles()
+  setTimeout(() => {
+    initScrollObserver()
+    initActiveSectionObserver()
+  }, 100)
+
+  notifTimer = setInterval(() => {
+    activeNotificationIndex.value = (activeNotificationIndex.value + 1) % liveTrxNotifications.length
+  }, 3500)
 })
 
 onUnmounted(() => {
   window.removeEventListener('resize', handleResize)
   if (animId) cancelAnimationFrame(animId)
+  if (observer) observer.disconnect()
+  if (secObserver) secObserver.disconnect()
+  if (notifTimer) clearInterval(notifTimer)
 })
 
 const navLinks = [
@@ -168,10 +272,10 @@ const rightFeatures = [
         
         <!-- Right CTA Button -->
         <div class="nav-cta-desktop">
-          <RouterLink to="/" class="btn-primary-sm">
-            Mulai Sekarang
+          <a href="https://wa.me/6281234567890?text=Halo%20tim%20IKI%20KASIR,%20saya%20ingin%20mulai%20berlangganan%20aplikasi%20kasir" target="_blank" class="btn-primary-sm">
+            Mulai Langganan
             <ArrowRight class="icon-sm" />
-          </RouterLink>
+          </a>
         </div>
 
         <!-- Mobile Menu Toggle -->
@@ -192,9 +296,9 @@ const rightFeatures = [
         >
           {{ link.name }}
         </a>
-        <RouterLink to="/" class="btn-primary-mobile">
-          Mulai Sekarang
-        </RouterLink>
+        <a href="https://wa.me/6281234567890?text=Halo%20tim%20IKI%20KASIR,%20saya%20ingin%20mulai%20berlangganan%20aplikasi%20kasir" target="_blank" class="btn-primary-mobile">
+          Mulai Langganan
+        </a>
       </div>
     </nav>
 
@@ -216,7 +320,7 @@ const rightFeatures = [
       </div>
 
       <!-- Floating Handwritten Text Overlay (Top Right) -->
-      <div class="handwritten-overlay">
+      <div class="handwritten-overlay reveal-scale delay-200">
         <div class="handwritten-text">
           <span class="blue-sparkle star-1">✦</span>
           <span class="blue-sparkle star-2">✨</span>
@@ -239,7 +343,7 @@ const rightFeatures = [
 
       <div class="hero-inner">
         <!-- Hero Left Column: Text & CTAs -->
-        <div class="hero-text-col">
+        <div class="hero-text-col reveal-up">
           
           <div class="hero-badge">
             <span class="star-icon">✦</span>
@@ -257,10 +361,10 @@ const rightFeatures = [
           </p>
           
           <div class="hero-cta-group">
-            <RouterLink to="/" class="btn-primary-lg">
-              Mulai Sekarang
+            <a href="https://wa.me/6281234567890?text=Halo%20tim%20IKI%20KASIR,%20saya%20ingin%20mulai%20berlangganan%20aplikasi%20kasir" target="_blank" class="btn-primary-lg">
+              Mulai Langganan
               <ArrowRight class="icon-md" />
-            </RouterLink>
+            </a>
             <button class="btn-secondary-lg">
               <div class="play-icon-circle">
                 <Play class="icon-play" />
@@ -294,12 +398,91 @@ const rightFeatures = [
       </div>
     </section>
 
+    <!-- About Section (Tentang Kami) -->
+    <section id="tentang" class="about-section">
+      <div class="about-inner">
+        
+        <div class="about-header text-center reveal-up">
+          <div class="section-badge">Tentang Kami</div>
+          <h2 class="section-title">
+            Memberdayakan UMKM dengan<br />
+            <span class="text-blue-gradient">Teknologi Kasir Modern & Andal</span>
+          </h2>
+          <p class="about-subtitle">
+            <strong>IKI KASIR</strong> hadir sebagai solusi pencatatan transaksi dan manajemen toko serba praktis yang dirancang khusus untuk mempermudah operasional para pelaku usaha di Indonesia.
+          </p>
+        </div>
+
+        <!-- About Stats Grid -->
+        <div class="about-stats-grid">
+          <div class="stat-card reveal-up delay-100">
+            <div class="stat-card-icon blue">
+              <Users class="icon-md" />
+            </div>
+            <div class="stat-card-number">10.000+</div>
+            <div class="stat-card-label">Pengguna Aktif</div>
+            <p class="stat-card-sub">Pemilik bisnis memercayakan kasirnya pada IKI KASIR</p>
+          </div>
+
+          <div class="stat-card reveal-up delay-200">
+            <div class="stat-card-icon indigo">
+              <TrendingUp class="icon-md" />
+            </div>
+            <div class="stat-card-number">5 Juta+</div>
+            <div class="stat-card-label">Transaksi Diproses</div>
+            <p class="stat-card-sub">Transaksi cepat dan lancar tanpa kendala setiap hari</p>
+          </div>
+
+          <div class="stat-card reveal-up delay-300">
+            <div class="stat-card-icon amber">
+              <Award class="icon-md" />
+            </div>
+            <div class="stat-card-number">99.9%</div>
+            <div class="stat-card-label">Uptime Sistem</div>
+            <p class="stat-card-sub">Layanan stabil dan dapat diandalkan setiap saat</p>
+          </div>
+
+          <div class="stat-card reveal-up delay-400">
+            <div class="stat-card-icon emerald">
+              <ShieldCheck class="icon-md" />
+            </div>
+            <div class="stat-card-number">24/7</div>
+            <div class="stat-card-label">Support Siap Bantuan</div>
+            <p class="stat-card-sub">Tim bantuan teknis selalu siap merespon pertanyaan Anda</p>
+          </div>
+        </div>
+
+        <!-- About Values Row -->
+        <div class="about-values-wrapper">
+          <div class="about-value-box reveal-left">
+            <div class="value-badge">
+              <Sparkles class="icon-xs" /> Visi Kami
+            </div>
+            <h3 class="value-title">Mendorong Digitalisasi UMKM Indonesia</h3>
+            <p class="value-desc">
+              Kami percaya setiap usaha, kecil maupun besar, berhak mendapatkan akses ke teknologi pengelolaan bisnis yang canggih, cepat, dan terjangkau tanpa kerumitan teknis.
+            </p>
+          </div>
+          <div class="about-value-box highlight reveal-right">
+            <div class="value-badge cyan">
+              <CheckCircle2 class="icon-xs" /> Komitmen Kami
+            </div>
+            <h3 class="value-title">Simpel, Cepat & Selalu Bisa Diandalkan</h3>
+            <p class="value-desc">
+              Dengan antarmuka ramah pengguna dan fitur yang terus diinovasi, IKI KASIR memastikan operasional toko Anda berjalan tanpa hambatan dan laporan keuangan tersaji akurat.
+            </p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
     <!-- Features Section (Fitur Unggulan) -->
     <section id="fitur" class="features-section">
       <div class="features-inner">
         
         <!-- Left Column: Heading & Description -->
-        <div class="features-text-col">
+        <div class="features-text-col reveal-left">
           <div class="section-badge">Fitur Unggulan</div>
           
           <h2 class="section-title">
@@ -318,7 +501,7 @@ const rightFeatures = [
         </div>
 
         <!-- Right Column: Interactive Phone Mockup & Feature Cards -->
-        <div class="features-visual-col">
+        <div class="features-visual-col reveal-right">
           <div class="features-grid-wrapper">
             
             <!-- Left Cards -->
@@ -343,8 +526,7 @@ const rightFeatures = [
                   
                   <div class="app-header">
                     <div class="app-logo-badge">
-                      <div class="app-logo-k">k</div>
-                      <span class="app-logo-text">IKI KASIR</span>
+                      <IkiKasirLogo size="sm" :show-tagline="false" />
                     </div>
                     <div class="app-user-avatar"></div>
                   </div>
@@ -356,6 +538,14 @@ const rightFeatures = [
                     <div class="balance-amount">Rp 2.560.000</div>
                     <div class="balance-growth">+12% dari kemarin</div>
                   </div>
+
+                  <!-- Animated Live Notification Popup Toast -->
+                  <transition name="toast-slide" mode="out-in">
+                    <div :key="activeNotification.text" class="phone-live-toast">
+                      <span class="toast-live-dot"></span>
+                      <span class="toast-live-txt">{{ activeNotification.text }}</span>
+                    </div>
+                  </transition>
 
                   <div class="app-stats-grid">
                     <div class="stat-box">
@@ -426,7 +616,7 @@ const rightFeatures = [
     <section id="paket" class="pricing-section">
       <div class="pricing-inner">
         
-        <div class="pricing-header">
+        <div class="pricing-header reveal-up">
           <div class="section-badge">Paket Harga</div>
           <h2 class="section-title text-center">Pilih Paket Sesuai Kebutuhan Bisnis Anda</h2>
           <p class="pricing-subtitle">Mulai dari paket basic hingga pro, semua dirancang untuk mendukung pertumbuhan bisnis Anda.</p>
@@ -435,7 +625,7 @@ const rightFeatures = [
         <div class="pricing-grid">
           
           <!-- Basic Card -->
-          <div class="price-card basic">
+          <div class="price-card basic reveal-up delay-100">
             <div>
               <div class="card-header">
                 <div class="card-icon blue"><Box class="icon-md" /></div>
@@ -456,11 +646,11 @@ const rightFeatures = [
                 <li><Check class="icon-check blue" /><span>Support email</span></li>
               </ul>
             </div>
-            <button class="btn-outline-blue">Pilih Paket</button>
+            <a href="https://wa.me/6281234567890?text=Halo%20tim%20IKI%20KASIR,%20saya%20ingin%20berlangganan%20Paket%20Basic" target="_blank" class="btn-outline-blue">Mulai Langganan</a>
           </div>
 
           <!-- Pro Card (Highlighted Solid Blue) -->
-          <div class="price-card pro">
+          <div class="price-card pro reveal-up delay-200">
             <div class="badge-populer">Populer</div>
             <div>
               <div class="card-header">
@@ -483,11 +673,11 @@ const rightFeatures = [
                 <li><Check class="icon-check text-white" /><span>Support prioritas 24/7</span></li>
               </ul>
             </div>
-            <button class="btn-solid-white">Pilih Paket</button>
+            <a href="https://wa.me/6281234567890?text=Halo%20tim%20IKI%20KASIR,%20saya%20ingin%20berlangganan%20Paket%20Pro" target="_blank" class="btn-solid-white">Mulai Langganan</a>
           </div>
 
           <!-- Custom Card -->
-          <div class="price-card custom">
+          <div class="price-card custom reveal-up delay-300">
             <div>
               <div class="card-header">
                 <div class="card-icon blue"><Store class="icon-md" /></div>
@@ -509,9 +699,65 @@ const rightFeatures = [
                 <li><Check class="icon-check blue" /><span>Dedicated support</span></li>
               </ul>
             </div>
-            <button class="btn-outline-blue">Hubungi Kami</button>
+            <a href="https://wa.me/6281234567890?text=Halo%20tim%20IKI%20KASIR,%20saya%20ingin%20berlangganan%20Paket%20Custom" target="_blank" class="btn-outline-blue">Mulai Langganan</a>
           </div>
 
+        </div>
+
+      </div>
+    </section>
+
+    <!-- FAQ Section -->
+    <section id="faq" class="faq-section">
+      <div class="faq-inner">
+        <div class="faq-header text-center reveal-up">
+          <div class="section-badge">FAQ & PERTANYAAN</div>
+          <h2 class="section-title">Pertanyaan yang Sering Diajukan</h2>
+          <p class="faq-subtitle">Punya pertanyaan seputar IKI KASIR? Temukan jawaban selengkapnya di bawah ini.</p>
+        </div>
+
+        <div class="faq-accordion-container">
+          <div 
+            v-for="(faq, index) in faqs" 
+            :key="index" 
+            class="faq-item reveal-up"
+            :style="{ '--reveal-delay': `${index * 0.08}s` }"
+            :class="{ active: openFaqIndex === index }"
+          >
+            <button 
+              type="button"
+              class="faq-question-btn" 
+              @click="toggleFaq(index)"
+              :aria-expanded="openFaqIndex === index"
+            >
+              <div class="faq-q-left">
+                <HelpCircle class="faq-q-icon" />
+                <span class="faq-q-text">{{ faq.question }}</span>
+              </div>
+              <ChevronDown class="faq-arrow-icon" :class="{ rotate: openFaqIndex === index }" />
+            </button>
+            <div class="faq-answer-wrapper">
+              <div class="faq-answer-inner">
+                <div class="faq-answer-content">
+                  <p>{{ faq.answer }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="faq-bottom-cta reveal-scale">
+          <div class="faq-cta-box">
+            <Headset class="cta-icon" />
+            <div>
+              <h4 class="cta-title">Masih punya pertanyaan lain?</h4>
+              <p class="cta-desc">Tim Customer Support kami siap membantu Anda kapan saja.</p>
+            </div>
+            <a href="https://wa.me/6281234567890" target="_blank" class="btn-primary-sm">
+              Hubungi Support
+              <ArrowRight class="icon-xs" />
+            </a>
+          </div>
         </div>
 
       </div>
@@ -525,10 +771,9 @@ const rightFeatures = [
           
           <div class="footer-col brand">
             <div class="footer-logo">
-              <div class="logo-box">k</div>
-              <span class="logo-txt">IKI <span class="text-blue-light">KASIR</span></span>
+              <IkiKasirLogo size="lg" :is-dark-bg="true" :show-tagline="true" />
             </div>
-            <p class="brand-tagline">Mudah, Cepat, Profesional<br />untuk Bisnis Anda.</p>
+            <p class="brand-tagline">Solusi Kasir Digital Terpercaya<br />untuk Memajukan Bisnis Anda.</p>
             <div class="copyright-text">© 2025 IKI KASIR. All rights reserved.</div>
           </div>
 
@@ -590,6 +835,8 @@ const rightFeatures = [
 </template>
 
 <style scoped>
+@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&display=swap');
+
 /* Reset & Root Scoped Styles */
 .landing-page-root {
   font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
@@ -746,9 +993,7 @@ const rightFeatures = [
   margin-top: 1rem;
   text-decoration: none;
 }
-
-@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&display=swap');
-
+ 
 /* Hero Section */
 .hero-section {
   position: relative;
@@ -1355,23 +1600,45 @@ const rightFeatures = [
   padding: 0.875rem;
   border-radius: 9999px;
   border: 1.5px solid #2563eb;
-  color: #2563eb;
+  color: #2563eb !important;
   background: transparent;
   font-weight: 700;
   font-size: 0.875rem;
   cursor: pointer;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+.btn-outline-blue:hover {
+  background: #eff6ff;
+  border-color: #1d4ed8;
+  transform: translateY(-1px);
 }
 .btn-solid-white {
   width: 100%;
   padding: 0.875rem;
   border-radius: 9999px;
   border: none;
-  color: #2563eb;
+  color: #2563eb !important;
   background: #ffffff;
   font-weight: 800;
   font-size: 0.875rem;
   cursor: pointer;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+.btn-solid-white:hover {
+  background: #f8fafc;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
 }
 
 /* Footer Section */
@@ -1434,8 +1701,488 @@ const rightFeatures = [
 .bottom-links a { color: #64748b; text-decoration: none; }
 .bottom-links a:hover { color: #94a3b8; }
 
+/* ─────────────────────────────────────────────
+   ABOUT SECTION (Tentang Kami)
+   ───────────────────────────────────────────── */
+.about-section {
+  padding: 6rem 0;
+  background-color: #ffffff;
+  position: relative;
+  border-bottom: 1px solid #f1f5f9;
+}
+.about-inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+.about-header {
+  max-width: 720px;
+  margin: 0 auto 3.5rem;
+}
+.about-subtitle {
+  font-size: 1.05rem;
+  color: #475569;
+  line-height: 1.7;
+  margin-top: 1rem;
+}
+.about-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 3.5rem;
+}
+.stat-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 1.25rem;
+  padding: 1.75rem 1.25rem;
+  text-align: center;
+  transition: all 0.25s ease;
+}
+.stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px -6px rgba(37, 99, 235, 0.1);
+  border-color: #bfdbfe;
+  background: #ffffff;
+}
+.stat-card-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 0.875rem;
+  margin: 0 auto 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.stat-card-icon.blue { background: #eff6ff; color: #2563eb; }
+.stat-card-icon.indigo { background: #e0e7ff; color: #4f46e5; }
+.stat-card-icon.amber { background: #fef3c7; color: #d97706; }
+.stat-card-icon.emerald { background: #d1fae5; color: #059669; }
+
+.stat-card-number {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.25rem;
+}
+.stat-card-label {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #2563eb;
+  margin-bottom: 0.5rem;
+}
+.stat-card-sub {
+  font-size: 0.775rem;
+  color: #64748b;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.about-values-wrapper {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.75rem;
+}
+.about-value-box {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 1.5rem;
+  padding: 2.25rem;
+}
+.about-value-box.highlight {
+  background: linear-gradient(135deg, #eff6ff 0%, #e0f2fe 100%);
+  border-color: #bae6fd;
+}
+.value-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: #dbeafe;
+  color: #1d4ed8;
+  font-size: 0.725rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  margin-bottom: 1rem;
+}
+.value-badge.cyan {
+  background: #e0f2fe;
+  color: #0284c7;
+}
+.value-title {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin-bottom: 0.75rem;
+}
+.value-desc {
+  font-size: 0.925rem;
+  color: #475569;
+  line-height: 1.65;
+  margin: 0;
+}
+
+/* ─────────────────────────────────────────────
+   FAQ SECTION
+   ───────────────────────────────────────────── */
+.faq-section {
+  padding: 6rem 0;
+  background-color: #f8fafc;
+  position: relative;
+}
+.faq-inner {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+.faq-header {
+  margin-bottom: 3.5rem;
+}
+.faq-subtitle {
+  font-size: 1.05rem;
+  color: #475569;
+  margin-top: 0.5rem;
+}
+.faq-accordion-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 3.5rem;
+}
+.faq-item {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 1.25rem;
+  overflow: hidden;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+}
+.faq-item:hover {
+  border-color: #bfdbfe;
+}
+.faq-item.active {
+  border-color: #2563eb;
+  box-shadow: 0 8px 24px -4px rgba(37, 99, 235, 0.15);
+}
+.faq-question-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 1.5rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  gap: 1rem;
+  user-select: none;
+}
+.faq-q-left {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+}
+.faq-q-icon {
+  width: 22px;
+  height: 22px;
+  color: #2563eb;
+  flex-shrink: 0;
+}
+.faq-q-text {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+.faq-arrow-icon {
+  width: 20px;
+  height: 20px;
+  color: #64748b;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), color 0.25s ease;
+  flex-shrink: 0;
+}
+.faq-arrow-icon.rotate {
+  transform: rotate(180deg);
+  color: #2563eb;
+}
+
+/* Accordion Smooth Expand/Collapse */
+.faq-answer-wrapper {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+  opacity: 0;
+}
+.faq-item.active .faq-answer-wrapper {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+.faq-answer-inner {
+  overflow: hidden;
+}
+.faq-answer-content {
+  padding: 0 1.5rem 1.35rem 3.35rem;
+  color: #475569;
+  font-size: 0.925rem;
+  line-height: 1.65;
+  border-top: 1px solid #f1f5f9;
+  padding-top: 1rem;
+}
+.faq-answer-content p {
+  margin: 0;
+}
+
+/* FAQ Bottom CTA Box */
+.faq-bottom-cta {
+  display: flex;
+  justify-content: center;
+}
+.faq-cta-box {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  color: #ffffff;
+  padding: 1.5rem 2rem;
+  border-radius: 1.25rem;
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.3);
+  width: 100%;
+}
+.cta-icon {
+  width: 36px;
+  height: 36px;
+  color: #38bdf8;
+  flex-shrink: 0;
+}
+.cta-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin: 0 0 0.25rem;
+  color: #ffffff;
+}
+.cta-desc {
+  font-size: 0.825rem;
+  color: #94a3b8;
+  margin: 0;
+}
+
+/* ─────────────────────────────────────────────
+   SCROLL REVEAL ANIMATIONS
+   ───────────────────────────────────────────── */
+.reveal-up {
+  opacity: 0;
+  transform: translateY(45px);
+  transition: opacity 0.85s cubic-bezier(0.16, 1, 0.3, 1) var(--reveal-delay, 0s), 
+              transform 0.85s cubic-bezier(0.16, 1, 0.3, 1) var(--reveal-delay, 0s);
+  will-change: opacity, transform;
+}
+
+.reveal-left {
+  opacity: 0;
+  transform: translateX(-45px);
+  transition: opacity 0.85s cubic-bezier(0.16, 1, 0.3, 1), transform 0.85s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+.reveal-right {
+  opacity: 0;
+  transform: translateX(45px);
+  transition: opacity 0.85s cubic-bezier(0.16, 1, 0.3, 1), transform 0.85s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+.reveal-scale {
+  opacity: 0;
+  transform: scale(0.90);
+  transition: opacity 0.85s cubic-bezier(0.16, 1, 0.3, 1), transform 0.85s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+.reveal-up[data-revealed="true"],
+.reveal-left[data-revealed="true"],
+.reveal-right[data-revealed="true"],
+.reveal-scale[data-revealed="true"],
+.is-revealed {
+  opacity: 1 !important;
+  transform: translateY(0) translateX(0) scale(1) !important;
+}
+
+/* Stagger Delay Helpers */
+.delay-100 { transition-delay: 0.1s !important; }
+.delay-200 { transition-delay: 0.2s !important; }
+.delay-300 { transition-delay: 0.3s !important; }
+.delay-400 { transition-delay: 0.4s !important; }
+.delay-500 { transition-delay: 0.5s !important; }
+
+/* ─────────────────────────────────────────────
+   FLOATING GLASS LEVITATION BADGES
+   ───────────────────────────────────────────── */
+.floating-badge {
+  position: absolute;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 1.1rem;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  border-radius: 9999px;
+  box-shadow:
+    0 10px 28px -6px rgba(37, 99, 235, 0.18),
+    0 2px 8px rgba(0, 0, 0, 0.04);
+  pointer-events: none;
+}
+.badge-left {
+  top: 90px;
+  left: 52%;
+}
+.badge-right {
+  bottom: 90px;
+  right: 10%;
+}
+.badge-icon-bg {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.badge-icon-bg.blue { background: #dbeafe; color: #2563eb; }
+.badge-icon-bg.emerald { background: #d1fae5; color: #059669; }
+
+.badge-txt-title {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.2;
+}
+.badge-txt-sub {
+  font-size: 0.6875rem;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.floating-anim-1 {
+  animation: float-levitate-1 4.5s ease-in-out infinite alternate;
+}
+.floating-anim-2 {
+  animation: float-levitate-2 5.2s ease-in-out 0.8s infinite alternate;
+}
+
+@keyframes float-levitate-1 {
+  0% { transform: translateY(0px) rotate(0deg); }
+  100% { transform: translateY(-12px) rotate(-1.5deg); }
+}
+@keyframes float-levitate-2 {
+  0% { transform: translateY(0px) rotate(0deg); }
+  100% { transform: translateY(-15px) rotate(2deg); }
+}
+
+/* ─────────────────────────────────────────────
+   INFINITE RUNNING MARQUEE TICKER BANNER
+   ───────────────────────────────────────────── */
+.marquee-section {
+  width: 100%;
+  background: linear-gradient(90deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+  color: #ffffff;
+  padding: 0.9rem 0;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.15);
+  border-y: 1px solid rgba(255, 255, 255, 0.08);
+}
+.marquee-track {
+  display: flex;
+  width: max-content;
+  gap: 2rem;
+}
+.marquee-content {
+  display: flex;
+  align-items: center;
+  gap: 2.5rem;
+  animation: marquee-scroll 28s linear infinite;
+  white-space: nowrap;
+}
+.marquee-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  letter-spacing: 0.02em;
+}
+.badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #38bdf8;
+  box-shadow: 0 0 8px #38bdf8;
+}
+
+@keyframes marquee-scroll {
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(-100%); }
+}
+
+/* ─────────────────────────────────────────────
+   SMARTPHONE LIVE TOAST POPUP
+   ───────────────────────────────────────────── */
+.phone-live-toast {
+  background: rgba(15, 23, 42, 0.92);
+  backdrop-filter: blur(8px);
+  color: #ffffff;
+  border-radius: 0.5rem;
+  padding: 0.35rem 0.6rem;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+.toast-live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #34d399;
+  box-shadow: 0 0 6px #34d399;
+  animation: pulse-dot 1.5s infinite;
+  flex-shrink: 0;
+}
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.8); }
+}
+.toast-live-txt {
+  font-size: 7.5px;
+  font-weight: 700;
+  color: #f8fafc;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.toast-slide-enter-active,
+.toast-slide-leave-active {
+  transition: all 0.35s ease;
+}
+.toast-slide-enter-from {
+  opacity: 0;
+  transform: translateY(-8px) scale(0.95);
+}
+.toast-slide-leave-to {
+  opacity: 0;
+  transform: translateY(8px) scale(0.95);
+}
+
 /* Responsive Media Queries */
 @media (max-width: 1024px) {
+  .floating-badge { display: none; }
   .hero-inner, .features-inner { grid-template-columns: 1fr; gap: 3rem; text-align: center; }
   .hero-title { font-size: 2.75rem; }
   .hero-subtitle { margin: 0 auto 2rem; }
@@ -1443,6 +2190,7 @@ const rightFeatures = [
   .hero-bullets { justify-content: center; }
   .features-grid-wrapper { grid-template-columns: 1fr; }
   .footer-grid { grid-template-columns: 1fr 1fr; }
+  .about-stats-grid { grid-template-columns: repeat(2, 1fr); }
 }
 @media (max-width: 768px) {
   .nav-links-desktop, .nav-cta-desktop { display: none; }
@@ -1451,6 +2199,10 @@ const rightFeatures = [
   .pricing-grid { grid-template-columns: 1fr; max-width: 400px; }
   .footer-grid { grid-template-columns: 1fr; }
   .footer-bottom { flex-direction: column; gap: 1rem; text-align: center; }
+  .about-stats-grid { grid-template-columns: 1fr; }
+  .about-values-wrapper { grid-template-columns: 1fr; }
+  .faq-answer-content { padding-left: 1.5rem; }
+  .faq-cta-box { flex-direction: column; text-align: center; gap: 1rem; }
 }
 </style>
 

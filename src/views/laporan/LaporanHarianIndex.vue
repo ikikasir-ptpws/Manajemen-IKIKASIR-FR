@@ -59,10 +59,12 @@ const getTrxTotalQty = (trx: Transaction) => {
 
 const getTrxProductsSummary = (trx: Transaction) => {
   if (!trx.items || trx.items.length === 0) return '-'
+  const firstItem = trx.items[0]
+  if (!firstItem) return '-'
   if (trx.items.length === 1) {
-    return `${trx.items[0].name} (${trx.items[0].qty}x)`
+    return `${firstItem.name} (${firstItem.qty}x)`
   }
-  return `${trx.items[0].name} +${trx.items.length - 1} produk lainnya`
+  return `${firstItem.name} +${trx.items.length - 1} produk lainnya`
 }
 
 // Quick Date Range Filter presets
@@ -75,7 +77,7 @@ const setDatePreset = (preset: 'today' | '7days' | 'thisMonth' | 'all') => {
     return
   }
 
-  const formatISO = (d: Date) => d.toISOString().split('T')[0]
+  const formatISO = (d: Date) => d.toISOString().split('T')[0] ?? ''
   endDate.value = formatISO(today)
 
   if (preset === 'today') {

@@ -1,140 +1,156 @@
 <script setup lang="ts">
 const props = withDefaults(defineProps<{
-  variant?: 'horizontal' | 'icon' | 'full'
-  size?: 'sm' | 'md' | 'lg'
+  variant?: 'horizontal' | 'icon' | 'vertical' | 'full'
+  size?: 'sm' | 'md' | 'lg' | 'xl'
   showTagline?: boolean
+  isDarkBg?: boolean
 }>(), {
   variant: 'horizontal',
   size: 'md',
-  showTagline: true
+  showTagline: false,
+  isDarkBg: false
 })
 </script>
 
 <template>
-  <div class="iki-logo" :class="[`iki-logo--${size}`]">
-    <!-- Icon Mark -->
-    <div class="iki-logo__icon" :class="`iki-logo__icon--${size}`">
+  <div class="iki-logo" :class="[`iki-logo--${size}`, { 'is-dark': isDarkBg }]">
+    <!-- Full Image Mode -->
+    <template v-if="variant === 'full'">
       <img 
-        src="/logo-icon.png" 
-        alt="IKI KASIR" 
-        class="iki-logo__img"
+        src="/logo-transparent.png" 
+        alt="IKI KASIR Logo" 
+        class="iki-logo__img-full"
       />
-    </div>
+    </template>
 
-    <!-- Wordmark -->
-    <div v-if="variant !== 'icon'" class="iki-logo__text">
-      <div class="iki-logo__brand" :class="`iki-logo__brand--${size}`">
-        <span class="iki-logo__iki">iki</span><span class="iki-logo__kasir">kasir</span>
+    <!-- Standard Icon + Text Mode -->
+    <template v-else>
+      <!-- Icon Image -->
+      <div class="iki-logo__icon-wrapper" :class="`iki-logo__icon--${size}`">
+        <img 
+          src="/logo-icon.png" 
+          alt="IKI KASIR" 
+          class="iki-logo__img"
+        />
       </div>
-      
-      <!-- Tagline -->
-      <span 
-        v-if="showTagline" 
-        class="iki-logo__tagline"
-        :class="`iki-logo__tagline--${size}`"
-      >
-        Muda Membangun, Bisnis Maju
-      </span>
-    </div>
+
+      <!-- Wordmark / Brand Text -->
+      <div v-if="variant !== 'icon'" class="iki-logo__text-group">
+        <div class="iki-logo__brand">
+          <span class="iki-logo__brand-iki">IKI</span>
+          <span class="iki-logo__brand-kasir">KASIR</span>
+        </div>
+        
+        <!-- Subtitle / Tagline -->
+        <span 
+          v-if="showTagline" 
+          class="iki-logo__tagline"
+        >
+          MUDA MEMBANGUN, BISNIS MAJU BERSAMA TEKNOLOGI
+        </span>
+      </div>
+    </template>
   </div>
 </template>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800;900&display=swap');
 
 .iki-logo {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   user-select: none;
-  transition: all 0.2s ease;
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  transition: transform 0.2s ease;
+}
+.iki-logo:hover {
+  transform: translateY(-1px);
 }
 
+/* Size Variants */
 .iki-logo--sm { gap: 8px; }
 .iki-logo--md { gap: 10px; }
-.iki-logo--lg { gap: 12px; }
+.iki-logo--lg { gap: 14px; }
+.iki-logo--xl { gap: 18px; }
 
-/* Icon */
-.iki-logo__icon {
-  flex-shrink: 0;
+/* Icon sizing */
+.iki-logo__icon-wrapper {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.2s ease;
+  flex-shrink: 0;
 }
-
-.iki-logo:hover .iki-logo__icon {
-  transform: scale(1.04);
-}
-
-.iki-logo__icon--sm { width: 30px; height: 30px; }
-.iki-logo__icon--md { width: 38px; height: 38px; }
-.iki-logo__icon--lg { width: 44px; height: 44px; }
+.iki-logo--sm .iki-logo__icon-wrapper { width: 28px; height: 28px; }
+.iki-logo--md .iki-logo__icon-wrapper { width: 36px; height: 36px; }
+.iki-logo--lg .iki-logo__icon-wrapper { width: 44px; height: 44px; }
+.iki-logo--xl .iki-logo__icon-wrapper { width: 56px; height: 56px; }
 
 .iki-logo__img {
   width: 100%;
   height: 100%;
   object-fit: contain;
-  filter: drop-shadow(0 1px 2px rgba(37, 99, 235, 0.12));
+  filter: drop-shadow(0 2px 4px rgba(37, 99, 235, 0.15));
 }
 
-/* Text container */
-.iki-logo__text {
+.iki-logo__img-full {
+  height: 48px;
+  width: auto;
+  object-fit: contain;
+}
+.iki-logo--sm .iki-logo__img-full { height: 32px; }
+.iki-logo--md .iki-logo__img-full { height: 44px; }
+.iki-logo--lg .iki-logo__img-full { height: 56px; }
+
+/* Text Group */
+.iki-logo__text-group {
   display: flex;
   flex-direction: column;
   justify-content: center;
   line-height: 1;
 }
 
-/* Brand name */
 .iki-logo__brand {
-  font-family: 'Outfit', 'Plus Jakarta Sans', system-ui, sans-serif;
   display: flex;
-  align-items: baseline;
+  align-items: center;
+  gap: 0.22em;
+  font-weight: 900;
+  letter-spacing: 0.05em;
   line-height: 1;
 }
 
-.iki-logo__brand--sm { font-size: 18px; }
-.iki-logo__brand--md { font-size: 22px; }
-.iki-logo__brand--lg { font-size: 26px; }
+.iki-logo--sm .iki-logo__brand { font-size: 15px; }
+.iki-logo--md .iki-logo__brand { font-size: 19px; }
+.iki-logo--lg .iki-logo__brand { font-size: 24px; }
+.iki-logo--xl .iki-logo__brand { font-size: 32px; }
 
-.iki-logo__iki {
-  font-weight: 700;
-  color: #2563EB;
-  letter-spacing: -0.01em;
+/* IKI (Vibrant Royal Blue) */
+.iki-logo__brand-iki {
+  color: #2563eb;
 }
 
-:root.dark .iki-logo__iki,
-.dark .iki-logo__iki {
-  color: #60A5FA;
+/* KASIR (Dark Navy in light mode, White on dark background) */
+.iki-logo__brand-kasir {
+  color: #0f172a;
 }
-
-.iki-logo__kasir {
-  font-weight: 500;
-  color: #334155;
-  letter-spacing: 0.02em;
-}
-
-:root.dark .iki-logo__kasir,
-.dark .iki-logo__kasir {
-  color: #E2E8F0;
+.iki-logo.is-dark .iki-logo__brand-kasir,
+:root.dark .iki-logo__brand-kasir,
+.dark .iki-logo__brand-kasir {
+  color: #ffffff;
 }
 
 /* Tagline */
 .iki-logo__tagline {
-  font-family: 'Outfit', 'Plus Jakarta Sans', system-ui, sans-serif;
-  font-weight: 400;
-  color: #94A3B8;
-  letter-spacing: 0.04em;
-  line-height: 1;
+  font-size: 0.36em;
+  font-weight: 700;
+  color: #64748b;
+  letter-spacing: 0.08em;
+  margin-top: 0.3em;
+  text-transform: uppercase;
   white-space: nowrap;
 }
-
-.iki-logo__tagline--sm { font-size: 8px; margin-top: 2px; }
-.iki-logo__tagline--md { font-size: 9.5px; margin-top: 3px; }
-.iki-logo__tagline--lg { font-size: 11px; margin-top: 4px; }
-
+.iki-logo.is-dark .iki-logo__tagline,
 :root.dark .iki-logo__tagline,
 .dark .iki-logo__tagline {
-  color: #64748B;
+  color: #94a3b8;
 }
 </style>

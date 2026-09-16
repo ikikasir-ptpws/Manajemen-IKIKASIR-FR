@@ -1,0 +1,41 @@
+<svg viewBox="0 0 100 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="iki-dot-g" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00d2ff" />
+      <stop offset="100%" stop-color="#0066ff" />
+    </linearGradient>
+
+    <linearGradient id="iki-stem-g" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0088ff" />
+      <stop offset="100%" stop-color="#1d4ed8" />
+    </linearGradient>
+
+    <linearGradient id="iki-k-upper" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2563eb" />
+      <stop offset="100%" stop-color="#3b82f6" />
+    </linearGradient>
+
+    <linearGradient id="iki-k-lower" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1d4ed8" />
+      <stop offset="45%" stop-color="#2563eb" />
+      <stop offset="80%" stop-color="#6366f1" />
+      <stop offset="100%" stop-color="#9333ea" />
+    </linearGradient>
+    
+    <filter id="iki-fold-shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="-2" dy="2" stdDeviation="2.5" flood-color="#09101d" flood-opacity="0.35" />
+    </filter>
+  </defs>
+
+  <!-- i Dot -->
+  <circle cx="26" cy="18" r="10" fill="url(#iki-dot-g)" />
+
+  <!-- i Stem -->
+  <rect x="16" y="34" width="20" height="66" rx="10" fill="url(#iki-stem-g)" />
+
+  <!-- k Lower Arm -->
+  <rect x="30" y="54" width="58" height="20" rx="10" transform="rotate(45 30 64)" fill="url(#iki-k-lower)" />
+
+  <!-- k Upper Arm -->
+  <rect x="30" y="54" width="58" height="20" rx="10" transform="rotate(-45 30 64)" fill="url(#iki-k-upper)" filter="url(#iki-fold-shadow)" />
+</svg>

@@ -61,8 +61,18 @@ const saveCustomer = () => {
   if (!form.value.name || !form.value.business) return
   if (editMode.value && selectedCustomer.value) {
     const idx = customers.value.findIndex(c => c.id === selectedCustomer.value.id)
-    if (idx !== -1) {
-      customers.value[idx] = { ...customers.value[idx], ...form.value }
+    if (idx !== -1 && customers.value[idx]) {
+      const curr = customers.value[idx]
+      customers.value[idx] = {
+        id: curr.id,
+        name: form.value.name,
+        business: form.value.business,
+        type: form.value.type,
+        phone: form.value.phone,
+        address: form.value.address,
+        joinDate: curr.joinDate,
+        status: curr.status
+      }
       showToast(`Data "${form.value.name}" berhasil diperbarui!`)
     }
   } else {
