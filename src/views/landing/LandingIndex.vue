@@ -317,6 +317,7 @@ const rightFeatures = [
           alt="IKI KASIR Hero Banner" 
           class="hero-bg-img"
         />
+        <div class="hero-left-overlay"></div>
       </div>
 
       <!-- Floating Handwritten Text Overlay (Top Right) -->
@@ -353,7 +354,7 @@ const rightFeatures = [
           <h1 class="hero-title">
             Kelola Transaksi<br />
             Lebih Mudah dengan<br />
-            <span class="text-blue">IKI </span><span class="text-sky">KASIR</span>
+            <span class="text-blue">IKI KASIR</span>
           </h1>
           
           <p class="hero-subtitle">
@@ -1048,6 +1049,36 @@ const rightFeatures = [
   overflow: hidden;
 }
 
+/* Left side transparent gradient overlay for high text contrast */
+.hero-left-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 62%;
+  height: 100%;
+  background: linear-gradient(
+    to right,
+    rgba(234, 243, 253, 0.96) 0%,
+    rgba(234, 243, 253, 0.88) 45%,
+    rgba(234, 243, 253, 0.45) 75%,
+    rgba(234, 243, 253, 0) 100%
+  );
+  pointer-events: none;
+  z-index: 2;
+}
+
+@media (max-width: 991px) {
+  .hero-left-overlay {
+    width: 100%;
+    background: linear-gradient(
+      to bottom,
+      rgba(234, 243, 253, 0.96) 0%,
+      rgba(234, 243, 253, 0.88) 60%,
+      rgba(234, 243, 253, 0.40) 100%
+    );
+  }
+}
+
 .hero-bg-img {
   width: 100%;
   height: 100%;
@@ -1067,7 +1098,7 @@ const rightFeatures = [
 
 .hero-inner {
   position: relative;
-  z-index: 4;
+  z-index: 10;
   max-width: 1280px;
   width: 100%;
   margin: 0 auto;
@@ -1082,18 +1113,19 @@ const rightFeatures = [
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  background: rgba(224, 242, 254, 0.85);
-  border: 1px solid #bae6fd;
-  color: #0284c7;
+  background: rgba(224, 242, 254, 0.95);
+  border: 1px solid #93c5fd;
+  color: #1e40af;
   padding: 0.35rem 1.1rem;
   border-radius: 9999px;
   font-size: 0.875rem;
   font-weight: 600;
   margin-bottom: 1.5rem;
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.12);
 }
 .star-icon {
-  color: #0284c7;
+  color: #2563eb;
   font-size: 0.875rem;
 }
 
@@ -1101,19 +1133,25 @@ const rightFeatures = [
   font-size: 3.5rem;
   font-weight: 800;
   line-height: 1.15;
-  color: #0f172a;
+  color: #0B1736;
   margin-bottom: 1.25rem;
   letter-spacing: -0.02em;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
 }
-.text-blue { color: #2563eb; }
+.text-blue { 
+  color: #2563EB; 
+  font-weight: 800;
+}
 .text-sky { color: #00a3ff; }
 
 .hero-subtitle {
   font-size: 1.05rem;
-  color: #475569;
+  color: #1e293b;
+  font-weight: 500;
   line-height: 1.65;
   max-width: 520px;
   margin-bottom: 2.25rem;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
 }
 
 .hero-cta-group {
@@ -1145,7 +1183,7 @@ const rightFeatures = [
 
 .btn-secondary-lg {
   background-color: #ffffff;
-  color: #2563eb;
+  color: #1e40af;
   border: 1.5px solid #60a5fa;
   padding: 0.75rem 1.875rem 0.75rem 1rem;
   border-radius: 9999px;
@@ -1155,6 +1193,7 @@ const rightFeatures = [
   display: inline-flex;
   align-items: center;
   gap: 0.625rem;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
   transition: all 0.2s ease;
 }
 .btn-secondary-lg:hover {
@@ -1189,8 +1228,9 @@ const rightFeatures = [
   align-items: center;
   gap: 0.5rem;
   font-size: 0.875rem;
-  font-weight: 600;
-  color: #334155;
+  font-weight: 700;
+  color: #0f172a;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
 }
 .bullet-icon-box {
   width: 30px;
