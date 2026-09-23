@@ -2,7 +2,10 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import IkiKasirLogo from '../../components/IkiKasirLogo.vue'
-import bannerImg from '../../images/benner.png'
+import HeroImage from '../../components/HeroImage.vue'
+import bannerImg from '../../images/banner-hero.svg'
+import Lenis from 'lenis'
+import 'lenis/dist/lenis.css'
 import { 
   ArrowRight, 
   PlayCircle, 
@@ -75,6 +78,10 @@ const faqs = [
 // Particle Canvas Animation Logic
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 let animId: number | null = null
+
+// Lenis Smooth Scroll Logic
+let lenis: Lenis | null = null
+let lenisRafId: number | null = null
 
 interface Particle {
   x: number
@@ -203,6 +210,21 @@ function handleResize() {
 }
 
 onMounted(() => {
+  // Initialize Lenis
+  lenis = new Lenis({
+    duration: 1.5,
+    easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+    smoothWheel: true,
+  })
+
+  function raf(time: number) {
+    if (lenis) {
+      lenis.raf(time)
+    }
+    lenisRafId = requestAnimationFrame(raf)
+  }
+  lenisRafId = requestAnimationFrame(raf)
+
   handleResize()
   window.addEventListener('resize', handleResize)
   loopParticles()
@@ -222,6 +244,9 @@ onUnmounted(() => {
   if (observer) observer.disconnect()
   if (secObserver) secObserver.disconnect()
   if (notifTimer) clearInterval(notifTimer)
+  
+  if (lenisRafId) cancelAnimationFrame(lenisRafId)
+  if (lenis) lenis.destroy()
 })
 
 const navLinks = [
@@ -310,37 +335,15 @@ const rightFeatures = [
       <!-- Floating Particle Canvas Overlay -->
       <canvas ref="canvasRef" class="hero-particle-canvas"></canvas>
 
-      <!-- Full Background Banner Image with Breathing & Cinematic Zoom -->
-      <div class="hero-bg-container">
-        <img 
-          :src="bannerImg" 
-          alt="IKI KASIR Hero Banner" 
-          class="hero-bg-img"
-        />
-        <div class="hero-left-overlay"></div>
-      </div>
-
-      <!-- Floating Handwritten Text Overlay (Top Right) -->
-      <div class="handwritten-overlay reveal-scale delay-200">
-        <div class="handwritten-text">
-          <span class="blue-sparkle star-1">✦</span>
-          <span class="blue-sparkle star-2">✨</span>
-          Solusi Kasir<br />
-          untuk Bisnis<br />
-          Anda!
-          <span class="blue-sparkle star-3">✦</span>
-          <svg class="handwritten-underline" viewBox="0 0 100 20" fill="none">
-            <path d="M 5,14 Q 50,3 95,12" stroke="url(#blueGradient)" stroke-width="3.5" stroke-linecap="round" />
-            <defs>
-              <linearGradient id="blueGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stop-color="#38bdf8" />
-                <stop offset="50%" stop-color="#60a5fa" />
-                <stop offset="100%" stop-color="#2563eb" />
-              </linearGradient>
-            </defs>
-          </svg>
-        </div>
-      </div>
+      <!-- Full Background Banner Image with Parallax Fade + Mask -->
+      <HeroImage
+        :src="bannerImg"
+        alt="IKI KASIR Hero Banner"
+        :fade-distance="400"
+        :parallax-factor="0.2"
+        :mask-start="65"
+      />
+      <div class="hero-left-overlay"></div>
 
       <div class="hero-inner">
         <!-- Hero Left Column: Text & CTAs -->
@@ -999,10 +1002,10 @@ const rightFeatures = [
 .hero-section {
   position: relative;
   width: 100%;
-  min-height: 650px;
+  min-height: 100vh;
   background-color: #eaf3fd;
-  padding-top: 100px;  /* reduced from 135px — navbar is now only 52px */
-  padding-bottom: 75px;
+  padding-top: 100px;
+  padding-bottom: 40px;
   overflow: hidden;
   display: flex;
   align-items: center;
@@ -1037,30 +1040,18 @@ const rightFeatures = [
   pointer-events: none;
 }
 
-/* Hero Background Image Container with Breathing & 2-3% Push-in */
-.hero-bg-container {
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 1;
-  pointer-events: none;
-  overflow: hidden;
-}
-
 /* Left side transparent gradient overlay for high text contrast */
 .hero-left-overlay {
   position: absolute;
   top: 0;
   left: 0;
-  width: 62%;
+  width: 60%;
   height: 100%;
   background: linear-gradient(
     to right,
-    rgba(234, 243, 253, 0.96) 0%,
-    rgba(234, 243, 253, 0.88) 45%,
-    rgba(234, 243, 253, 0.45) 75%,
+    rgba(234, 243, 253, 1) 0%,
+    rgba(234, 243, 253, 0.95) 40%,
+    rgba(234, 243, 253, 0.5) 70%,
     rgba(234, 243, 253, 0) 100%
   );
   pointer-events: none;
@@ -1076,23 +1067,6 @@ const rightFeatures = [
       rgba(234, 243, 253, 0.88) 60%,
       rgba(234, 243, 253, 0.40) 100%
     );
-  }
-}
-
-.hero-bg-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: right center;
-  animation: hero-cinematic-zoom 7.5s ease-in-out infinite alternate;
-  transform-origin: 75% 50%;
-}
-@keyframes hero-cinematic-zoom {
-  0% {
-    transform: scale(1) translate(0, 0);
-  }
-  100% {
-    transform: scale(1.028) translate(-0.4%, -0.2%);
   }
 }
 
