@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import { RouterLink, useRoute } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 import IkiKasirLogo from './components/IkiKasirLogo.vue'
 import { 
   LayoutDashboard, 
@@ -27,6 +27,7 @@ import {
   Bell
 } from 'lucide-vue-next'
 
+const router = useRouter()
 const route = useRoute()
 const showLogoutConfirm = ref(false)
 const isMobileDrawerOpen = ref(false)
@@ -56,10 +57,15 @@ watch(() => route.path, (newPath) => {
 const handleLogout = () => {
   showLogoutConfirm.value = true
 }
+
+const confirmLogout = () => {
+  showLogoutConfirm.value = false
+  router.push('/login')
+}
 </script>
 
 <template>
-  <RouterView v-if="route.path === '/landing'" />
+  <RouterView v-if="route.path === '/landing' || route.path === '/login'" />
   <div v-else class="flex flex-col md:flex-row h-screen w-screen overflow-hidden bg-[#F8F9FD] dark:bg-slate-900 transition-colors duration-300">
     
     <!-- MOBILE TOP BAR (Visible only on < md screens) -->
@@ -402,7 +408,7 @@ const handleLogout = () => {
             Batal
           </button>
           <button 
-            @click="showLogoutConfirm = false"
+            @click="confirmLogout"
             class="flex-1 px-4 py-2.5 rounded-xl bg-rose-600 text-white text-sm font-semibold hover:bg-rose-700 shadow-md shadow-rose-200"
           >
             Ya, Keluar

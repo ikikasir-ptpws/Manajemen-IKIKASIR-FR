@@ -36,7 +36,8 @@ import {
   TrendingUp,
   HelpCircle,
   CheckCircle2,
-  Sparkles
+  Sparkles,
+  LogIn
 } from 'lucide-vue-next'
 
 const isMobileMenuOpen = ref(false)
@@ -218,6 +219,10 @@ const rightFeatures = [
         
         <!-- Right CTA Button -->
         <div class="nav-cta-desktop">
+          <RouterLink to="/login" class="btn-secondary-sm flex items-center gap-1.5 font-semibold text-slate-700 hover:text-indigo-600 px-3 py-1.5 rounded-lg border border-slate-200 hover:border-indigo-300 bg-white transition-all">
+            <LogIn class="w-4 h-4 text-indigo-600" />
+            <span>Masuk</span>
+          </RouterLink>
           <a href="https://wa.me/6281234567890?text=Halo%20tim%20IKI%20KASIR,%20saya%20ingin%20mulai%20berlangganan%20aplikasi%20kasir" target="_blank" class="btn-primary-sm">
             Mulai Langganan
             <ArrowRight class="icon-sm" />
@@ -242,6 +247,10 @@ const rightFeatures = [
         >
           {{ link.name }}
         </a>
+        <RouterLink to="/login" @click="isMobileMenuOpen = false" class="btn-secondary-mobile flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border border-slate-200 font-semibold text-slate-700 bg-slate-50">
+          <LogIn class="w-4 h-4 text-indigo-600" />
+          <span>Masuk ke Akun</span>
+        </RouterLink>
         <a href="https://wa.me/6281234567890?text=Halo%20tim%20IKI%20KASIR,%20saya%20ingin%20mulai%20berlangganan%20aplikasi%20kasir" target="_blank" class="btn-primary-mobile">
           Mulai Langganan
         </a>

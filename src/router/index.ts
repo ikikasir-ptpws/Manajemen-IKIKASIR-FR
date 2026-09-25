@@ -63,6 +63,11 @@ const router = createRouter({
       name: 'landing',
       component: () => import('../views/landing/LandingIndex.vue')
     },
+    {
+      path: '/login',
+      name: 'login',
+      component: () => import('../views/auth/LoginIndex.vue')
+    },
     { path: '/:pathMatch(.*)*', redirect: '/' }
   ],
 })
