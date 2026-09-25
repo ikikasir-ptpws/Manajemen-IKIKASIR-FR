@@ -3,7 +3,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import IkiKasirLogo from '../../components/IkiKasirLogo.vue'
 import HeroImage from '../../components/HeroImage.vue'
-import bannerImg from '../../images/banner-hero.svg'
+import bannerImg from '../../images/hero-dark.png'
 import Lenis from 'lenis'
 import 'lenis/dist/lenis.css'
 import { 
@@ -75,78 +75,10 @@ const faqs = [
   }
 ]
 
-// Particle Canvas Animation Logic
-const canvasRef = ref<HTMLCanvasElement | null>(null)
-let animId: number | null = null
 
 // Lenis Smooth Scroll Logic
 let lenis: Lenis | null = null
 let lenisRafId: number | null = null
-
-interface Particle {
-  x: number
-  y: number
-  radius: number
-  color: string
-  alpha: number
-  vy: number
-  vx: number
-  pulseSpeed: number
-}
-
-const particles: Particle[] = []
-
-function initParticles(w: number, h: number) {
-  particles.length = 0
-  for (let i = 0; i < 45; i++) {
-    particles.push({
-      x: Math.random() * w,
-      y: Math.random() * h,
-      radius: Math.random() * 3 + 1,
-      color: Math.random() > 0.4 ? '#38bdf8' : '#60a5fa',
-      alpha: Math.random() * 0.7 + 0.2,
-      vy: -(Math.random() * 0.45 + 0.15),
-      vx: (Math.random() - 0.5) * 0.25,
-      pulseSpeed: Math.random() * 0.03 + 0.01
-    })
-  }
-}
-
-function loopParticles() {
-  const canvas = canvasRef.value
-  if (!canvas) return
-  const ctx = canvas.getContext('2d')
-  if (!ctx) return
-
-  ctx.clearRect(0, 0, canvas.width, canvas.height)
-
-  const time = Date.now() * 0.002
-  particles.forEach(p => {
-    p.y += p.vy
-    p.x += p.vx + Math.sin(time + p.radius) * 0.15
-
-    if (p.y < -10) {
-      p.y = canvas.height + 10
-      p.x = Math.random() * canvas.width
-    }
-    if (p.x < 0) p.x = canvas.width
-    if (p.x > canvas.width) p.x = 0
-
-    const currentAlpha = Math.max(0.1, Math.min(0.85, p.alpha + Math.sin(time * p.pulseSpeed * 10) * 0.2))
-
-    ctx.save()
-    ctx.globalAlpha = currentAlpha
-    ctx.beginPath()
-    ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2)
-    ctx.fillStyle = p.color
-    ctx.shadowColor = p.color
-    ctx.shadowBlur = p.radius * 4
-    ctx.fill()
-    ctx.restore()
-  })
-
-  animId = requestAnimationFrame(loopParticles)
-}
 
 let observer: IntersectionObserver | null = null
 let secObserver: IntersectionObserver | null = null
@@ -201,13 +133,6 @@ const activeNotification = computed<{ text: string; time: string }>(() => {
 })
 let notifTimer: ReturnType<typeof setInterval> | null = null
 
-function handleResize() {
-  const canvas = canvasRef.value
-  if (!canvas) return
-  canvas.width = canvas.parentElement?.clientWidth || window.innerWidth
-  canvas.height = canvas.parentElement?.clientHeight || 650
-  initParticles(canvas.width, canvas.height)
-}
 
 onMounted(() => {
   // Initialize Lenis
@@ -225,9 +150,7 @@ onMounted(() => {
   }
   lenisRafId = requestAnimationFrame(raf)
 
-  handleResize()
-  window.addEventListener('resize', handleResize)
-  loopParticles()
+
   setTimeout(() => {
     initScrollObserver()
     initActiveSectionObserver()
@@ -239,8 +162,6 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
-  window.removeEventListener('resize', handleResize)
-  if (animId) cancelAnimationFrame(animId)
   if (observer) observer.disconnect()
   if (secObserver) secObserver.disconnect()
   if (notifTimer) clearInterval(notifTimer)
@@ -332,8 +253,7 @@ const rightFeatures = [
       <!-- Ambient Pulsing Soft Blue Glow -->
       <div class="ambient-glow-pulse"></div>
 
-      <!-- Floating Particle Canvas Overlay -->
-      <canvas ref="canvasRef" class="hero-particle-canvas"></canvas>
+
 
       <!-- Full Background Banner Image with Parallax Fade + Mask -->
       <HeroImage
@@ -342,11 +262,12 @@ const rightFeatures = [
         :fade-distance="400"
         :parallax-factor="0.2"
         :mask-start="65"
+        object-position="left center"
       />
-      <div class="hero-left-overlay"></div>
+      <div class="hero-right-overlay"></div>
 
       <div class="hero-inner">
-        <!-- Hero Left Column: Text & CTAs -->
+        <!-- Hero Right Column: Text & CTAs -->
         <div class="hero-text-col reveal-up">
           
           <div class="hero-badge">
@@ -1040,33 +961,45 @@ const rightFeatures = [
   pointer-events: none;
 }
 
-/* Left side transparent gradient overlay for high text contrast */
-.hero-left-overlay {
+/* Right side gradient overlay for high text contrast */
+.hero-right-overlay {
   position: absolute;
   top: 0;
-  left: 0;
-  width: 60%;
+  right: 0;
+  width: 65%;
   height: 100%;
   background: linear-gradient(
-    to right,
-    rgba(234, 243, 253, 1) 0%,
-    rgba(234, 243, 253, 0.95) 40%,
-    rgba(234, 243, 253, 0.5) 70%,
-    rgba(234, 243, 253, 0) 100%
+    to left,
+    rgba(15, 23, 42, 0.75) 0%,
+    rgba(15, 23, 42, 0.50) 55%,
+    rgba(15, 23, 42, 0) 100%
   );
   pointer-events: none;
   z-index: 2;
 }
 
 @media (max-width: 991px) {
-  .hero-left-overlay {
+  .hero-right-overlay {
     width: 100%;
     background: linear-gradient(
       to bottom,
-      rgba(234, 243, 253, 0.96) 0%,
-      rgba(234, 243, 253, 0.88) 60%,
-      rgba(234, 243, 253, 0.40) 100%
+      rgba(15, 23, 42, 0.65) 0%,
+      rgba(15, 23, 42, 0.90) 100%
     );
+  }
+  .hero-inner {
+    justify-content: center !important;
+  }
+  .hero-text-col {
+    text-align: center;
+    margin: 0 auto;
+  }
+  .hero-cta-group {
+    justify-content: center;
+  }
+  .hero-bullets {
+    justify-content: center;
+    flex-wrap: wrap;
   }
 }
 
@@ -1077,29 +1010,32 @@ const rightFeatures = [
   width: 100%;
   margin: 0 auto;
   padding: 0 2rem;
+  display: flex;
+  justify-content: flex-end;
 }
 
 .hero-text-col {
   max-width: 580px;
+  width: 100%;
 }
 
 .hero-badge {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  background: rgba(224, 242, 254, 0.95);
-  border: 1px solid #93c5fd;
-  color: #1e40af;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #ffffff;
   padding: 0.35rem 1.1rem;
   border-radius: 9999px;
   font-size: 0.875rem;
   font-weight: 600;
   margin-bottom: 1.5rem;
   backdrop-filter: blur(8px);
-  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.12);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 .star-icon {
-  color: #2563eb;
+  color: #60a5fa;
   font-size: 0.875rem;
 }
 
@@ -1107,25 +1043,25 @@ const rightFeatures = [
   font-size: 3.5rem;
   font-weight: 800;
   line-height: 1.15;
-  color: #0B1736;
+  color: #ffffff;
   margin-bottom: 1.25rem;
   letter-spacing: -0.02em;
-  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.7);
 }
 .text-blue { 
-  color: #2563EB; 
+  color: #60A5FA; 
   font-weight: 800;
 }
 .text-sky { color: #00a3ff; }
 
 .hero-subtitle {
   font-size: 1.05rem;
-  color: #1e293b;
+  color: #e2e8f0;
   font-weight: 500;
   line-height: 1.65;
   max-width: 520px;
   margin-bottom: 2.25rem;
-  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
 }
 
 .hero-cta-group {
@@ -1203,8 +1139,8 @@ const rightFeatures = [
   gap: 0.5rem;
   font-size: 0.875rem;
   font-weight: 700;
-  color: #0f172a;
-  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+  color: #ffffff;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
 }
 .bullet-icon-box {
   width: 30px;

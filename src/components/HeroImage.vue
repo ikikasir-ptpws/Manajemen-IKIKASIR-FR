@@ -7,12 +7,14 @@ interface Props {
   fadeDistance?: number
   parallaxFactor?: number
   maskStart?: number
+  objectPosition?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
   fadeDistance: 400,
   parallaxFactor: 0.2,
   maskStart: 65,
+  objectPosition: 'center 20%',
 })
 
 const wrapperRef = ref<HTMLElement | null>(null)
@@ -143,7 +145,7 @@ onUnmounted(() => {
 
 <template>
   <div ref="wrapperRef" class="hero-image" :style="maskStyle">
-    <img :src="src" :alt="alt" class="hero-image__img" fetchpriority="high" decoding="async" />
+    <img :src="src" :alt="alt" class="hero-image__img" :style="{ objectPosition: props.objectPosition }" fetchpriority="high" decoding="async" />
   </div>
 </template>
 
@@ -164,7 +166,6 @@ onUnmounted(() => {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center 20%;
   animation: hero-cinematic-zoom 7.5s ease-in-out infinite alternate;
   transform-origin: 75% 30%;
 }
