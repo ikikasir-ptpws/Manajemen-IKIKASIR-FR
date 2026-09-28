@@ -68,7 +68,7 @@ const masterTransactions = ref<SalesTransaction[]>([
     time: '14:20 WIB',
     customer: 'Resto Dapur Nusantara',
     items: [
-      { id: 'i-6', name: 'Paket Resto & Cafe Premium (6 Bulan)', category: 'Lisensi POS', qty: 1, price: 1850000 },
+      { id: 'i-6', name: 'Paket Resto & Cafe Custom / IT One (6 Bulan)', category: 'Lisensi POS', qty: 1, price: 1850000 },
       { id: 'i-7', name: 'Barcode Scanner Wireless 2D', category: 'Hardware', qty: 2, price: 380000 },
     ],
     paymentMethod: 'Kartu Debit',

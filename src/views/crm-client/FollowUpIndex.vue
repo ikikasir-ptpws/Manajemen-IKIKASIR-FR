@@ -44,7 +44,7 @@ const followUpList = ref<ClientLead[]>([
     source: 'Website',
     lastFollowUp: '03 Sep 2026',
     followUpSchedule: 'Hari ini',
-    notes: 'Client tertarik dengan paket premium. Akan follow up minggu depan.',
+    notes: 'Client tertarik dengan paket Custom IT One. Akan follow up minggu depan.',
     followUpHistory: [
       { id: 'fh-1', date: '04 Sep 2026', time: '10:30', channel: 'WhatsApp', notes: 'Client meminta informasi harga dan demo aplikasi.' },
       { id: 'fh-2', date: '02 Sep 2026', time: '14:20', channel: 'WhatsApp', notes: 'Sudah menghubungi client, belum ada respon.' },

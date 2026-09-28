@@ -15,9 +15,12 @@ import {
   Compass, 
   ArrowRight,
   ShieldCheck,
-  DollarSign
+  DollarSign,
+  Loader2,
+  AlertCircle
 } from 'lucide-vue-next'
 import type { ClientLead, LeadStatus, LeadSource } from '../../types/crm'
+import { useAppData } from '../../composables/useAppData'
 
 const props = defineProps<{
   isOpen: boolean
@@ -29,7 +32,9 @@ const emit = defineEmits<{
   (e: 'saved', client: ClientLead): void
 }>()
 
+const { addRegistration, updateLead } = useAppData()
 const isSubmitting = ref(false)
+const submitError = ref<string | null>(null)
 const activeTab = ref<'contact' | 'business' | 'crm'>('contact')
 
 const formData = ref({
@@ -41,8 +46,8 @@ const formData = ref({
   address: '',
   status: 'New' as LeadStatus,
   source: 'Website' as LeadSource,
-  packageInterest: 'Premium' as 'Basic' | 'Pro' | 'Premium',
-  estimatedDeal: 349000,
+  packageInterest: 'Basic' as 'Basic' | 'Custom / IT One',
+  estimatedDeal: 250000,
   notes: '',
   followUpSchedule: 'Hari ini' as 'Hari ini' | 'Besok' | '2 Hari lagi' | '3 Hari lagi' | '5 Hari lagi' | 'Terlambat'
 })
@@ -63,8 +68,8 @@ watch(() => props.clientToEdit, (val) => {
       address: val.address || '',
       status: val.status,
       source: val.source,
-      packageInterest: val.packageInterest || 'Premium',
-      estimatedDeal: val.estimatedDeal || 349000,
+      packageInterest: val.packageInterest || 'Basic',
+      estimatedDeal: val.estimatedDeal || 250000,
       notes: val.notes || '',
       followUpSchedule: val.followUpSchedule || 'Hari ini'
     }
@@ -83,8 +88,8 @@ function resetForm() {
     address: '',
     status: 'New',
     source: 'Website',
-    packageInterest: 'Premium',
-    estimatedDeal: 349000,
+    packageInterest: 'Basic',
+    estimatedDeal: 250000,
     notes: '',
     followUpSchedule: 'Hari ini'
   }
@@ -105,47 +110,75 @@ const formatRupiah = (val: number) => {
 }
 
 const handleSubmit = () => {
+  submitError.value = null
+
   if (!formData.value.name.trim()) {
-    formData.value.name = 'Calon Client Baru'
+    submitError.value = 'Nama lengkap wajib diisi.'
+    return
   }
   if (!formData.value.businessName.trim()) {
-    formData.value.businessName = 'Toko ' + formData.value.name
+    submitError.value = 'Nama bisnis/usaha wajib diisi.'
+    return
   }
 
   isSubmitting.value = true
-  setTimeout(() => {
-    isSubmitting.value = false
-    const savedClient: ClientLead = {
-      id: props.clientToEdit ? props.clientToEdit.id : 'lead-' + Date.now(),
-      no: props.clientToEdit ? props.clientToEdit.no : 1,
-      name: formData.value.name,
-      businessName: formData.value.businessName,
-      businessCategory: formData.value.businessCategory,
-      phone: formData.value.phone || '0812' + Math.floor(10000000 + Math.random() * 90000000),
-      email: formData.value.email || `${formData.value.name.toLowerCase().replace(/\s+/g, '')}@email.com`,
-      address: formData.value.address || 'Jl. Sudirman, Jakarta',
-      status: formData.value.status,
-      source: formData.value.source,
-      lastFollowUp: '04 Sep 2026',
-      packageInterest: formData.value.packageInterest,
-      estimatedDeal: formData.value.estimatedDeal,
-      notes: formData.value.notes || 'Tertarik dengan fitur kasir POS dan manajemen CRM.',
-      followUpSchedule: formData.value.followUpSchedule,
-      followUpHistory: props.clientToEdit ? props.clientToEdit.followUpHistory : [
-        {
-          id: 'fu-1',
-          date: '04 Sep 2026',
-          time: '11:00',
-          channel: 'Sistem',
-          notes: 'Client baru terdaftar melalui formulir CRM.'
-        }
-      ]
+
+  try {
+    let savedClient: ClientLead
+
+    if (props.clientToEdit) {
+      // MODE EDIT — update data yang sudah ada di store
+      const nowIso = new Date().toISOString()
+      savedClient = {
+        ...props.clientToEdit,
+        name: formData.value.name,
+        businessName: formData.value.businessName,
+        businessCategory: formData.value.businessCategory,
+        phone: formData.value.phone || props.clientToEdit.phone,
+        email: formData.value.email || props.clientToEdit.email,
+        address: formData.value.address || props.clientToEdit.address || '',
+        status: formData.value.status,
+        source: formData.value.source,
+        packageInterest: formData.value.packageInterest,
+        estimatedDeal: formData.value.estimatedDeal,
+        notes: formData.value.notes || props.clientToEdit.notes || '',
+        followUpSchedule: formData.value.followUpSchedule,
+        updated_at: nowIso
+      }
+      updateLead(savedClient)
+    } else {
+      // MODE TAMBAH — simpan ke store via addRegistration
+      savedClient = addRegistration({
+        name: formData.value.name,
+        businessName: formData.value.businessName,
+        businessCategory: formData.value.businessCategory,
+        phone: formData.value.phone || '08' + Math.floor(100000000 + Math.random() * 900000000),
+        email: formData.value.email || `${formData.value.name.toLowerCase().replace(/\s+/g, '')}@email.com`,
+        address: formData.value.address || 'Belum diisi',
+        packageInterest: formData.value.packageInterest,
+        source: formData.value.source,
+        notes: formData.value.notes || `Calon client ditambahkan manual via CRM Admin. Paket: ${formData.value.packageInterest}.`
+      })
+      // Terapkan fields tambahan (status, estimatedDeal, followUpSchedule) yang tidak ada di addRegistration
+      if (formData.value.status !== 'New' || formData.value.estimatedDeal !== 250000 || formData.value.followUpSchedule !== 'Hari ini') {
+        updateLead({
+          ...savedClient,
+          status: formData.value.status,
+          estimatedDeal: formData.value.estimatedDeal,
+          followUpSchedule: formData.value.followUpSchedule
+        })
+      }
     }
 
     emit('saved', savedClient)
     emit('close')
     resetForm()
-  }, 400)
+  } catch (err: any) {
+    console.error('[ClientFormModal] handleSubmit error:', err)
+    submitError.value = err?.message || 'Gagal menyimpan data. Silakan coba lagi.'
+  } finally {
+    isSubmitting.value = false
+  }
 }
 </script>
 
@@ -221,6 +254,11 @@ const handleSubmit = () => {
       <!-- Main Body Container -->
       <div class="flex-1 overflow-y-auto p-4 sm:p-7 space-y-4 sm:space-y-5">
         
+        <!-- Error Banner -->
+        <div v-if="submitError" class="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 flex items-center gap-2 text-xs font-bold">
+          <span>⚠️ {{ submitError }}</span>
+        </div>
+
         <!-- TAB 1: KONTAK & PERSONAL -->
         <div v-if="activeTab === 'contact'" class="space-y-4 animate-in fade-in duration-150">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -369,9 +407,8 @@ const handleSubmit = () => {
                 v-model="formData.packageInterest"
                 class="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 font-medium bg-white"
               >
-                <option value="Basic">Paket Basic (Rp 99.000 / bln)</option>
-                <option value="Pro">Paket Pro (Rp 199.000 / bln)</option>
-                <option value="Premium">Paket Premium (Rp 349.000 / bln)</option>
+                <option value="Basic">Paket Basic (Rp 250.000 / bln)</option>
+                <option value="Custom / IT One">Paket Custom / IT One (Konsultasi)</option>
               </select>
             </div>
 
@@ -414,7 +451,7 @@ const handleSubmit = () => {
               <textarea 
                 v-model="formData.notes"
                 rows="2"
-                placeholder="Contoh: Client tertarik dengan paket premium. Membutuhkan integrasi QRIS dan demo aplikasi minggu depan."
+                placeholder="Contoh: Client tertarik dengan paket Custom / IT One. Membutuhkan integrasi QRIS dan demo aplikasi minggu depan."
                 class="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 font-medium transition-all"
               ></textarea>
             </div>
@@ -450,8 +487,9 @@ const handleSubmit = () => {
             :disabled="isSubmitting"
             class="flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-md shadow-indigo-200 transition-all cursor-pointer disabled:opacity-50"
           >
-            <CheckCircle2 class="w-4 h-4" />
-            <span>{{ isSubmitting ? 'Menyimpan...' : (clientToEdit ? 'Simpan' : 'Simpan Client') }}</span>
+            <Loader2 v-if="isSubmitting" class="w-4 h-4 animate-spin" />
+            <CheckCircle2 v-else class="w-4 h-4" />
+            <span>{{ isSubmitting ? 'Menyimpan...' : (clientToEdit ? 'Simpan Perubahan' : 'Simpan Client') }}</span>
           </button>
         </div>
       </div>

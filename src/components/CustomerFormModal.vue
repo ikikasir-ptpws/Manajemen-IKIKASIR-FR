@@ -63,26 +63,20 @@ const packages = [
   {
     type: 'Basic' as PackageType,
     name: 'Paket Basic',
-    pricePerMonth: 99000,
-    features: ['1 Outlet & 1 Kasir', 'Hingga 500 Produk', 'Laporan Penjualan Standar', 'Support WhatsApp'],
+    pricePerMonth: 250000,
+    isConsultation: false,
+    features: ['Manajemen produk tanpa batas', 'Transaksi kasir cepat & akurat', 'Laporan penjualan lengkap', 'Support bantuan pelanggan'],
     color: 'from-blue-600 to-indigo-600',
     badge: 'Paling Populer UMKM'
   },
   {
-    type: 'Pro' as PackageType,
-    name: 'Paket Pro',
-    pricePerMonth: 199000,
-    features: ['3 Akun Kasir', 'Produk & Stok Unlimited', 'Manajemen Meja & QR Order', 'Laporan Laba Rugi Harian'],
-    color: 'from-emerald-600 to-teal-600',
-    badge: 'Bisnis Berkembang'
-  },
-  {
-    type: 'Premium' as PackageType,
-    name: 'Paket Premium',
-    pricePerMonth: 349000,
-    features: ['Multi-Outlet (3 Cabang)', 'Fitur CRM & Loyalitas Poin', 'Neraca & Buku Besar Lengkap', 'Integrasi Mesin EDC/QRIS'],
+    type: 'Custom / IT One' as PackageType,
+    name: 'Paket Custom / IT One',
+    pricePerMonth: 0,
+    isConsultation: true,
+    features: ['Semua fitur Basic', 'Fitur khusus sesuai kebutuhan bisnis', 'Integrasi sistem & modul khusus', 'Dedicated support & pendampingan'],
     color: 'from-violet-600 to-purple-700',
-    badge: 'Fitur Terlengkap'
+    badge: 'Solusi Khusus'
   }
 ]
 
@@ -106,6 +100,7 @@ const selectedDurationInfo = computed(() => {
 })
 
 const calculatedTotal = computed(() => {
+  if (selectedPackageInfo.value.isConsultation) return 0
   const base = selectedPackageInfo.value.pricePerMonth * form.value.durationMonths
   const disc = (base * selectedDurationInfo.value.discount) / 100
   return base - disc
@@ -397,7 +392,7 @@ const handleSubmit = () => {
             <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-3">
               Pilih Paket Langganan Kasir
             </label>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div 
                 v-for="pkg in packages" 
                 :key="pkg.type"
@@ -420,8 +415,14 @@ const handleSubmit = () => {
 
                   <h3 class="text-base font-bold text-slate-800">{{ pkg.name }}</h3>
                   <div class="mt-2 mb-4">
-                    <span class="text-xl font-extrabold text-slate-900">{{ formatRupiah(pkg.pricePerMonth) }}</span>
-                    <span class="text-xs text-slate-400 font-medium"> / bulan</span>
+                    <template v-if="!pkg.isConsultation">
+                      <span class="text-xl font-extrabold text-slate-900">{{ formatRupiah(pkg.pricePerMonth) }}</span>
+                      <span class="text-xs text-slate-400 font-medium"> / bulan</span>
+                    </template>
+                    <template v-else>
+                      <span class="text-base font-extrabold text-violet-700">Konsultasi Terlebih Dahulu</span>
+                      <p class="text-[11px] text-slate-400 mt-0.5">Harga disesuaikan kebutuhan bisnis</p>
+                    </template>
                   </div>
 
                   <ul class="space-y-2 border-t border-slate-100 pt-3">
@@ -536,18 +537,27 @@ const handleSubmit = () => {
 
               <!-- Rincian Biaya -->
               <div class="bg-slate-50 rounded-2xl p-4 border border-slate-100 space-y-2 text-xs">
-                <div class="flex justify-between text-slate-600">
-                  <span>Paket: {{ selectedPackageInfo.name }} ({{ form.durationMonths }} Bulan)</span>
-                  <span class="font-semibold">{{ formatRupiah(selectedPackageInfo.pricePerMonth * form.durationMonths) }}</span>
-                </div>
-                <div v-if="selectedDurationInfo.discount > 0" class="flex justify-between text-emerald-600">
-                  <span>Diskon Promo Paket ({{ selectedDurationInfo.discount }}%)</span>
-                  <span class="font-semibold">- {{ formatRupiah((selectedPackageInfo.pricePerMonth * form.durationMonths * selectedDurationInfo.discount) / 100) }}</span>
-                </div>
-                <div class="pt-2 border-t border-slate-200 flex justify-between items-center">
-                  <span class="font-bold text-slate-800 text-sm">Total Tagihan</span>
-                  <span class="font-extrabold text-indigo-600 text-base">{{ formatRupiah(calculatedTotal) }}</span>
-                </div>
+                <template v-if="!selectedPackageInfo.isConsultation">
+                  <div class="flex justify-between text-slate-600">
+                    <span>Paket: {{ selectedPackageInfo.name }} ({{ form.durationMonths }} Bulan)</span>
+                    <span class="font-semibold">{{ formatRupiah(selectedPackageInfo.pricePerMonth * form.durationMonths) }}</span>
+                  </div>
+                  <div v-if="selectedDurationInfo.discount > 0" class="flex justify-between text-emerald-600">
+                    <span>Diskon Promo Paket ({{ selectedDurationInfo.discount }}%)</span>
+                    <span class="font-semibold">- {{ formatRupiah((selectedPackageInfo.pricePerMonth * form.durationMonths * selectedDurationInfo.discount) / 100) }}</span>
+                  </div>
+                  <div class="pt-2 border-t border-slate-200 flex justify-between items-center">
+                    <span class="font-bold text-slate-800 text-sm">Total Tagihan</span>
+                    <span class="font-extrabold text-indigo-600 text-base">{{ formatRupiah(calculatedTotal) }}</span>
+                  </div>
+                </template>
+                <template v-else>
+                  <div class="text-center py-2">
+                    <p class="font-bold text-violet-700 text-sm">Paket Custom / IT One</p>
+                    <p class="text-slate-500 text-[11px] mt-1">Harga ditentukan setelah konsultasi kebutuhan bisnis.</p>
+                    <p class="text-slate-500 text-[11px]">Tim kami akan menghubungi Anda segera.</p>
+                  </div>
+                </template>
               </div>
 
               <!-- Toggle Catat Kas Otomatis -->

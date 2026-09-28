@@ -96,7 +96,7 @@ const sendWhatsApp = () => {
           </div>
           <span 
             class="px-2.5 py-1 rounded-full text-xs font-bold"
-            :class="customer.packageType === 'Premium' ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-800'"
+            :class="customer.packageType === 'Custom / IT One' ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-800'"
           >
             {{ customer.packageType }}
           </span>

@@ -163,7 +163,7 @@ const handleSaveFollowUp = () => {
               <div>
                 <span class="text-slate-400 block text-[11px]">Paket Diminati:</span>
                 <span class="inline-block mt-0.5 px-2 py-0.5 rounded-md text-[11px] font-bold bg-indigo-50 text-indigo-700">
-                  {{ client.packageInterest || 'Premium' }}
+                  {{ client.packageInterest || 'Basic' }}
                 </span>
               </div>
             </div>
@@ -195,7 +195,7 @@ const handleSaveFollowUp = () => {
                 <div class="sm:col-span-2">
                   <span class="text-slate-400 block text-[11px]">Catatan:</span>
                   <p class="font-medium text-slate-700 bg-slate-50 p-2.5 sm:p-3 rounded-xl border border-slate-100 mt-1">
-                    {{ client.notes || 'Client tertarik dengan paket premium. Akan follow up minggu depan.' }}
+                    {{ client.notes || 'Client tertarik dengan paket Custom / IT One. Akan follow up minggu depan.' }}
                   </p>
                 </div>
               </div>

@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { Users, Search, Plus, Eye, Edit2, Trash2, ShieldCheck, MapPin, Filter, X, ChevronDown } from 'lucide-vue-next'
+import { useAppData } from '../../composables/useAppData'
+
+const { customers, getComputedCustomerStatus } = useAppData()
 
 const searchQuery = ref('')
 const showFilterDropdown = ref(false)
@@ -17,24 +20,29 @@ const showToast = (msg: string) => {
   setTimeout(() => { toastMessage.value = null }, 3500)
 }
 
-const customers = ref([
-  { id: 1, name: 'Budi Santoso', business: 'Toko Budi Jaya', type: 'Premium', phone: '081234567890', address: 'Jl. Merdeka No 1', joinDate: '12 Jan 2026', status: 'Active' },
-  { id: 2, name: 'Siti Aisyah', business: 'Warung Bu Siti', type: 'Basic', phone: '085712345678', address: 'Jl. Sudirman 45', joinDate: '05 Feb 2026', status: 'Active' },
-  { id: 3, name: 'Andi Wijaya', business: 'Kopi Kenangan Andi', type: 'Pro', phone: '081398765432', address: 'Ruko Baru No 7', joinDate: '20 Mar 2026', status: 'Inactive' },
-  { id: 4, name: 'Dewi Lestari', business: 'Butik Dewi', type: 'Premium', phone: '082123456789', address: 'Mall ABC, Lt 2', joinDate: '15 Apr 2026', status: 'Active' },
-])
-
 // Form state
-const form = ref({ name: '', business: '', type: 'Basic', phone: '', address: '' })
+const form = ref({ name: '', business: '', type: 'Basic' as 'Basic' | 'Custom / IT One', phone: '', address: '' })
 
 const filteredCustomers = computed(() => {
-  let list = customers.value
+  let list = customers.value.map(c => {
+    const { computedStatus, daysLeft, daysExpired } = getComputedCustomerStatus(c)
+    return {
+      ...c,
+      business: c.businessName || c.business || 'Toko',
+      type: c.packageType,
+      joinDate: c.expiredDate ? c.expiredDate : '2026-09-01',
+      computedStatus,
+      daysLeft,
+      daysExpired
+    }
+  })
+
   if (filterType.value !== 'Semua') {
     list = list.filter(c => c.type === filterType.value)
   }
   if (searchQuery.value) {
     const q = searchQuery.value.toLowerCase()
-    list = list.filter(c => c.name.toLowerCase().includes(q) || c.business.toLowerCase().includes(q) || c.phone.includes(q))
+    list = list.filter(c => c.name.toLowerCase().includes(q) || c.business.toLowerCase().includes(q) || (c.phone && c.phone.includes(q)))
   }
   return list
 })
@@ -64,10 +72,11 @@ const saveCustomer = () => {
     if (idx !== -1 && customers.value[idx]) {
       const curr = customers.value[idx]
       customers.value[idx] = {
-        id: curr.id,
+        ...curr,
         name: form.value.name,
+        businessName: form.value.business,
         business: form.value.business,
-        type: form.value.type,
+        packageType: form.value.type as any,
         phone: form.value.phone,
         address: form.value.address,
         joinDate: curr.joinDate,
@@ -77,14 +86,17 @@ const saveCustomer = () => {
     }
   } else {
     customers.value.push({
-      id: Date.now(),
+      id: 'cust-' + Date.now(),
+      no: customers.value.length + 1,
       name: form.value.name,
+      businessName: form.value.business,
       business: form.value.business,
-      type: form.value.type,
+      packageType: form.value.type as any,
       phone: form.value.phone,
       address: form.value.address,
+      expiredDate: new Date(Date.now() + 30 * 86400000).toISOString().substring(0, 10),
       joinDate: new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }),
-      status: 'Active'
+      status: 'active'
     })
     showToast(`Pelanggan "${form.value.name}" berhasil ditambahkan!`)
   }
@@ -144,8 +156,8 @@ const deleteCustomer = () => {
             <span class="hidden sm:inline">{{ filterType }}</span>
             <ChevronDown class="w-3 h-3" />
           </button>
-          <div v-if="showFilterDropdown" class="absolute right-0 mt-1.5 w-36 bg-white rounded-xl shadow-xl border border-slate-100 py-1 z-30 text-xs">
-            <button v-for="t in ['Semua', 'Basic', 'Pro', 'Premium']" :key="t"
+          <div v-if="showFilterDropdown" class="absolute right-0 mt-1.5 w-40 bg-white rounded-xl shadow-xl border border-slate-100 py-1 z-30 text-xs">
+            <button v-for="t in ['Semua', 'Basic', 'Custom / IT One']" :key="t"
               @click="filterType = t; showFilterDropdown = false"
               class="w-full text-left px-3 py-2 hover:bg-indigo-50 hover:text-indigo-600 font-medium cursor-pointer"
               :class="filterType === t ? 'bg-indigo-50 text-indigo-600' : 'text-slate-700'"
@@ -203,8 +215,7 @@ const deleteCustomer = () => {
               <td class="px-6 py-4">
                 <span class="px-2.5 py-1 rounded-md text-[11px] font-bold"
                   :class="{
-                    'bg-amber-50 text-amber-600 border border-amber-100': cust.type === 'Premium',
-                    'bg-blue-50 text-blue-600 border border-blue-100': cust.type === 'Pro',
+                    'bg-indigo-50 text-indigo-700 border border-indigo-100': cust.type === 'Custom / IT One',
                     'bg-slate-100 text-slate-600 border border-slate-200': cust.type === 'Basic'
                   }"
                 >
@@ -290,8 +301,7 @@ const deleteCustomer = () => {
             <label class="text-xs font-semibold text-slate-600 mb-1 block">Tipe Paket</label>
             <select v-model="form.type" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-500">
               <option>Basic</option>
-              <option>Pro</option>
-              <option>Premium</option>
+              <option>Custom / IT One</option>
             </select>
           </div>
         </div>

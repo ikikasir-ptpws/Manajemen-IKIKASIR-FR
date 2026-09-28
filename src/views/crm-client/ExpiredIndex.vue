@@ -1,11 +1,17 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { Clock, Search, MessageCircle, ShieldCheck, AlertCircle, RefreshCw, X, ChevronDown, Filter } from 'lucide-vue-next'
+import { useAppData, getCustomerWaUrl } from '../../composables/useAppData'
+import type { PackageType } from '../../types/dashboard'
+
+const { expiredCustomers, renewCustomerSubscription } = useAppData()
 
 const searchQuery = ref('')
 const showRenewModal = ref(false)
 const selectedCustomer = ref<any>(null)
-const renewDays = ref(30)
+const selectedMonths = ref(1) // 1, 3, 6, 12 months
+const selectedPackage = ref<PackageType>('Basic')
+const paymentMethod = ref('QRIS')
 const toastMessage = ref<string | null>(null)
 
 const showToast = (msg: string) => {
@@ -13,36 +19,52 @@ const showToast = (msg: string) => {
   setTimeout(() => { toastMessage.value = null }, 3500)
 }
 
-const expiredCustomers = ref([
-  { id: 1, name: 'Siti Aisyah', business: 'Warung Bu Siti', type: 'Basic', phone: '085712345678', expiredDate: '01 Sep 2026', daysExpired: 9 },
-  { id: 2, name: 'Donni Cell', business: 'Donni Pulsa & Aksesoris', type: 'Basic', phone: '085619283746', expiredDate: '31 Agu 2026', daysExpired: 10 },
-  { id: 3, name: 'Fajar Store', business: 'Fajar Elektronik', type: 'Premium', phone: '081298471928', expiredDate: '28 Agu 2026', daysExpired: 13 },
-  { id: 4, name: 'Yuni Collection', business: 'Yuni Baby Shop', type: 'Basic', phone: '087819283746', expiredDate: '27 Agu 2026', daysExpired: 14 },
-  { id: 5, name: 'Toko Sejahtera', business: 'Minimarket Sejahtera', type: 'Basic', phone: '081283746192', expiredDate: '25 Agu 2026', daysExpired: 16 },
-])
-
 const filteredCustomers = computed(() => {
-  if (!searchQuery.value) return expiredCustomers.value
+  const list = expiredCustomers.value.map(c => ({
+    id: c.id,
+    name: c.name,
+    business: c.businessName || 'Toko',
+    type: c.packageType,
+    phone: c.phone || '',
+    expiredDate: c.expiredDate,
+    daysExpired: c.daysExpired || 1,
+    rawCustomer: c
+  }))
+
+  if (!searchQuery.value) return list
   const q = searchQuery.value.toLowerCase()
-  return expiredCustomers.value.filter(c => c.name.toLowerCase().includes(q) || c.business.toLowerCase().includes(q))
+  return list.filter(c => c.name.toLowerCase().includes(q) || c.business.toLowerCase().includes(q) || c.phone.includes(q))
 })
 
-const sendWhatsApp = (cust: any) => {
-  const phone = cust.phone.replace(/^0/, '62')
-  const message = encodeURIComponent(`Halo ${cust.name}, masa aktif IKI KASIR Anda telah habis sejak ${cust.expiredDate}. Perpanjang sekarang untuk tetap menikmati layanan kami. Terima kasih! 🙏`)
-  window.open(`https://wa.me/${phone}?text=${message}`, '_blank')
+// Rule 12 & 15: WhatsApp Follow Up opens CUSTOMER'S WhatsApp number
+const sendWhatsAppFollowUp = (cust: any) => {
+  const message = `Halo ${cust.name}, kami dari IKI KASIR. Masa aktif langganan Anda telah berakhir pada ${cust.expiredDate}. Apakah Anda ingin melakukan perpanjangan langganan?`
+  const waUrl = getCustomerWaUrl(cust.phone, message)
+  window.open(waUrl, '_blank')
 }
 
 const openRenew = (cust: any) => {
   selectedCustomer.value = cust
-  renewDays.value = 30
+  selectedPackage.value = cust.type || 'Basic'
+  selectedMonths.value = 1
+  paymentMethod.value = 'QRIS'
   showRenewModal.value = true
 }
 
+// Rule 13 & 19: Renew subscription without creating duplicate customer
 const confirmRenew = () => {
   if (selectedCustomer.value) {
-    expiredCustomers.value = expiredCustomers.value.filter(c => c.id !== selectedCustomer.value.id)
-    showToast(`Masa aktif "${selectedCustomer.value.name}" berhasil diperpanjang ${renewDays.value} hari!`)
+    const invoice = renewCustomerSubscription({
+      customerId: selectedCustomer.value.id,
+      packageType: selectedPackage.value,
+      billingCycleMonths: selectedMonths.value,
+      paymentMethod: paymentMethod.value,
+      markPaidImmediately: true
+    })
+
+    if (invoice) {
+      showToast(`✅ Masa aktif "${selectedCustomer.value.name}" berhasil diperpanjang ${selectedMonths.value} Bulan! Invoice baru: ${invoice.id}`)
+    }
     showRenewModal.value = false
   }
 }
@@ -131,11 +153,12 @@ const confirmRenew = () => {
               <td class="px-6 py-4">
                 <div class="flex items-center justify-end gap-2">
                   <button 
-                    @click="sendWhatsApp(cust)"
+                    @click="sendWhatsAppFollowUp(cust)"
+                    title="Follow Up Ke WhatsApp Pelanggan"
                     class="flex items-center gap-1.5 px-3 py-1.5 bg-[#25D366]/10 text-[#25D366] hover:bg-[#25D366]/20 rounded-xl text-xs font-bold transition-colors cursor-pointer"
                   >
                     <MessageCircle class="w-3.5 h-3.5" />
-                    WhatsApp
+                    WhatsApp Klien
                   </button>
                   <button 
                     @click="openRenew(cust)"
@@ -164,19 +187,31 @@ const confirmRenew = () => {
           <h3 class="text-lg font-bold text-slate-800">Perpanjang Langganan</h3>
           <button @click="showRenewModal = false" class="p-1.5 hover:bg-slate-100 rounded-lg cursor-pointer"><X class="w-4 h-4 text-slate-400" /></button>
         </div>
-        <p class="text-sm text-slate-600 mb-4">Perpanjang masa aktif untuk <strong>{{ selectedCustomer.name }}</strong> ({{ selectedCustomer.business }}).</p>
-        <div class="mb-5">
-          <label class="text-xs font-semibold text-slate-600 mb-1.5 block">Durasi Perpanjangan</label>
-          <select v-model="renewDays" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm font-medium focus:outline-none focus:border-indigo-500">
-            <option :value="30">30 Hari (1 Bulan)</option>
-            <option :value="90">90 Hari (3 Bulan)</option>
-            <option :value="180">180 Hari (6 Bulan)</option>
-            <option :value="365">365 Hari (1 Tahun)</option>
-          </select>
+        <p class="text-xs text-slate-600 mb-4">Perpanjang masa aktif untuk <strong>{{ selectedCustomer.name }}</strong> ({{ selectedCustomer.business }}).</p>
+        
+        <div class="space-y-3 mb-5 text-xs">
+          <div>
+            <label class="font-bold text-slate-700 mb-1 block">Paket Langganan</label>
+            <select v-model="selectedPackage" class="w-full px-3 py-2 rounded-xl border border-slate-200 font-medium text-slate-800">
+              <option value="Basic">Basic (Rp 250.000/bln)</option>
+              <option value="Custom / IT One">Custom / IT One (Konsultasi)</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="font-bold text-slate-700 mb-1 block">Durasi Perpanjangan</label>
+            <select v-model="selectedMonths" class="w-full px-3 py-2 rounded-xl border border-slate-200 font-medium text-slate-800">
+              <option :value="1">1 Bulan</option>
+              <option :value="3">3 Bulan</option>
+              <option :value="6">6 Bulan</option>
+              <option :value="12">12 Bulan (1 Tahun)</option>
+            </select>
+          </div>
         </div>
+
         <div class="flex items-center gap-3">
-          <button @click="showRenewModal = false" class="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50 cursor-pointer">Batal</button>
-          <button @click="confirmRenew" class="flex-1 px-4 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 shadow-md shadow-indigo-200 cursor-pointer">Perpanjang</button>
+          <button @click="showRenewModal = false" class="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 cursor-pointer">Batal</button>
+          <button @click="confirmRenew" class="flex-1 px-4 py-2.5 rounded-xl bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-700 shadow-md shadow-indigo-200 cursor-pointer">Perpanjang</button>
         </div>
       </div>
     </div>

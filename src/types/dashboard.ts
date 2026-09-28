@@ -1,12 +1,15 @@
-export type PackageType = 'Basic' | 'Pro' | 'Premium' | 'Enterprise'
+export type PackageType = 'Basic' | 'Custom / IT One'
 
 export interface Customer {
   id: string
   no: number
   name: string
   businessName?: string
+  business?: string
   packageType: PackageType
   expiredDate: string
+  joinDate?: string
+  address?: string
   daysLeft?: number
   daysExpired?: number
   status: 'active' | 'expiring' | 'expired'

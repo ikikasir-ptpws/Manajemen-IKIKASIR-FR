@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { Receipt, Search, Download, CheckCircle2, XCircle, Clock, Eye, X, ChevronDown, Filter } from 'lucide-vue-next'
+import { Receipt, Search, Download, CheckCircle2, XCircle, Clock, Eye, X, ChevronDown, Filter, Check } from 'lucide-vue-next'
+import { useAppData } from '../../composables/useAppData'
+
+const { invoices, markInvoicePaid } = useAppData()
 
 const searchQuery = ref('')
 const filterStatus = ref('Semua')
@@ -14,18 +17,21 @@ const showToast = (msg: string) => {
   setTimeout(() => { toastMessage.value = null }, 3500)
 }
 
-const subscriptions = ref([
-  { id: 'INV-001', customer: 'Budi Santoso', business: 'Toko Budi Jaya', amount: 349000, package: 'Premium', status: 'Paid', date: '10 Sep 2026', method: 'QRIS' },
-  { id: 'INV-002', customer: 'Siti Aisyah', business: 'Warung Bu Siti', amount: 99000, package: 'Basic', status: 'Pending', date: '09 Sep 2026', method: 'Transfer BCA' },
-  { id: 'INV-003', customer: 'Andi Wijaya', business: 'Kopi Kenangan Andi', amount: 199000, package: 'Pro', status: 'Failed', date: '08 Sep 2026', method: 'Transfer Mandiri' },
-  { id: 'INV-004', customer: 'Dewi Lestari', business: 'Butik Dewi', amount: 349000, package: 'Premium', status: 'Paid', date: '07 Sep 2026', method: 'QRIS' },
-  { id: 'INV-005', customer: 'Rudi Hermawan', business: 'Kopi Rudi', amount: 99000, package: 'Basic', status: 'Paid', date: '06 Sep 2026', method: 'Cash' },
-])
-
 const formatCurrency = (val: number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val)
 
 const filteredSubs = computed(() => {
-  let list = subscriptions.value
+  let list = invoices.value.map(i => ({
+    id: i.id,
+    customer: i.customerName,
+    business: i.businessName,
+    amount: i.amount,
+    package: i.package,
+    status: i.status,
+    date: i.date,
+    method: i.paymentMethod || 'QRIS',
+    rawInvoice: i
+  }))
+
   if (filterStatus.value !== 'Semua') {
     list = list.filter(s => s.status === filterStatus.value)
   }
@@ -41,8 +47,16 @@ const openInvoice = (sub: any) => {
   showInvoiceModal.value = true
 }
 
+const handleMarkAsPaid = (inv: any) => {
+  markInvoicePaid(inv.id)
+  showToast(`Invoice ${inv.id} telah ditandai LUNAS! Masa aktif pelanggan otomatis diperbarui.`)
+  if (selectedInvoice.value && selectedInvoice.value.id === inv.id) {
+    selectedInvoice.value.status = 'Paid'
+  }
+}
+
 const handleExport = () => {
-  showToast('Data langganan berhasil diekspor! (Demo)')
+  showToast('Data langganan berhasil diekspor!')
 }
 </script>
 
@@ -192,6 +206,17 @@ const handleExport = () => {
           <div class="flex justify-between py-3 bg-indigo-50 rounded-xl px-4 -mx-1">
             <span class="text-indigo-700 font-semibold">Total Tagihan</span>
             <span class="font-extrabold text-indigo-700 text-lg">{{ formatCurrency(selectedInvoice.amount) }}</span>
+          </div>
+
+          <!-- Action Button: Mark Paid if pending -->
+          <div v-if="selectedInvoice.status === 'Pending'" class="pt-2">
+            <button 
+              @click="handleMarkAsPaid(selectedInvoice)"
+              class="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-emerald-200 transition-all cursor-pointer"
+            >
+              <Check class="w-4 h-4" />
+              <span>Tandai Lunas & Update Masa Aktif</span>
+            </button>
           </div>
         </div>
       </div>

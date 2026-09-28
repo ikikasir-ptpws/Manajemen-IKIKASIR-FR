@@ -30,7 +30,10 @@ import CashFlowChart from '../../components/CashFlowChart.vue'
 import CustomerDetailModal from '../../components/CustomerDetailModal.vue'
 import type { Customer, ActivityItem } from '../../types/dashboard'
 
+import { useAppData } from '../../composables/useAppData'
+
 const router = useRouter()
+const { statistics, expiringCustomers: rawExpiring, expiredCustomers: rawExpired } = useAppData()
 
 // State for Modals
 const isDetailModalOpen = ref(false)
@@ -53,13 +56,6 @@ const closeAllDropdowns = (e: MouseEvent) => {
 
 onMounted(() => {
   document.addEventListener('click', closeAllDropdowns)
-  // Animate KPI counters on mount
-  setTimeout(() => {
-    animateCounter('totalPelanggan', metrics.value.totalPelanggan)
-    animateCounter('pelangganAktif', metrics.value.pelangganAktif)
-    animateCounter('akanExpired', metrics.value.akanExpired)
-    animateCounter('pelangganExpired', metrics.value.pelangganExpired)
-  }, 200)
 })
 onUnmounted(() => {
   document.removeEventListener('click', closeAllDropdowns)
@@ -97,21 +93,38 @@ const getGreeting = () => {
 const greeting = ref(getGreeting())
 const currentDate = ref(new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }))
 
-// KPI Metrics State
-const metrics = ref({
-  totalPelanggan: 1250,
-  pelangganAktif: 980,
-  akanExpired: 120,
-  pelangganExpired: 150
-})
+// KPI Metrics computed live from database store (Rule 16)
+const displayMetrics = computed(() => ({
+  totalPelanggan: statistics.value.totalCustomers,
+  pelangganAktif: Math.max(0, statistics.value.totalCustomers - statistics.value.totalExpired),
+  akanExpired: statistics.value.totalExpiringSoon,
+  pelangganExpired: statistics.value.totalExpired
+}))
 
-// Animated counter
-const displayMetrics = ref({
-  totalPelanggan: 0,
-  pelangganAktif: 0,
-  akanExpired: 0,
-  pelangganExpired: 0
-})
+// Live Table Lists computed from store (Rule 16)
+const akanExpiredList = computed(() => rawExpiring.value.map((c, idx) => ({
+  id: c.id,
+  no: idx + 1,
+  name: c.name,
+  businessName: c.businessName || 'Toko',
+  packageType: c.packageType,
+  expiredDate: c.expiredDate,
+  daysLeft: c.daysLeft || 1,
+  status: 'expiring' as const,
+  phone: c.phone
+})))
+
+const expiredList = computed(() => rawExpired.value.map((c, idx) => ({
+  id: c.id,
+  no: idx + 1,
+  name: c.name,
+  businessName: c.businessName || 'Toko',
+  packageType: c.packageType,
+  expiredDate: c.expiredDate,
+  daysExpired: c.daysExpired || 1,
+  status: 'expired' as const,
+  phone: c.phone
+})))
 
 const animateCounter = (key: keyof typeof displayMetrics.value, target: number) => {
   const duration = 800
@@ -182,23 +195,8 @@ const activities = ref<ActivityItem[]>([
   }
 ])
 
-// Table: Pelanggan Akan Expired
-const akanExpiredList = ref<Customer[]>([
-  { id: 'exp-1', no: 1, name: 'Andi Wijaya', businessName: 'Warung Wijaya', packageType: 'Basic', expiredDate: '10 Sep 2026', daysLeft: 5, status: 'expiring', phone: '081298412891' },
-  { id: 'exp-2', no: 2, name: 'Dewi Lestari', businessName: 'Lestari Butik', packageType: 'Premium', expiredDate: '12 Sep 2026', daysLeft: 7, status: 'expiring', phone: '081392817292' },
-  { id: 'exp-3', no: 3, name: 'Rudi Hermawan', businessName: 'Kopi Rudi', packageType: 'Basic', expiredDate: '14 Sep 2026', daysLeft: 9, status: 'expiring', phone: '085718291029' },
-  { id: 'exp-4', no: 4, name: 'Toko Makmur', businessName: 'Toko Makmur Grosir', packageType: 'Premium', expiredDate: '15 Sep 2026', daysLeft: 10, status: 'expiring', phone: '082190182736' },
-  { id: 'exp-5', no: 5, name: 'Sari Collection', businessName: 'Sari Muslim Fashion', packageType: 'Basic', expiredDate: '16 Sep 2026', daysLeft: 11, status: 'expiring', phone: '081291827364' }
-])
-
-// Table: Pelanggan Expired
-const expiredList = ref<Customer[]>([
-  { id: 'expd-1', no: 1, name: 'Siti Aisyah', businessName: 'Aisyah Hijab Store', packageType: 'Basic', expiredDate: '01 Sep 2026', daysExpired: 4, status: 'expired', phone: '081391827461' },
-  { id: 'expd-2', no: 2, name: 'Donni Cell', businessName: 'Donni Pulsa & Aksesoris', packageType: 'Basic', expiredDate: '31 Agu 2026', daysExpired: 5, status: 'expired', phone: '085619283746' },
-  { id: 'expd-3', no: 3, name: 'Fajar Store', businessName: 'Fajar Elektronik', packageType: 'Premium', expiredDate: '28 Agu 2026', daysExpired: 8, status: 'expired', phone: '081298471928' },
-  { id: 'expd-4', no: 4, name: 'Yuni Collection', businessName: 'Yuni Baby Shop', packageType: 'Basic', expiredDate: '27 Agu 2026', daysExpired: 9, status: 'expired', phone: '087819283746' },
-  { id: 'expd-5', no: 5, name: 'Toko Sejahtera', businessName: 'Minimarket Sejahtera', packageType: 'Basic', expiredDate: '25 Agu 2026', daysExpired: 11, status: 'expired', phone: '081283746192' }
-])
+// NOTE: akanExpiredList and expiredList are already declared above as computed values from the store.
+// The static dummy data has been removed to avoid re-declaration errors.
 
 // Handler to view customer detail
 const openCustomerDetail = (cust: Customer) => {
@@ -207,10 +205,8 @@ const openCustomerDetail = (cust: Customer) => {
 }
 
 // Handler when new customer is saved from form
+// displayMetrics auto-updates from the store reactively, no need to mutate manually
 const handleCustomerSaved = (newCust: Customer, amount: number) => {
-  metrics.value.totalPelanggan++
-  metrics.value.pelangganAktif++
-
   // Add to top of activities
   activities.value.unshift({
     id: 'act-' + Date.now(),
@@ -225,28 +221,15 @@ const handleCustomerSaved = (newCust: Customer, amount: number) => {
   showToast(`Pelanggan baru "${newCust.businessName || newCust.name}" berhasil didaftarkan!`)
 }
 
-// Handler for customer renewal
+// Handler for customer renewal — data is managed reactively by the store
+// akanExpiredList and expiredList will auto-update via computed values
 const handleCustomerRenewed = (customerId: string, days: number) => {
-  // Remove from expired list if exists
-  const expIndex = expiredList.value.findIndex(c => c.id === customerId)
-  if (expIndex !== -1) {
-    const cust = expiredList.value.splice(expIndex, 1)[0]
-    if (cust) {
-      metrics.value.pelangganExpired--
-      metrics.value.pelangganAktif++
-      showToast(`Masa aktif ${cust.name} berhasil diperpanjang ${days} hari!`)
-    }
-    return
-  }
-
-  // If in expiring list, update days
-  const willExpIndex = akanExpiredList.value.findIndex(c => c.id === customerId)
-  if (willExpIndex !== -1) {
-    const target = akanExpiredList.value[willExpIndex]
-    if (target) {
-      target.daysLeft = (target.daysLeft || 0) + days
-      showToast(`Masa aktif ${target.name} berhasil diperpanjang!`)
-    }
+  const found = expiredList.value.find(c => c.id === customerId)
+    || akanExpiredList.value.find(c => c.id === customerId)
+  if (found) {
+    showToast(`Masa aktif ${found.name} berhasil diperpanjang ${days} hari!`)
+  } else {
+    showToast(`Masa aktif pelanggan berhasil diperpanjang ${days} hari!`)
   }
 }
 </script>
@@ -395,7 +378,7 @@ const handleCustomerRenewed = (customerId: string, days: number) => {
             {{ displayMetrics.akanExpired.toLocaleString('id-ID') }}
           </h3>
           <div class="w-full bg-amber-100 rounded-full h-1.5 mt-2">
-            <div class="bg-amber-500 h-1.5 rounded-full animate-progress" :style="{ width: Math.min((metrics.akanExpired / metrics.totalPelanggan) * 100 * 5, 100) + '%' }"></div>
+            <div class="bg-amber-500 h-1.5 rounded-full animate-progress" :style="{ width: (displayMetrics.totalPelanggan > 0 ? Math.min((displayMetrics.akanExpired / displayMetrics.totalPelanggan) * 100 * 5, 100) : 0) + '%' }"></div>
           </div>
           <div class="flex items-center gap-1 text-[10px] sm:text-[11px] font-semibold text-amber-600 mt-1">
             <Clock class="w-3 h-3" />
@@ -415,7 +398,7 @@ const handleCustomerRenewed = (customerId: string, days: number) => {
             {{ displayMetrics.pelangganExpired.toLocaleString('id-ID') }}
           </h3>
           <div class="w-full bg-rose-100 rounded-full h-1.5 mt-2">
-            <div class="bg-rose-500 h-1.5 rounded-full animate-progress" :style="{ width: Math.min((metrics.pelangganExpired / metrics.totalPelanggan) * 100 * 5, 100) + '%' }"></div>
+            <div class="bg-rose-500 h-1.5 rounded-full animate-progress" :style="{ width: (displayMetrics.totalPelanggan > 0 ? Math.min((displayMetrics.pelangganExpired / displayMetrics.totalPelanggan) * 100 * 5, 100) : 0) + '%' }"></div>
           </div>
           <div class="flex items-center gap-1 text-[10px] sm:text-[11px] font-semibold text-rose-600 mt-1">
             <ArrowDown class="w-3 h-3 stroke-[2.5]" />
@@ -600,7 +583,7 @@ const handleCustomerRenewed = (customerId: string, days: number) => {
                 <td class="py-3">
                   <span 
                     class="px-2 py-0.5 rounded-md text-[11px] font-medium"
-                    :class="cust.packageType === 'Premium' ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-semibold' : 'bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300'"
+                    :class="cust.packageType === 'Custom / IT One' ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-semibold' : 'bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300'"
                   >
                     {{ cust.packageType }}
                   </span>
@@ -654,7 +637,7 @@ const handleCustomerRenewed = (customerId: string, days: number) => {
                 <td class="py-3">
                   <span 
                     class="px-2 py-0.5 rounded-md text-[11px] font-medium"
-                    :class="cust.packageType === 'Premium' ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-semibold' : 'bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300'"
+                    :class="cust.packageType === 'Custom / IT One' ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-semibold' : 'bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300'"
                   >
                     {{ cust.packageType }}
                   </span>

@@ -17,27 +17,46 @@ import {
   Phone,
   Mail,
   Store,
-  Clock
+  Clock,
+  FileSpreadsheet,
+  Package,
+  Layers,
+  Sparkles,
+  UserCheck,
+  UserX,
+  UserPlus,
+  RefreshCw,
+  Users
 } from 'lucide-vue-next'
 import ClientFormModal from '../../components/crm/ClientFormModal.vue'
 import ClientDetailModal from '../../components/crm/ClientDetailModal.vue'
 import ConvertClientModal from '../../components/crm/ConvertClientModal.vue'
+import GoogleFormIntegrationModal from '../../components/crm/GoogleFormIntegrationModal.vue'
+import { useAppData } from '../../composables/useAppData'
 import type { ClientLead, LeadStatus, LeadSource } from '../../types/crm'
 
-// View state: 'table' or 'detail' matching screenshots
+// Connect to Centralized Lifecycle Store
+const { 
+  leads: clients, 
+  updateLead,
+  updateLeadStatus: updateStatus, 
+  addFollowUpLog,
+  approveLead, 
+  rejectLead, 
+  deleteLead, 
+  statistics 
+} = useAppData()
+
+// View state: 'table' or 'detail'
 const currentView = ref<'table' | 'detail'>('table')
 
 // Modals state
 const isFormModalOpen = ref(false)
 const isDetailModalOpen = ref(false)
 const isConvertModalOpen = ref(false)
+const isGoogleFormModalOpen = ref(false)
 const clientToEdit = ref<ClientLead | null>(null)
 const selectedClient = ref<ClientLead | null>(null)
-
-// New follow up in detail view
-const showAddFollowUp = ref(false)
-const newNote = ref('')
-const newChannel = ref<'WhatsApp' | 'Telepon' | 'Meeting' | 'Sistem'>('WhatsApp')
 
 // Toast message
 const toastMessage = ref<string | null>(null)
@@ -52,144 +71,26 @@ const showToast = (msg: string) => {
 const searchQuery = ref('')
 const selectedStatus = ref<string>('Semua Status')
 const selectedSource = ref<string>('Semua Sumber')
+const selectedPackage = ref<string>('Semua Paket')
 const currentPage = ref(1)
 
 // Dropdown toggles
 const showStatusDropdown = ref(false)
 const showSourceDropdown = ref(false)
-const showDateDropdown = ref(false)
-
-// Sample client leads matching the reference image exactly
-const clients = ref<ClientLead[]>([
-  {
-    id: 'c-1',
-    no: 1,
-    name: 'Budi Santoso',
-    businessName: 'Toko ABC',
-    businessCategory: 'Retail',
-    phone: '081234567890',
-    email: 'budi@email.com',
-    address: 'Jl. Merdeka No. 10, Jakarta Pusat',
-    status: 'New',
-    source: 'Website',
-    lastFollowUp: '04 Sep 2026',
-    packageInterest: 'Premium',
-    notes: 'Client tertarik dengan paket premium. Akan follow up minggu depan.',
-    followUpSchedule: 'Hari ini',
-    followUpHistory: [
-      { id: 'fh-1', date: '04 Sep 2026', time: '10:30', channel: 'WhatsApp', notes: 'Client meminta informasi harga dan demo aplikasi.' },
-      { id: 'fh-2', date: '02 Sep 2026', time: '14:20', channel: 'WhatsApp', notes: 'Sudah menghubungi client, belum ada respon.' },
-      { id: 'fh-3', date: '01 Sep 2026', time: '09:15', channel: 'Sistem', notes: 'Client masuk ke CRM dari form website.' }
-    ]
-  },
-  {
-    id: 'c-2',
-    no: 2,
-    name: 'Andi Wijaya',
-    businessName: 'Andi Store',
-    businessCategory: 'Retail',
-    phone: '081398765432',
-    email: 'andi@email.com',
-    address: 'Jl. Ahmad Yani No. 45, Bandung',
-    status: 'Contacted',
-    source: 'Instagram',
-    lastFollowUp: '03 Sep 2026',
-    packageInterest: 'Basic',
-    notes: 'Sudah dihubungi via DM Instagram dan dilanjutkan ke WhatsApp.',
-    followUpSchedule: 'Hari ini',
-    followUpHistory: [
-      { id: 'fh-4', date: '03 Sep 2026', time: '11:15', channel: 'WhatsApp', notes: 'Menjelaskan paket Basic dan sistem pencatatan stok.' }
-    ]
-  },
-  {
-    id: 'c-3',
-    no: 3,
-    name: 'Siti Aisyah',
-    businessName: 'Siti Collection',
-    businessCategory: 'Fashion & Butik',
-    phone: '085711223344',
-    email: 'siti@email.com',
-    address: 'Jl. Malioboro No. 12, Yogyakarta',
-    status: 'Follow Up',
-    source: 'WhatsApp',
-    lastFollowUp: '02 Sep 2026',
-    packageInterest: 'Pro',
-    notes: 'Meminta jadwal meeting zoom untuk demonstrasi fitur kasir cabang.',
-    followUpSchedule: 'Besok',
-    followUpHistory: [
-      { id: 'fh-5', date: '02 Sep 2026', time: '15:00', channel: 'WhatsApp', notes: 'Konfirmasi jadwal meeting demo aplikasi kasir.' }
-    ]
-  },
-  {
-    id: 'c-4',
-    no: 4,
-    name: 'Rudi Hermawan',
-    businessName: 'Rudi Mart',
-    businessCategory: 'Minimarket & Grosir',
-    phone: '082155667788',
-    email: 'rudi@email.com',
-    address: 'Jl. Pemuda No. 88, Semarang',
-    status: 'Interested',
-    source: 'Facebook Ads',
-    lastFollowUp: '01 Sep 2026',
-    packageInterest: 'Pro',
-    notes: 'Sangat tertarik dengan integrasi scan barcode dan printer thermal.',
-    followUpSchedule: '2 Hari lagi',
-    followUpHistory: [
-      { id: 'fh-6', date: '01 Sep 2026', time: '16:45', channel: 'Telepon', notes: 'Panggilan telepon 10 menit diskusi printer kasir bluetooth.' }
-    ]
-  },
-  {
-    id: 'c-5',
-    no: 5,
-    name: 'Dewi Lestari',
-    businessName: 'Dewi Fashion',
-    businessCategory: 'Fashion & Butik',
-    phone: '081988990011',
-    email: 'dewi@email.com',
-    address: 'Jl. Diponegoro No. 23, Surabaya',
-    status: 'Converted',
-    source: 'Referral',
-    lastFollowUp: '31 Agu 2026',
-    packageInterest: 'Premium',
-    notes: 'Telah berlangganan paket Premium 1 Tahun dan aktif digunakan.',
-    followUpSchedule: '3 Hari lagi',
-    followUpHistory: [
-      { id: 'fh-7', date: '31 Agu 2026', time: '10:00', channel: 'WhatsApp', notes: 'Pembayaran langganan terkonfirmasi. Akun diaktifkan.' }
-    ]
-  },
-  {
-    id: 'c-6',
-    no: 6,
-    name: 'Agus Setiawan',
-    businessName: 'Agus Furniture',
-    businessCategory: 'Jasa & Servis',
-    phone: '087822334455',
-    email: 'agus@email.com',
-    address: 'Jl. Pahlawan No. 7, Malang',
-    status: 'Lost',
-    source: 'Direct / Walk-in',
-    lastFollowUp: '30 Agu 2026',
-    packageInterest: 'Basic',
-    notes: 'Belum membutuhkan sistem kasir digital dalam waktu dekat.',
-    followUpSchedule: '5 Hari lagi',
-    followUpHistory: [
-      { id: 'fh-8', date: '30 Agu 2026', time: '13:20', channel: 'WhatsApp', notes: 'Client menginformasikan belum ada budget untuk langganan sistem.' }
-    ]
-  }
-])
+const showPackageDropdown = ref(false)
 
 const statusOptions = ['Semua Status', 'New', 'Contacted', 'Follow Up', 'Interested', 'Converted', 'Lost']
-const sourceOptions = ['Semua Sumber', 'Website', 'Instagram', 'WhatsApp', 'Facebook Ads', 'Referral', 'Direct / Walk-in']
+const sourceOptions = ['Semua Sumber', 'Website', 'Google Form', 'Instagram', 'WhatsApp', 'Facebook Ads', 'Referral']
+const packageOptions = ['Semua Paket', 'Basic', 'Custom / IT One']
 
-// Badges colors matching reference image
-const statusBadges: Record<LeadStatus, { bg: string, text: string }> = {
-  New: { bg: 'bg-blue-50 text-blue-600', text: 'text-blue-600' },
-  Contacted: { bg: 'bg-amber-50 text-amber-600', text: 'text-amber-600' },
-  'Follow Up': { bg: 'bg-purple-50 text-purple-600', text: 'text-purple-600' },
-  Interested: { bg: 'bg-teal-50 text-teal-600', text: 'text-teal-600' },
-  Converted: { bg: 'bg-emerald-50 text-emerald-600', text: 'text-emerald-600' },
-  Lost: { bg: 'bg-rose-50 text-rose-600', text: 'text-rose-600' },
+// Badges colors
+const statusBadges: Record<LeadStatus, { bg: string, text: string, label: string }> = {
+  New: { bg: 'bg-blue-50 text-blue-700 border-blue-200', text: 'text-blue-600', label: 'Baru' },
+  Contacted: { bg: 'bg-amber-50 text-amber-700 border-amber-200', text: 'text-amber-600', label: 'Diproses (Contacted)' },
+  'Follow Up': { bg: 'bg-purple-50 text-purple-700 border-purple-200', text: 'text-purple-600', label: 'Diproses (Follow Up)' },
+  Interested: { bg: 'bg-teal-50 text-teal-700 border-teal-200', text: 'text-teal-600', label: 'Diproses (Interested)' },
+  Converted: { bg: 'bg-emerald-50 text-emerald-700 border-emerald-200', text: 'text-emerald-600', label: 'Disetujui (Converted)' },
+  Lost: { bg: 'bg-rose-50 text-rose-700 border-rose-200', text: 'text-rose-600', label: 'Ditolak (Lost)' },
 }
 
 // Filtered clients
@@ -199,12 +100,20 @@ const filteredClients = computed(() => {
       c.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
       c.email.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
       c.phone.includes(searchQuery.value) ||
-      c.businessName.toLowerCase().includes(searchQuery.value.toLowerCase())
+      c.businessName.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+      c.id.toLowerCase().includes(searchQuery.value.toLowerCase())
 
-    const matchStatus = selectedStatus.value === 'Semua Status' || c.status === selectedStatus.value
+    const matchStatus = selectedStatus.value === 'Semua Status' || 
+      (selectedStatus.value === 'New' && c.status === 'New') ||
+      (selectedStatus.value === 'Diproses' && ['Contacted', 'Follow Up', 'Interested'].includes(c.status)) ||
+      (selectedStatus.value === 'Converted' && c.status === 'Converted') ||
+      (selectedStatus.value === 'Lost' && c.status === 'Lost') ||
+      c.status === selectedStatus.value
+
     const matchSource = selectedSource.value === 'Semua Sumber' || c.source === selectedSource.value
+    const matchPackage = selectedPackage.value === 'Semua Paket' || c.packageInterest === selectedPackage.value
 
-    return matchSearch && matchStatus && matchSource
+    return matchSearch && matchStatus && matchSource && matchPackage
   })
 })
 
@@ -212,6 +121,7 @@ const resetFilter = () => {
   searchQuery.value = ''
   selectedStatus.value = 'Semua Status'
   selectedSource.value = 'Semua Sumber'
+  selectedPackage.value = 'Semua Paket'
 }
 
 // Actions
@@ -236,51 +146,58 @@ const openConvertModal = (client: ClientLead) => {
 }
 
 const handleClientSaved = (savedClient: ClientLead) => {
-  const index = clients.value.findIndex(c => c.id === savedClient.id)
-  if (index !== -1) {
-    clients.value[index] = savedClient
-    showToast(`Data client "${savedClient.name}" berhasil diperbarui!`)
-  } else {
-    savedClient.no = clients.value.length + 1
-    clients.value.unshift(savedClient)
-    showToast(`Calon client baru "${savedClient.name}" berhasil ditambahkan!`)
-  }
+  // ClientFormModal already persists to store (addRegistration or updateLead).
+  // Here we just show a success notification.
+  showToast(`✅ Data "${savedClient.name}" berhasil tersimpan di Calon Client!`)
 }
 
-const handleConvertConfirmed = (client: ClientLead) => {
-  const index = clients.value.findIndex(c => c.id === client.id)
-  if (index !== -1 && clients.value[index]) {
-    clients.value[index].status = 'Converted'
-    showToast(`Client "${client.name}" berhasil dikonversi menjadi Pelanggan Aktif!`)
+const handleStatusChange = (clientId: string, newStatus: LeadStatus) => {
+  updateStatus(clientId, newStatus)
+  showToast(`Status pendaftar diubah menjadi ${newStatus}!`)
+}
+
+const handleDeleteClient = (id: string, name: string) => {
+  if (confirm(`Apakah Anda yakin ingin menghapus data pendaftar "${name}"?`)) {
+    deleteLead(id)
+    showToast(`Data pendaftar "${name}" telah dihapus.`)
   }
 }
 
 const handleAddFollowUp = (clientId: string, note: string, channel: 'WhatsApp' | 'Telepon' | 'Meeting' | 'Sistem') => {
-  const client = clients.value.find(c => c.id === clientId)
-  if (client) {
-    client.followUpHistory.unshift({
-      id: 'fu-' + Date.now(),
-      date: '05 Sep 2026',
-      time: '13:20',
-      channel: channel,
-      notes: note
-    })
-    client.lastFollowUp = '05 Sep 2026'
-    showToast(`Follow up baru berhasil dicatat untuk ${client.name}!`)
+  addFollowUpLog(clientId, note, channel)
+  showToast(`Follow up / riwayat status baru tersimpan untuk client ini.`)
+}
+
+const handleApproveClient = (client: ClientLead) => {
+  if (confirm(`Setujui pendaftaran "${client.name}" (${client.businessName})? Data akan otomatis masuk ke Semua Pelanggan dan Data Langganan.`)) {
+    const cust = approveLead(client.id)
+    if (cust) {
+      showToast(`✅ Pendaftaran "${client.name}" DISERETUJI! Otomatis masuk ke Semua Pelanggan & Data Langganan.`)
+    }
   }
 }
 
-const deleteClient = (id: string, name: string) => {
-  if (confirm(`Hapus calon client "${name}"?`)) {
-    clients.value = clients.value.filter(c => c.id !== id)
-    showToast(`Client "${name}" telah dihapus.`)
+const handleConvertConfirmed = (client: ClientLead) => {
+  if (client) {
+    const cust = approveLead(client.id)
+    if (cust) {
+      showToast(`✅ Pendaftaran "${client.name}" DISERETUJI! Otomatis masuk ke Semua Pelanggan & Data Langganan.`)
+    }
+  }
+  isConvertModalOpen.value = false
+}
+
+const handleRejectClient = (client: ClientLead) => {
+  if (confirm(`Tolak pendaftaran "${client.name}"? Status akan diubah menjadi Ditolak (Lost).`)) {
+    rejectLead(client.id)
+    showToast(`❌ Pendaftaran "${client.name}" telah DITOLAK.`)
   }
 }
 
 const sendWhatsAppDirect = (client: ClientLead) => {
   const phone = client.phone.replace(/[^0-9]/g, '')
   const cleanPhone = phone.startsWith('0') ? '62' + phone.slice(1) : (phone.startsWith('62') ? phone : '62' + phone)
-  const message = encodeURIComponent(`Halo Kak ${client.name}, salam dari tim IKI KASIR. Kami ingin konfirmasi tindak lanjut kebutuhan sistem kasir Anda.`)
+  const message = encodeURIComponent(`Halo Kak ${client.name}, salam dari Super Admin IKI KASIR. Kami ingin mengonfirmasi pendaftaran sistem kasir Anda (Paket: ${client.packageInterest || 'Basic'}).`)
   window.open(`https://wa.me/${cleanPhone}?text=${message}`, '_blank')
 }
 </script>
@@ -288,26 +205,125 @@ const sendWhatsAppDirect = (client: ClientLead) => {
 <template>
   <div class="p-3.5 sm:p-6 md:p-8 space-y-4 sm:space-y-6 max-w-[1400px] mx-auto select-none">
     
+    <!-- Toast Notification -->
+    <Teleport to="body">
+      <div 
+        v-if="toastMessage"
+        class="fixed bottom-5 right-5 z-[9999] px-4 py-3 rounded-2xl bg-slate-900 text-white text-xs font-bold shadow-2xl border border-slate-700 flex items-center gap-2.5 animate-in slide-in-from-bottom duration-200"
+      >
+        <CheckCircle2 class="w-4 h-4 text-emerald-400 shrink-0" />
+        <span>{{ toastMessage }}</span>
+      </div>
+    </Teleport>
+
     <!-- VIEW 1: TABLE / CARDS VIEW -->
     <div v-if="currentView === 'table'" class="space-y-4 sm:space-y-6 animate-in fade-in duration-150">
+      
       <!-- Top Header -->
       <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
         <div>
-          <h1 class="text-xl sm:text-2xl font-extrabold text-slate-800 tracking-tight">Calon Client</h1>
-          <p class="text-[11px] sm:text-xs text-slate-500 mt-0.5 sm:mt-1 font-medium">Kelola data calon pelanggan dan proses follow up.</p>
+          <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-50 border border-indigo-100 text-indigo-700 text-[11px] font-bold mb-1">
+            <Sparkles class="w-3.5 h-3.5 text-indigo-600" />
+            <span>Pusat Data Pendaftaran Super Admin</span>
+          </div>
+          <h1 class="text-xl sm:text-2xl font-extrabold text-slate-800 tracking-tight">Data Pendaftar & Calon Client</h1>
+          <p class="text-[11px] sm:text-xs text-slate-500 mt-0.5 font-medium">Kelola seluruh data pendaftaran dari Form Website dan Google Form secara terpusat.</p>
         </div>
 
-        <!-- "+ Tambah Client" button -->
-        <div class="flex items-center">
+        <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+          <!-- Google Form Docs Button -->
+          <button 
+            @click="isGoogleFormModalOpen = true"
+            class="flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 text-xs font-bold transition-all cursor-pointer shadow-2xs"
+          >
+            <FileSpreadsheet class="w-4 h-4 text-emerald-600" />
+            <span class="hidden sm:inline">Dokumentasi Google Form</span>
+            <span class="sm:hidden">Google Form</span>
+          </button>
+
+          <!-- "+ Tambah Client" button -->
           <button 
             @click="openAddModal"
-            class="w-full sm:w-auto flex items-center justify-center gap-2 px-3.5 py-2.5 sm:px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white text-xs font-bold shadow-md shadow-indigo-200 transition-all cursor-pointer"
+            class="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-md shadow-indigo-200 transition-all cursor-pointer"
           >
             <Plus class="w-4 h-4" />
-            <span>Tambah Client</span>
+            <span>Tambah Pendaftar</span>
           </button>
         </div>
       </header>
+
+      <!-- SUPER ADMIN STATISTICS SUMMARY CARDS (Required by Item 8) -->
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        <!-- Total -->
+        <div class="bg-white rounded-2xl p-3.5 sm:p-4 border border-slate-100 shadow-xs flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+            <Users class="w-5 h-5" />
+          </div>
+          <div>
+            <span class="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Total Pendaftar</span>
+            <span class="text-lg sm:text-xl font-black text-slate-800">{{ statistics.total }}</span>
+          </div>
+        </div>
+
+        <!-- Baru -->
+        <div class="bg-white rounded-2xl p-3.5 sm:p-4 border border-slate-100 shadow-xs flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+            <UserPlus class="w-5 h-5" />
+          </div>
+          <div>
+            <span class="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Baru</span>
+            <span class="text-lg sm:text-xl font-black text-blue-600">{{ statistics.newCount }}</span>
+          </div>
+        </div>
+
+        <!-- Diproses -->
+        <div class="bg-white rounded-2xl p-3.5 sm:p-4 border border-slate-100 shadow-xs flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+            <RefreshCw class="w-5 h-5" />
+          </div>
+          <div>
+            <span class="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Diproses</span>
+            <span class="text-lg sm:text-xl font-black text-amber-600">{{ statistics.inProgressCount }}</span>
+          </div>
+        </div>
+
+        <!-- Disetujui -->
+        <div class="bg-white rounded-2xl p-3.5 sm:p-4 border border-slate-100 shadow-xs flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+            <UserCheck class="w-5 h-5" />
+          </div>
+          <div>
+            <span class="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Disetujui</span>
+            <span class="text-lg sm:text-xl font-black text-emerald-600">{{ statistics.convertedCount }}</span>
+          </div>
+        </div>
+
+        <!-- Ditolak -->
+        <div class="bg-white rounded-2xl p-3.5 sm:p-4 border border-slate-100 shadow-xs flex items-center gap-3 col-span-2 sm:col-span-1">
+          <div class="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
+            <UserX class="w-5 h-5" />
+          </div>
+          <div>
+            <span class="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Ditolak</span>
+            <span class="text-lg sm:text-xl font-black text-rose-600">{{ statistics.lostCount }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- SOURCE & PACKAGE BREAKDOWN BADGES -->
+      <div class="flex items-center flex-wrap gap-2 text-xs">
+        <div class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-700 font-medium flex items-center gap-2">
+          <span>Sumber:</span>
+          <span class="px-2 py-0.5 rounded-md bg-indigo-100 text-indigo-700 font-bold">Website: {{ statistics.websiteCount }}</span>
+          <span class="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-700 font-bold">Google Form: {{ statistics.googleFormCount }}</span>
+        </div>
+
+        <div class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-700 font-medium flex items-center gap-2">
+          <span>Paket:</span>
+          <span class="px-2 py-0.5 rounded-md bg-blue-100 text-blue-700 font-bold">Basic: {{ statistics.basicCount }}</span>
+          <span class="px-2 py-0.5 rounded-md bg-purple-100 text-purple-700 font-bold">Custom / IT One: {{ statistics.customCount }}</span>
+        </div>
+      </div>
 
       <!-- Filter & Search Toolbar -->
       <div class="bg-white rounded-2xl p-3 sm:p-4 shadow-xs border border-slate-100 flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
@@ -318,7 +334,7 @@ const sendWhatsAppDirect = (client: ClientLead) => {
           <input 
             v-model="searchQuery"
             type="text" 
-            placeholder="Cari nama / HP / email..."
+            placeholder="Cari ID / nama / bisnis / WA / email..."
             class="w-full pl-10 pr-4 py-2 sm:py-2.5 rounded-xl border border-slate-200 text-xs font-medium text-slate-700 placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all"
           />
         </div>
@@ -332,43 +348,43 @@ const sendWhatsAppDirect = (client: ClientLead) => {
               @click="showStatusDropdown = !showStatusDropdown"
               class="w-full sm:w-auto flex items-center justify-between gap-2 px-3 py-2 rounded-xl border border-slate-200 bg-white font-medium text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer shadow-2xs"
             >
-              <span class="truncate max-w-[100px] sm:max-w-none">{{ selectedStatus }}</span>
+              <span class="truncate max-w-[110px] sm:max-w-none">Status: {{ selectedStatus }}</span>
               <ChevronDown class="w-3.5 h-3.5 text-slate-400 shrink-0" />
             </button>
 
             <div 
               v-if="showStatusDropdown"
-              class="absolute left-0 sm:left-auto sm:right-0 mt-1.5 w-44 bg-white rounded-xl shadow-lg border border-slate-100 py-1 z-30 animate-in fade-in zoom-in-95 duration-100"
+              class="absolute left-0 sm:left-auto sm:right-0 mt-1.5 w-48 bg-white rounded-xl shadow-lg border border-slate-100 py-1 z-30 animate-in fade-in zoom-in-95 duration-100"
             >
               <button 
-                v-for="st in statusOptions" 
+                v-for="st in ['Semua Status', 'New', 'Diproses', 'Converted', 'Lost']" 
                 :key="st"
                 @click="selectedStatus = st; showStatusDropdown = false"
                 class="w-full text-left px-3.5 py-1.5 hover:bg-indigo-50 hover:text-indigo-600 font-medium text-slate-700 flex items-center justify-between text-xs"
                 :class="selectedStatus === st ? 'text-indigo-600 font-bold bg-indigo-50/50' : ''"
               >
-                <span>{{ st }}</span>
+                <span>{{ st === 'New' ? 'Baru' : (st === 'Converted' ? 'Disetujui' : (st === 'Lost' ? 'Ditolak' : st)) }}</span>
                 <span v-if="selectedStatus === st" class="w-1.5 h-1.5 rounded-full bg-indigo-600"></span>
               </button>
             </div>
           </div>
 
-          <!-- Dropdown Sumber -->
+          <!-- Dropdown Sumber (Website vs Google Form) -->
           <div class="relative flex-1 sm:flex-none">
             <button 
               @click="showSourceDropdown = !showSourceDropdown"
               class="w-full sm:w-auto flex items-center justify-between gap-2 px-3 py-2 rounded-xl border border-slate-200 bg-white font-medium text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer shadow-2xs"
             >
-              <span class="truncate max-w-[100px] sm:max-w-none">{{ selectedSource }}</span>
+              <span class="truncate max-w-[110px] sm:max-w-none">Sumber: {{ selectedSource }}</span>
               <ChevronDown class="w-3.5 h-3.5 text-slate-400 shrink-0" />
             </button>
 
             <div 
               v-if="showSourceDropdown"
-              class="absolute left-0 sm:left-auto sm:right-0 mt-1.5 w-44 bg-white rounded-xl shadow-lg border border-slate-100 py-1 z-30 animate-in fade-in zoom-in-95 duration-100"
+              class="absolute left-0 sm:left-auto sm:right-0 mt-1.5 w-48 bg-white rounded-xl shadow-lg border border-slate-100 py-1 z-30 animate-in fade-in zoom-in-95 duration-100"
             >
               <button 
-                v-for="src in sourceOptions" 
+                v-for="src in ['Semua Sumber', 'Website', 'Google Form', 'Instagram', 'WhatsApp']" 
                 :key="src"
                 @click="selectedSource = src; showSourceDropdown = false"
                 class="w-full text-left px-3.5 py-1.5 hover:bg-indigo-50 hover:text-indigo-600 font-medium text-slate-700 flex items-center justify-between text-xs"
@@ -380,25 +396,30 @@ const sendWhatsAppDirect = (client: ClientLead) => {
             </div>
           </div>
 
-          <!-- Filter Tanggal -->
-          <div class="relative hidden sm:block">
+          <!-- Dropdown Paket -->
+          <div class="relative flex-1 sm:flex-none">
             <button 
-              @click="showDateDropdown = !showDateDropdown"
-              class="flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 bg-white font-medium text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer shadow-2xs"
+              @click="showPackageDropdown = !showPackageDropdown"
+              class="w-full sm:w-auto flex items-center justify-between gap-2 px-3 py-2 rounded-xl border border-slate-200 bg-white font-medium text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer shadow-2xs"
             >
-              <Calendar class="w-3.5 h-3.5 text-slate-400" />
-              <span>Filter Tanggal</span>
-              <ChevronDown class="w-3.5 h-3.5 text-slate-400" />
+              <span class="truncate max-w-[110px] sm:max-w-none">Paket: {{ selectedPackage }}</span>
+              <ChevronDown class="w-3.5 h-3.5 text-slate-400 shrink-0" />
             </button>
 
             <div 
-              v-if="showDateDropdown"
-              class="absolute right-0 mt-1.5 w-40 bg-white rounded-xl shadow-lg border border-slate-100 py-1 z-30 animate-in fade-in zoom-in-95 duration-100"
+              v-if="showPackageDropdown"
+              class="absolute right-0 mt-1.5 w-48 bg-white rounded-xl shadow-lg border border-slate-100 py-1 z-30 animate-in fade-in zoom-in-95 duration-100"
             >
-              <button @click="showDateDropdown = false" class="w-full text-left px-3 py-1.5 hover:bg-indigo-50 hover:text-indigo-600 font-medium text-slate-700 text-xs">Semua Tanggal</button>
-              <button @click="showDateDropdown = false" class="w-full text-left px-3 py-1.5 hover:bg-indigo-50 hover:text-indigo-600 font-medium text-slate-700 text-xs">Hari Ini</button>
-              <button @click="showDateDropdown = false" class="w-full text-left px-3 py-1.5 hover:bg-indigo-50 hover:text-indigo-600 font-medium text-slate-700 text-xs">Minggu Ini</button>
-              <button @click="showDateDropdown = false" class="w-full text-left px-3 py-1.5 hover:bg-indigo-50 hover:text-indigo-600 font-medium text-slate-700 text-xs">Bulan Ini</button>
+              <button 
+                v-for="pkg in packageOptions" 
+                :key="pkg"
+                @click="selectedPackage = pkg; showPackageDropdown = false"
+                class="w-full text-left px-3.5 py-1.5 hover:bg-indigo-50 hover:text-indigo-600 font-medium text-slate-700 flex items-center justify-between text-xs"
+                :class="selectedPackage === pkg ? 'text-indigo-600 font-bold bg-indigo-50/50' : ''"
+              >
+                <span>{{ pkg }}</span>
+                <span v-if="selectedPackage === pkg" class="w-1.5 h-1.5 rounded-full bg-indigo-600"></span>
+              </button>
             </div>
           </div>
 
@@ -415,123 +436,21 @@ const sendWhatsAppDirect = (client: ClientLead) => {
 
       </div>
 
-      <!-- MOBILE VIEW: RESPONSIVE CARDS (Visible only on < md screens) -->
-      <div class="block md:hidden space-y-3">
-        <div 
-          v-for="(client, idx) in filteredClients" 
-          :key="client.id"
-          class="bg-white rounded-2xl p-4 border border-slate-100 shadow-xs space-y-3 transition-all active:scale-[0.99]"
-        >
-          <!-- Top Card Row: Name, Business & Status Badge -->
-          <div class="flex items-start justify-between gap-2">
-            <div class="flex items-center gap-2.5">
-              <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-700 font-bold flex items-center justify-center text-sm border border-indigo-100 shrink-0">
-                {{ client.name.charAt(0) }}
-              </div>
-              <div>
-                <div class="font-bold text-sm text-slate-900 leading-snug">{{ client.name }}</div>
-                <div class="text-[11px] text-slate-400 font-medium">{{ client.businessName }} ({{ client.businessCategory || 'Retail' }})</div>
-              </div>
-            </div>
-
-            <!-- Status Badge -->
-            <span 
-              class="px-2.5 py-0.5 rounded-full text-[10px] font-bold shrink-0 inline-block"
-              :class="statusBadges[client.status]?.bg"
-            >
-              {{ client.status }}
-            </span>
-          </div>
-
-          <!-- Middle Info: Phone, Email, Last Follow-up -->
-          <div class="bg-slate-50/70 rounded-xl p-2.5 text-xs space-y-1.5 text-slate-600 border border-slate-100">
-            <div class="flex items-center justify-between">
-              <span class="text-slate-400 text-[11px] flex items-center gap-1">
-                <Phone class="w-3 h-3 text-slate-400" /> WhatsApp
-              </span>
-              <span class="font-bold font-mono text-[11px] text-slate-700">
-                {{ client.phone.replace(/(\d{4})(\d{4})(\d+)/, '$1-$2-xxxx') }}
-              </span>
-            </div>
-
-            <div class="flex items-center justify-between">
-              <span class="text-slate-400 text-[11px] flex items-center gap-1">
-                <Mail class="w-3 h-3 text-slate-400" /> Email
-              </span>
-              <span class="font-medium text-[11px] text-slate-700 truncate max-w-[180px]">
-                {{ client.email }}
-              </span>
-            </div>
-
-            <div class="flex items-center justify-between pt-1 border-t border-slate-100">
-              <span class="text-slate-400 text-[10px] flex items-center gap-1">
-                <Clock class="w-3 h-3 text-slate-400" /> Follow Up Terakhir
-              </span>
-              <span class="text-[10px] font-semibold text-indigo-600">
-                {{ client.lastFollowUp }}
-              </span>
-            </div>
-          </div>
-
-          <!-- Bottom Action Buttons: 1-Tap WhatsApp, Detail, Edit, Delete -->
-          <div class="flex items-center gap-2 pt-1">
-            <!-- 1-Tap Direct WhatsApp Button (Green & prominent) -->
-            <button 
-              @click.stop="sendWhatsAppDirect(client)"
-              class="flex-1 py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition-all active:scale-95 cursor-pointer"
-            >
-              <MessageSquare class="w-3.5 h-3.5" />
-              <span>WhatsApp</span>
-            </button>
-
-            <!-- Detail Button -->
-            <button 
-              @click.stop="openDetailModal(client)"
-              title="Lihat Detail Client"
-              class="py-2 px-3 rounded-xl bg-slate-100 hover:bg-indigo-50 text-slate-700 hover:text-indigo-600 text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer"
-            >
-              <Eye class="w-3.5 h-3.5" />
-              <span>Detail</span>
-            </button>
-
-            <!-- Edit Button -->
-            <button 
-              @click.stop="openEditModal(client)"
-              title="Edit Data Client"
-              class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-indigo-50 text-slate-600 hover:text-indigo-600 flex items-center justify-center transition-all cursor-pointer"
-            >
-              <Edit3 class="w-3.5 h-3.5" />
-            </button>
-
-            <!-- Delete Button -->
-            <button 
-              @click.stop="deleteClient(client.id, client.name)"
-              title="Hapus Data Client"
-              class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-rose-50 text-slate-400 hover:text-rose-600 flex items-center justify-center transition-all cursor-pointer"
-            >
-              <Trash2 class="w-3.5 h-3.5" />
-            </button>
-          </div>
-        </div>
-
-        <div v-if="filteredClients.length === 0" class="bg-white rounded-2xl p-8 text-center text-slate-400 text-xs border border-slate-100">
-          Tidak ada calon client yang cocok dengan pencarian / filter.
-        </div>
-      </div>
-
-      <!-- DESKTOP VIEW: FULL TABLE (Visible on >= md screens) -->
+      <!-- DESKTOP TABLE VIEW (Required by Item 6) -->
       <div class="hidden md:block bg-white rounded-2xl shadow-xs border border-slate-100 overflow-hidden">
         <div class="overflow-x-auto">
           <table class="w-full text-left text-xs">
             <thead>
-              <tr class="text-slate-400 border-b border-slate-100 bg-slate-50/50">
-                <th class="py-3 px-4 font-semibold w-12">No</th>
-                <th class="py-3 px-4 font-semibold">Nama Client</th>
-                <th class="py-3 px-4 font-semibold">No. WhatsApp</th>
-                <th class="py-3 px-4 font-semibold">Email</th>
-                <th class="py-3 px-4 font-semibold">Status</th>
-                <th class="py-3 px-4 font-semibold">Follow Up Terakhir</th>
-                <th class="py-3 px-4 font-semibold text-center w-36">Aksi</th>
+              <tr class="text-slate-400 border-b border-slate-100 bg-slate-50/60 font-semibold">
+                <th class="py-3 px-3.5 w-12">ID</th>
+                <th class="py-3 px-3.5">Nama & Bisnis</th>
+                <th class="py-3 px-3.5">WhatsApp / Email</th>
+                <th class="py-3 px-3.5">Paket Dipilih</th>
+                <th class="py-3 px-3.5">Alamat</th>
+                <th class="py-3 px-3.5">Sumber</th>
+                <th class="py-3 px-3.5">Tgl Daftar</th>
+                <th class="py-3 px-3.5">Status Pendaftaran</th>
+                <th class="py-3 px-3.5 text-center w-28">Aksi</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
@@ -541,73 +460,128 @@ const sendWhatsAppDirect = (client: ClientLead) => {
                 class="hover:bg-slate-50/80 transition-colors group cursor-pointer"
                 @click="openDetailModal(client)"
               >
-                <td class="py-3.5 px-4 text-slate-400 font-medium">{{ idx + 1 }}</td>
+                <td class="py-3.5 px-3.5 text-slate-400 font-mono font-bold text-[11px]">{{ client.id }}</td>
                 
                 <!-- Nama Client & Toko -->
-                <td class="py-3.5 px-4">
-                  <div class="font-bold text-slate-800 hover:text-indigo-600 transition-colors">{{ client.name }}</div>
-                  <div class="text-[11px] text-slate-400 font-medium">{{ client.businessName }}</div>
+                <td class="py-3.5 px-3.5">
+                  <div class="font-bold text-slate-800 group-hover:text-indigo-600 transition-colors">{{ client.name }}</div>
+                  <div class="text-[11px] text-slate-400 font-medium">{{ client.businessName }} ({{ client.businessCategory || 'Retail' }})</div>
                 </td>
 
-                <!-- No WhatsApp -->
-                <td class="py-3.5 px-4 text-slate-600 font-medium font-mono text-[11px]">
-                  {{ client.phone.replace(/(\d{4})(\d{4})(\d+)/, '$1-$2-xxxx') }}
+                <!-- No WhatsApp & Email -->
+                <td class="py-3.5 px-3.5 font-medium">
+                  <div class="text-slate-700 font-mono text-[11px] flex items-center gap-1">
+                    <Phone class="w-3 h-3 text-slate-400" />
+                    {{ client.phone }}
+                  </div>
+                  <div class="text-[11px] text-slate-400 flex items-center gap-1">
+                    <Mail class="w-3 h-3 text-slate-400" />
+                    {{ client.email }}
+                  </div>
                 </td>
 
-                <!-- Email -->
-                <td class="py-3.5 px-4 text-slate-600 font-medium">
-                  {{ client.email }}
-                </td>
-
-                <!-- Status Badge -->
-                <td class="py-3.5 px-4">
+                <!-- Paket Dipilih -->
+                <td class="py-3.5 px-3.5 font-semibold">
                   <span 
-                    class="px-2.5 py-1 rounded-full text-[11px] font-bold inline-block"
-                    :class="statusBadges[client.status]?.bg"
+                    class="px-2.5 py-1 rounded-lg text-[11px] font-bold inline-block border"
+                    :class="client.packageInterest === 'Custom / IT One' ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-indigo-50 text-indigo-700 border-indigo-200'"
                   >
-                    {{ client.status }}
+                    {{ client.packageInterest || 'Basic' }}
                   </span>
                 </td>
 
-                <!-- Follow Up Terakhir -->
-                <td class="py-3.5 px-4 text-slate-600 font-medium">
-                  {{ client.lastFollowUp }}
+                <!-- Alamat -->
+                <td class="py-3.5 px-3.5 text-slate-600 max-w-[150px] truncate" :title="client.address">
+                  {{ client.address || '-' }}
                 </td>
 
-                <!-- Aksi (Edit, Eye, WhatsApp, Trash) -->
-                <td class="py-3.5 px-4" @click.stop>
+                <!-- Sumber Pendaftaran (Website vs Google Form) -->
+                <td class="py-3.5 px-3.5 font-bold">
+                  <span 
+                    v-if="client.source === 'Google Form'"
+                    class="px-2 py-0.5 rounded-full text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1 w-fit"
+                  >
+                    <FileSpreadsheet class="w-3 h-3 text-emerald-600" />
+                    Google Form
+                  </span>
+                  <span 
+                    v-else-if="client.source === 'Website'"
+                    class="px-2 py-0.5 rounded-full text-[10px] bg-indigo-50 text-indigo-700 border border-indigo-200 flex items-center gap-1 w-fit"
+                  >
+                    <Sparkles class="w-3 h-3 text-indigo-600" />
+                    Website
+                  </span>
+                  <span v-else class="px-2 py-0.5 rounded-full text-[10px] bg-slate-100 text-slate-600 w-fit">
+                    {{ client.source }}
+                  </span>
+                </td>
+
+                <!-- Tgl Daftar -->
+                <td class="py-3.5 px-3.5 text-slate-500 font-medium">
+                  {{ client.registrationDate || client.lastFollowUp }}
+                </td>
+
+                <!-- Status Pendaftaran (Interactive Quick Changer) -->
+                <td class="py-3.5 px-3.5" @click.stop>
+                  <select 
+                    v-model="client.status"
+                    @change="handleStatusChange(client.id, client.status)"
+                    class="px-2.5 py-1 rounded-xl text-[11px] font-bold border focus:outline-none transition-all cursor-pointer"
+                    :class="statusBadges[client.status]?.bg"
+                  >
+                    <option value="New">Baru</option>
+                    <option value="Contacted">Diproses (Contacted)</option>
+                    <option value="Follow Up">Diproses (Follow Up)</option>
+                    <option value="Interested">Diproses (Interested)</option>
+                    <option value="Converted">Disetujui (Converted)</option>
+                    <option value="Lost">Ditolak (Lost)</option>
+                  </select>
+                </td>
+
+                <!-- Aksi -->
+                <td class="py-3.5 px-3.5 text-center" @click.stop>
                   <div class="flex items-center justify-center gap-1.5">
-                    <!-- Edit Button -->
+                    <!-- Setujui Button (Rule 6) -->
                     <button 
-                      @click="openEditModal(client)"
-                      title="Edit Data Client"
-                      class="w-7 h-7 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 flex items-center justify-center transition-colors cursor-pointer"
+                      v-if="client.status !== 'Converted'"
+                      @click="handleApproveClient(client)"
+                      title="Setujui Pendaftaran (Masuk Semua Pelanggan)"
+                      class="px-2 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold text-[10px] flex items-center gap-1 transition-colors cursor-pointer border border-emerald-200"
                     >
-                      <Edit3 class="w-3.5 h-3.5" />
+                      <UserCheck class="w-3 h-3 text-emerald-600" />
+                      <span>Setujui</span>
                     </button>
 
-                    <!-- Detail / Eye Button -->
+                    <!-- Tolak Button (Rule 7) -->
+                    <button 
+                      v-if="client.status !== 'Lost' && client.status !== 'Converted'"
+                      @click="handleRejectClient(client)"
+                      title="Tolak Pendaftaran"
+                      class="px-2 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-[10px] flex items-center gap-1 transition-colors cursor-pointer border border-rose-200"
+                    >
+                      <UserX class="w-3 h-3 text-rose-600" />
+                      <span>Tolak</span>
+                    </button>
+
                     <button 
                       @click="openDetailModal(client)"
-                      title="Lihat Detail Client"
+                      title="Lihat Detail Pendaftar"
                       class="w-7 h-7 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 flex items-center justify-center transition-colors cursor-pointer"
                     >
                       <Eye class="w-3.5 h-3.5" />
                     </button>
 
-                    <!-- Direct WhatsApp Button -->
                     <button 
                       @click="sendWhatsAppDirect(client)"
-                      title="Kirim Pesan WhatsApp"
+                      title="Kirim Pesan WA"
                       class="w-7 h-7 rounded-lg text-emerald-500 hover:text-emerald-700 hover:bg-emerald-50 flex items-center justify-center transition-colors cursor-pointer"
                     >
                       <MessageSquare class="w-3.5 h-3.5" />
                     </button>
 
-                    <!-- Delete Button -->
                     <button 
-                      @click="deleteClient(client.id, client.name)"
-                      title="Hapus Client"
+                      @click="handleDeleteClient(client.id, client.name)"
+                      title="Hapus Data"
                       class="w-7 h-7 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition-colors cursor-pointer"
                     >
                       <Trash2 class="w-3.5 h-3.5" />
@@ -617,8 +591,8 @@ const sendWhatsAppDirect = (client: ClientLead) => {
               </tr>
 
               <tr v-if="filteredClients.length === 0">
-                <td colspan="7" class="py-8 text-center text-slate-400 text-xs">
-                  Tidak ada calon client yang cocok dengan pencarian / filter.
+                <td colspan="9" class="py-8 text-center text-slate-400 text-xs">
+                  Tidak ada data pendaftar yang cocok dengan filter / pencarian.
                 </td>
               </tr>
             </tbody>
@@ -626,267 +600,70 @@ const sendWhatsAppDirect = (client: ClientLead) => {
         </div>
       </div>
 
-      <!-- Pagination Footer (Responsive on mobile) -->
-      <div class="bg-white rounded-2xl px-4 sm:px-5 py-3 sm:py-3.5 border border-slate-100 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
-        <div>
-          Menampilkan 1 - {{ filteredClients.length }} dari 24 data
-        </div>
-
-        <div class="flex items-center gap-1.5 select-none">
-          <button 
-            @click="currentPage = Math.max(1, currentPage - 1)"
-            class="px-2.5 sm:px-0 sm:w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center hover:bg-slate-50 transition-colors disabled:opacity-40 cursor-pointer text-xs"
-            :disabled="currentPage === 1"
-          >
-            <ChevronLeft class="w-3.5 h-3.5 text-slate-500 sm:mx-auto" />
-            <span class="sm:hidden ml-1">Prev</span>
-          </button>
-
-          <button 
-            @click="currentPage = 1"
-            class="w-7 h-7 rounded-lg font-bold flex items-center justify-center transition-colors cursor-pointer"
-            :class="currentPage === 1 ? 'bg-indigo-600 text-white' : 'hover:bg-slate-100 text-slate-700'"
-          >
-            1
-          </button>
-
-          <button 
-            @click="currentPage = 2"
-            class="w-7 h-7 rounded-lg font-bold flex items-center justify-center transition-colors cursor-pointer"
-            :class="currentPage === 2 ? 'bg-indigo-600 text-white' : 'hover:bg-slate-100 text-slate-700'"
-          >
-            2
-          </button>
-
-          <button 
-            @click="currentPage = 3"
-            class="w-7 h-7 rounded-lg font-bold flex items-center justify-center transition-colors cursor-pointer hidden sm:flex"
-            :class="currentPage === 3 ? 'bg-indigo-600 text-white' : 'hover:bg-slate-100 text-slate-700'"
-          >
-            3
-          </button>
-
-          <span class="px-1 text-slate-400 hidden sm:inline">...</span>
-
-          <button 
-            @click="currentPage = currentPage + 1"
-            class="px-2.5 sm:px-0 sm:w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center hover:bg-slate-50 transition-colors cursor-pointer text-xs"
-          >
-            <span class="sm:hidden mr-1">Next</span>
-            <ChevronRight class="w-3.5 h-3.5 text-slate-500 sm:mx-auto" />
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- VIEW 2: DETAIL CLIENT FULL PAGE VIEW -->
-    <div v-else-if="currentView === 'detail' && selectedClient" class="space-y-4 sm:space-y-6 animate-in fade-in duration-150">
-      <!-- Breadcrumb Navigation -->
-      <div class="flex items-center gap-1.5 text-xs text-slate-400 font-medium">
-        <button 
-          @click="currentView = 'table'"
-          class="hover:text-indigo-600 transition-colors flex items-center gap-1 cursor-pointer font-semibold text-slate-500"
+      <!-- MOBILE CARDS VIEW -->
+      <div class="block md:hidden space-y-3">
+        <div 
+          v-for="client in filteredClients" 
+          :key="client.id"
+          class="bg-white rounded-2xl p-4 border border-slate-100 shadow-xs space-y-3"
+          @click="openDetailModal(client)"
         >
-          <ChevronLeft class="w-3.5 h-3.5" />
-          <span>Calon Client</span>
-        </button>
-        <ChevronRight class="w-3.5 h-3.5 text-slate-300" />
-        <span class="text-slate-700 font-semibold">Detail Client</span>
-      </div>
+          <div class="flex items-start justify-between gap-2">
+            <div>
+              <span class="text-[10px] font-mono text-slate-400 font-bold">ID: {{ client.id }}</span>
+              <h4 class="font-extrabold text-sm text-slate-900">{{ client.name }}</h4>
+              <p class="text-xs text-slate-500">{{ client.businessName }} • {{ client.phone }}</p>
+            </div>
 
-      <!-- Detail Client Header -->
-      <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
-        <div>
-          <h1 class="text-xl sm:text-2xl font-extrabold text-slate-800 tracking-tight">Detail Client</h1>
-          <p class="text-xs text-slate-500 mt-0.5 sm:mt-1 font-medium">Kelola informasi lengkap calon client.</p>
-        </div>
-
-        <div class="flex items-center flex-wrap gap-2">
-          <!-- Follow Up WhatsApp Button (Green) -->
-          <button 
-            @click="sendWhatsAppDirect(selectedClient)"
-            class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
-          >
-            <MessageSquare class="w-4 h-4" />
-            <span>Follow Up WhatsApp</span>
-          </button>
-
-          <!-- Edit Client Button -->
-          <button 
-            @click="openEditModal(selectedClient)"
-            class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
-          >
-            <Edit3 class="w-4 h-4" />
-            <span>Edit Client</span>
-          </button>
-
-          <!-- Konversi ke Pelanggan Button -->
-          <button 
-            v-if="selectedClient.status !== 'Converted'"
-            @click="openConvertModal(selectedClient)"
-            class="w-full sm:w-auto flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-900 hover:bg-black text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
-          >
-            <CheckCircle2 class="w-4 h-4 text-emerald-400" />
-            <span>Konversi ke Pelanggan</span>
-          </button>
-        </div>
-      </header>
-
-      <!-- Main Detail Grid -->
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 items-start">
-        
-        <!-- Left Profile Card (4 cols) -->
-        <div class="lg:col-span-4 bg-white rounded-2xl p-5 sm:p-6 border border-slate-100 shadow-xs flex flex-col items-center text-center">
-          <!-- Avatar Picture -->
-          <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-slate-100 border-2 border-slate-200 flex items-center justify-center text-2xl sm:text-3xl font-extrabold text-slate-700 mb-3 shadow-inner">
-            👤
-          </div>
-
-          <h2 class="text-base font-bold text-slate-800">{{ selectedClient.name }}</h2>
-
-          <!-- Status badge -->
-          <div class="mt-1.5 mb-4 sm:mb-5">
-            <span 
-              class="px-3 py-0.5 rounded-full text-xs font-bold inline-block"
-              :class="statusBadges[selectedClient.status]?.bg"
+            <select 
+              v-model="client.status"
+              @change="handleStatusChange(client.id, client.status)"
+              @click.stop
+              class="px-2 py-1 rounded-xl text-[10px] font-bold border"
+              :class="statusBadges[client.status]?.bg"
             >
-              {{ selectedClient.status }}
-            </span>
+              <option value="New">Baru</option>
+              <option value="Contacted">Diproses</option>
+              <option value="Converted">Disetujui</option>
+              <option value="Lost">Ditolak</option>
+            </select>
           </div>
 
-          <!-- Contact info list -->
-          <div class="w-full border-t border-slate-100 pt-4 space-y-3 text-left text-xs">
-            <div>
-              <span class="text-slate-400 block text-[11px] mb-0.5">No. WhatsApp:</span>
-              <p class="font-bold text-slate-800 font-mono">{{ selectedClient.phone }}</p>
+          <div class="bg-slate-50 p-2.5 rounded-xl text-xs space-y-1">
+            <div class="flex justify-between">
+              <span class="text-slate-400">Paket:</span>
+              <span class="font-bold text-indigo-700">{{ client.packageInterest || 'Basic' }}</span>
             </div>
+            <div class="flex justify-between">
+              <span class="text-slate-400">Sumber:</span>
+              <span class="font-bold text-emerald-700">{{ client.source }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-400">Alamat:</span>
+              <span class="font-medium text-slate-700 truncate max-w-[180px]">{{ client.address || '-' }}</span>
+            </div>
+          </div>
 
-            <div>
-              <span class="text-slate-400 block text-[11px] mb-0.5">Email:</span>
-              <p class="font-bold text-slate-800 break-all">{{ selectedClient.email }}</p>
-            </div>
-
-            <div>
-              <span class="text-slate-400 block text-[11px] mb-0.5">Sumber:</span>
-              <p class="font-bold text-slate-800">{{ selectedClient.source }}</p>
-            </div>
-
-            <div>
-              <span class="text-slate-400 block text-[11px] mb-0.5">Status:</span>
-              <p class="font-bold text-slate-800">{{ selectedClient.status }}</p>
-            </div>
+          <div class="flex items-center gap-2 pt-1" @click.stop>
+            <button 
+              @click="openDetailModal(client)" 
+              class="flex-1 py-1.5 px-3 rounded-xl bg-slate-100 text-slate-700 font-bold text-xs flex items-center justify-center gap-1"
+            >
+              <Eye class="w-3.5 h-3.5" /> Detail
+            </button>
+            <button 
+              @click="sendWhatsAppDirect(client)" 
+              class="flex-1 py-1.5 px-3 rounded-xl bg-emerald-600 text-white font-bold text-xs flex items-center justify-center gap-1"
+            >
+              <MessageSquare class="w-3.5 h-3.5" /> WA
+            </button>
           </div>
         </div>
-
-        <!-- Right Column (8 cols): Informasi Client & Riwayat Follow Up -->
-        <div class="lg:col-span-8 space-y-4 sm:space-y-6">
-          
-          <!-- Card 1: Informasi Client -->
-          <div class="bg-white rounded-2xl p-5 sm:p-6 border border-slate-100 shadow-xs">
-            <h3 class="text-sm font-bold text-slate-800 pb-3 border-b border-slate-100 mb-4">Informasi Client</h3>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-              <div>
-                <span class="text-slate-400 block text-[11px]">Nama Bisnis:</span>
-                <p class="font-bold text-slate-800 mt-0.5">{{ selectedClient.businessName }}</p>
-              </div>
-
-              <div>
-                <span class="text-slate-400 block text-[11px]">Jenis Bisnis:</span>
-                <p class="font-bold text-slate-800 mt-0.5">{{ selectedClient.businessCategory || 'Retail' }}</p>
-              </div>
-
-              <div class="sm:col-span-2">
-                <span class="text-slate-400 block text-[11px]">Alamat:</span>
-                <p class="font-medium text-slate-700 mt-0.5">{{ selectedClient.address || 'Jl. Merdeka No. 10, Jakarta Pusat' }}</p>
-              </div>
-
-              <div class="sm:col-span-2">
-                <span class="text-slate-400 block text-[11px]">Catatan:</span>
-                <p class="font-medium text-slate-700 bg-slate-50 p-3 rounded-xl border border-slate-100 mt-1">
-                  {{ selectedClient.notes || 'Client tertarik dengan paket premium. Akan follow up minggu depan.' }}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <!-- Card 2: Riwayat Follow Up Timeline -->
-          <div class="bg-white rounded-2xl p-5 sm:p-6 border border-slate-100 shadow-xs">
-            <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
-              <h3 class="text-sm font-bold text-slate-800">Riwayat Follow Up</h3>
-              <button 
-                @click="showAddFollowUp = !showAddFollowUp"
-                class="flex items-center gap-1 text-xs font-bold text-indigo-600 hover:text-indigo-700 cursor-pointer"
-              >
-                <Plus class="w-3.5 h-3.5" />
-                <span>Tambah Follow Up</span>
-              </button>
-            </div>
-
-            <!-- Inline Input for Add Follow Up (Responsive on mobile) -->
-            <div v-if="showAddFollowUp" class="mb-5 p-3 sm:p-3.5 rounded-xl bg-indigo-50/50 border border-indigo-100 space-y-2 text-xs">
-              <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                <select v-model="newChannel" class="px-2.5 py-2 rounded-lg border border-slate-200 text-xs font-semibold bg-white">
-                  <option value="WhatsApp">WhatsApp</option>
-                  <option value="Telepon">Telepon</option>
-                  <option value="Meeting">Meeting</option>
-                  <option value="Sistem">Sistem</option>
-                </select>
-                <input 
-                  v-model="newNote"
-                  type="text" 
-                  placeholder="Tulis ringkasan hasil follow up client..."
-                  class="flex-1 px-3 py-2 rounded-lg border border-slate-200 text-xs bg-white focus:outline-none focus:border-indigo-500"
-                  @keyup.enter="() => { if (selectedClient) { handleAddFollowUp(selectedClient.id, newNote, newChannel); newNote = ''; showAddFollowUp = false; } }"
-                />
-                <button 
-                  @click="() => { if (selectedClient) { handleAddFollowUp(selectedClient.id, newNote, newChannel); newNote = ''; showAddFollowUp = false; } }"
-                  class="px-4 py-2 rounded-lg bg-indigo-600 text-white font-bold text-xs hover:bg-indigo-700 cursor-pointer"
-                >
-                  Simpan
-                </button>
-              </div>
-            </div>
-
-            <!-- Timeline items -->
-            <div class="space-y-4 text-xs">
-              <div 
-                v-for="fu in selectedClient.followUpHistory" 
-                :key="fu.id"
-                class="relative pl-6 pb-4 border-l-2 border-indigo-200 last:border-transparent last:pb-0"
-              >
-                <!-- Blue dot on timeline -->
-                <div class="absolute -left-[7px] top-0.5 w-3 h-3 rounded-full bg-indigo-600 ring-4 ring-indigo-50"></div>
-
-                <div class="flex items-center gap-2 mb-1">
-                  <span class="font-bold text-slate-800">{{ fu.date }} {{ fu.time }}</span>
-                  <span class="px-2 py-0.2 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600">
-                    {{ fu.channel }}
-                  </span>
-                </div>
-                <p class="text-slate-600 leading-relaxed">{{ fu.notes }}</p>
-              </div>
-            </div>
-
-            <!-- Bottom Action Button: + Tambah Follow Up -->
-            <div class="mt-5 pt-3 border-t border-slate-100">
-              <button 
-                @click="showAddFollowUp = true"
-                class="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
-              >
-                <Plus class="w-3.5 h-3.5" />
-                <span>Tambah Follow Up</span>
-              </button>
-            </div>
-          </div>
-
-        </div>
-
       </div>
+
     </div>
 
-    <!-- Modals -->
-    <!-- Form Tambah / Edit Client -->
+    <!-- MODALS -->
     <ClientFormModal 
       :is-open="isFormModalOpen"
       :client-to-edit="clientToEdit"
@@ -894,17 +671,15 @@ const sendWhatsAppDirect = (client: ClientLead) => {
       @saved="handleClientSaved"
     />
 
-    <!-- Detail Client Drawer Modal -->
     <ClientDetailModal 
       :is-open="isDetailModalOpen"
       :client="selectedClient"
       @close="isDetailModalOpen = false"
-      @edit="(c) => { isDetailModalOpen = false; openEditModal(c) }"
-      @convert="(c) => { isDetailModalOpen = false; openConvertModal(c) }"
-      @add-follow-up="handleAddFollowUp"
+      @edit="openEditModal"
+      @convert="openConvertModal"
+      @add-followup="handleAddFollowUp"
     />
 
-    <!-- Konversi ke Pelanggan Modal -->
     <ConvertClientModal 
       :is-open="isConvertModalOpen"
       :client="selectedClient"
@@ -912,16 +687,10 @@ const sendWhatsAppDirect = (client: ClientLead) => {
       @confirmed="handleConvertConfirmed"
     />
 
-    <!-- Toast Notification Alert -->
-    <div 
-      v-if="toastMessage"
-      class="fixed bottom-20 md:bottom-6 right-4 sm:right-6 z-50 bg-slate-900 text-white px-4 sm:px-5 py-3 sm:py-3.5 rounded-2xl shadow-2xl flex items-center gap-3 text-xs font-semibold border border-slate-700 animate-in slide-in-from-bottom-5 duration-200"
-    >
-      <div class="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0">
-        <CheckCircle2 class="w-4 h-4" />
-      </div>
-      <span>{{ toastMessage }}</span>
-    </div>
+    <GoogleFormIntegrationModal 
+      :is-open="isGoogleFormModalOpen"
+      @close="isGoogleFormModalOpen = false"
+    />
 
   </div>
 </template>

@@ -166,6 +166,9 @@ onUnmounted(() => {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: high-quality;
+  backface-visibility: hidden;
   animation: hero-cinematic-zoom 7.5s ease-in-out infinite alternate;
   transform-origin: 75% 30%;
 }
