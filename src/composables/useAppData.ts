@@ -2,6 +2,25 @@ import { ref, computed } from 'vue'
 import type { ClientLead, LeadStatus, LeadSource, FollowUpLog } from '../types/crm'
 import type { Customer, PackageType } from '../types/dashboard'
 
+export interface PricingPackage {
+  id: string
+  name: string
+  cardClass: string
+  badge: string
+  cardSub: string
+  icon: string
+  isConsultation: boolean
+  price: number
+  priceTitle?: string
+  priceSubtext?: string
+  period: string
+  features: string[]
+  btnText: string
+  btnClass: string
+  waText: string
+  isActive: boolean
+}
+
 // CONSTANTS (Rule 14 & 15: Single Admin WhatsApp Constant)
 export const ADMIN_WA_NUMBER = '6285669660865'
 
@@ -24,6 +43,7 @@ export function getCustomerWaUrl(phone: string, text: string) {
 const STORAGE_KEY_LEADS = 'ikikasir_leads_v3'
 const STORAGE_KEY_CUSTOMERS = 'ikikasir_customers_v3'
 const STORAGE_KEY_INVOICES = 'ikikasir_invoices_v3'
+const STORAGE_KEY_PACKAGES = 'ikikasir_packages_v1'
 
 // INVOICE INTERFACE
 export interface SubscriptionInvoice {
@@ -41,6 +61,53 @@ export interface SubscriptionInvoice {
 }
 
 // INITIAL SEED DATA
+const initialPackages: PricingPackage[] = [
+  {
+    id: 'basic',
+    name: 'Basic',
+    cardClass: 'price-card basic',
+    badge: '',
+    cardSub: 'Cocok untuk usaha kecil, menengah, dan pemula.',
+    icon: 'Box',
+    isConsultation: false,
+    price: 250000,
+    period: '/bulan',
+    features: [
+      'Manajemen produk tanpa batas',
+      'Transaksi kasir cepat & akurat',
+      'Laporan penjualan lengkap',
+      'Support bantuan pelanggan'
+    ],
+    btnText: 'Mulai Langganan',
+    btnClass: 'btn-outline-blue',
+    waText: 'Halo tim IKI KASIR, saya ingin berlangganan Paket Basic',
+    isActive: true
+  },
+  {
+    id: 'custom',
+    name: 'Custom / IT One',
+    cardClass: 'price-card pro',
+    badge: 'Solusi Khusus',
+    cardSub: 'Solusi khusus sesuai kebutuhan skala besar.',
+    icon: 'Crown',
+    isConsultation: true,
+    price: 0,
+    priceTitle: 'Konsultasi Terlebih Dahulu',
+    priceSubtext: 'Tanya-tanya & penyesuaian fitur bisnis',
+    period: '',
+    features: [
+      'Semua fitur Basic',
+      'Fitur khusus sesuai kebutuhan bisnis',
+      'Integrasi sistem & modul khusus',
+      'Dedicated support & pendampingan'
+    ],
+    btnText: 'Konsultasi Sekarang',
+    btnClass: 'btn-solid-white',
+    waText: 'Halo tim IKI KASIR, saya ingin konsultasi mengenai Paket Custom IT One',
+    isActive: true
+  }
+]
+
 const initialLeads: ClientLead[] = [
   {
     id: 'c-101',
@@ -281,6 +348,7 @@ const initialInvoices: SubscriptionInvoice[] = [
 const leads = ref<ClientLead[]>([])
 const customers = ref<Customer[]>([])
 const invoices = ref<SubscriptionInvoice[]>([])
+const packages = ref<PricingPackage[]>([])
 
 function loadAllFromStorage() {
   try {
@@ -295,11 +363,16 @@ function loadAllFromStorage() {
     const rawI = localStorage.getItem(STORAGE_KEY_INVOICES)
     if (rawI) invoices.value = JSON.parse(rawI)
     else { invoices.value = [...initialInvoices]; saveStorage(STORAGE_KEY_INVOICES, invoices.value) }
+
+    const rawP = localStorage.getItem(STORAGE_KEY_PACKAGES)
+    if (rawP) packages.value = JSON.parse(rawP)
+    else { packages.value = [...initialPackages]; saveStorage(STORAGE_KEY_PACKAGES, packages.value) }
   } catch (e) {
     console.error('Failed loading storage', e)
     leads.value = [...initialLeads]
     customers.value = [...initialCustomers]
     invoices.value = [...initialInvoices]
+    packages.value = [...initialPackages]
   }
 }
 
@@ -725,13 +798,52 @@ export function useAppData() {
     }
   })
 
+  // ==========================================
+  // ACTIONS: PACKAGES (CRUD)
+  // ==========================================
+  const addPackage = (pkg: Omit<PricingPackage, 'id'>) => {
+    const newPackage: PricingPackage = {
+      ...pkg,
+      id: 'pkg-' + Date.now()
+    }
+    packages.value.push(newPackage)
+    saveStorage(STORAGE_KEY_PACKAGES, packages.value)
+    return newPackage
+  }
+
+  const updatePackage = (updatedPkg: PricingPackage) => {
+    const idx = packages.value.findIndex(p => p.id === updatedPkg.id)
+    if (idx !== -1) {
+      packages.value[idx] = { ...updatedPkg }
+      saveStorage(STORAGE_KEY_PACKAGES, packages.value)
+    }
+  }
+
+  const deletePackage = (id: string) => {
+    packages.value = packages.value.filter(p => p.id !== id)
+    saveStorage(STORAGE_KEY_PACKAGES, packages.value)
+  }
+
+  const togglePackageActive = (id: string) => {
+    const pkg = packages.value.find(p => p.id === id)
+    if (pkg) {
+      pkg.isActive = !pkg.isActive
+      saveStorage(STORAGE_KEY_PACKAGES, packages.value)
+    }
+  }
+
   return {
     leads,
     customers,
     invoices,
+    packages,
     expiredCustomers,
     expiringCustomers,
     statistics,
+    addPackage,
+    updatePackage,
+    deletePackage,
+    togglePackageActive,
     addRegistration,
     updateLead,
     updateLeadStatus,
@@ -748,9 +860,11 @@ export function useAppData() {
       leads.value = [...initialLeads]
       customers.value = [...initialCustomers]
       invoices.value = [...initialInvoices]
+      packages.value = [...initialPackages]
       saveStorage(STORAGE_KEY_LEADS, leads.value)
       saveStorage(STORAGE_KEY_CUSTOMERS, customers.value)
       saveStorage(STORAGE_KEY_INVOICES, invoices.value)
+      saveStorage(STORAGE_KEY_PACKAGES, packages.value)
     }
   }
 }

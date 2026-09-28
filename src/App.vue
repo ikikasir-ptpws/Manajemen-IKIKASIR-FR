@@ -24,7 +24,8 @@ import {
   Moon,
   Sun,
   ChevronRight,
-  Bell
+  Bell,
+  Package
 } from 'lucide-vue-next'
 
 const router = useRouter()
@@ -157,6 +158,15 @@ const confirmLogout = () => {
               >
                 <Tag class="w-4 h-4 transition-transform duration-200 group-hover:scale-110" :class="route.path === '/manajemen-promo' ? 'text-[#4F46E5]' : 'text-slate-400 group-hover:text-slate-600'" />
                 <span>Manajemen Promo</span>
+              </RouterLink>
+              <RouterLink 
+                to="/kelola-paket" 
+                @click="isMobileDrawerOpen = false"
+                class="flex items-center gap-3 px-3.5 py-2 rounded-xl text-sm font-medium transition-all duration-200 group"
+                :class="route.path === '/kelola-paket' ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-semibold' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50 hover:text-slate-900 dark:hover:text-slate-200'"
+              >
+                <Package class="w-4 h-4 transition-transform duration-200 group-hover:scale-110" :class="route.path === '/kelola-paket' ? 'text-[#4F46E5]' : 'text-slate-400 group-hover:text-slate-600'" />
+                <span>Kelola Paket</span>
               </RouterLink>
             </div>
           </div>

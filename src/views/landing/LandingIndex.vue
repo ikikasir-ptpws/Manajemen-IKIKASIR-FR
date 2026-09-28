@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useAppData } from '../../composables/useAppData'
 import { RouterLink } from 'vue-router'
 import IkiKasirLogo from '../../components/IkiKasirLogo.vue'
 import HeroImage from '../../components/HeroImage.vue'
-import bannerImg from '../../images/hero-dark.png'
+import RegistrationModal from '../../components/RegistrationModal.vue'
+import bannerImg from '../../images/hero-new.png'
 import Lenis from 'lenis'
 import 'lenis/dist/lenis.css'
 import { 
@@ -190,6 +192,29 @@ const rightFeatures = [
   { name: 'Stok Real-time', icon: Box, iconBg: '#fef3c7', iconColor: '#d97706' },
   { name: 'Multi Device', icon: Smartphone, iconBg: '#e0f2fe', iconColor: '#0284c7' },
 ]
+
+// Dynamic Pricing Plans Data Array
+const { packages } = useAppData()
+
+const pricingPlans = computed(() => {
+  return packages.value.filter(p => p.isActive).map(p => ({
+    ...p,
+    icon: p.icon === 'Crown' ? Crown : Box
+  }))
+})
+
+// Registration Modal state
+const isRegistrationModalOpen = ref(false)
+const selectedPackageForReg = ref<string>('')
+
+const openRegistrationModal = (pkgName?: string) => {
+  if (pkgName) {
+    selectedPackageForReg.value = pkgName
+  } else {
+    selectedPackageForReg.value = pricingPlans.value[0]?.name || ''
+  }
+  isRegistrationModalOpen.value = true
+}
 </script>
 
 <template>
@@ -218,15 +243,15 @@ const rightFeatures = [
         </div>
         
         <!-- Right CTA Button -->
-        <div class="nav-cta-desktop">
+        <div class="nav-cta-desktop flex items-center gap-3">
           <RouterLink to="/login" class="btn-secondary-sm flex items-center gap-1.5 font-semibold text-slate-700 hover:text-indigo-600 px-3 py-1.5 rounded-lg border border-slate-200 hover:border-indigo-300 bg-white transition-all">
             <LogIn class="w-4 h-4 text-indigo-600" />
             <span>Masuk</span>
           </RouterLink>
-          <a href="https://wa.me/6281234567890?text=Halo%20tim%20IKI%20KASIR,%20saya%20ingin%20mulai%20berlangganan%20aplikasi%20kasir" target="_blank" class="btn-primary-sm">
+          <button @click="openRegistrationModal()" class="btn-primary-sm cursor-pointer">
             Mulai Langganan
             <ArrowRight class="icon-sm" />
-          </a>
+          </button>
         </div>
 
         <!-- Mobile Menu Toggle -->
@@ -251,9 +276,9 @@ const rightFeatures = [
           <LogIn class="w-4 h-4 text-indigo-600" />
           <span>Masuk ke Akun</span>
         </RouterLink>
-        <a href="https://wa.me/6281234567890?text=Halo%20tim%20IKI%20KASIR,%20saya%20ingin%20mulai%20berlangganan%20aplikasi%20kasir" target="_blank" class="btn-primary-mobile">
+        <button @click="openRegistrationModal(); isMobileMenuOpen = false" class="btn-primary-mobile cursor-pointer">
           Mulai Langganan
-        </a>
+        </button>
       </div>
     </nav>
 
@@ -269,8 +294,8 @@ const rightFeatures = [
         :src="bannerImg"
         alt="IKI KASIR Hero Banner"
         :fade-distance="400"
-        :parallax-factor="0.2"
-        :mask-start="65"
+        :parallax-factor="0.1"
+        :mask-start="90"
         object-position="left center"
       />
       <div class="hero-right-overlay"></div>
@@ -295,10 +320,10 @@ const rightFeatures = [
           </p>
           
           <div class="hero-cta-group">
-            <a href="https://wa.me/6281234567890?text=Halo%20tim%20IKI%20KASIR,%20saya%20ingin%20mulai%20berlangganan%20aplikasi%20kasir" target="_blank" class="btn-primary-lg">
+            <button @click="openRegistrationModal()" class="btn-primary-lg cursor-pointer">
               Mulai Langganan
               <ArrowRight class="icon-md" />
-            </a>
+            </button>
             <button class="btn-secondary-lg">
               <div class="play-icon-circle">
                 <Play class="icon-play" />
@@ -553,87 +578,56 @@ const rightFeatures = [
         <div class="pricing-header reveal-up">
           <div class="section-badge">Paket Harga</div>
           <h2 class="section-title text-center">Pilih Paket Sesuai Kebutuhan Bisnis Anda</h2>
-          <p class="pricing-subtitle">Mulai dari paket basic hingga pro, semua dirancang untuk mendukung pertumbuhan bisnis Anda.</p>
+          <p class="pricing-subtitle">Pilih paket Basic yang praktis atau paket Custom / IT One untuk kebutuhan fitur khusus bisnis Anda.</p>
         </div>
 
         <div class="pricing-grid">
           
-          <!-- Basic Card -->
-          <div class="price-card basic reveal-up delay-100">
+          <div 
+            v-for="(plan, idx) in pricingPlans" 
+            :key="plan.id"
+            :class="[plan.cardClass, 'reveal-up']"
+            :style="{ '--reveal-delay': `${(idx + 1) * 0.1}s` }"
+          >
+            <div v-if="plan.badge" class="badge-populer">{{ plan.badge }}</div>
             <div>
               <div class="card-header">
-                <div class="card-icon blue"><Box class="icon-md" /></div>
-                <div>
-                  <h3 class="card-name">Basic</h3>
-                  <p class="card-sub">Cocok untuk usaha kecil dan pemula.</p>
+                <div :class="['card-icon', plan.isConsultation ? 'white-trans' : 'blue']">
+                  <component :is="plan.icon" class="icon-md" />
+                </div>
+                <div class="card-title-box">
+                  <h3 :class="['card-name', plan.isConsultation ? 'text-white' : '']">{{ plan.name }}</h3>
+                  <p :class="['card-sub', plan.isConsultation ? 'text-blue-light' : '']">{{ plan.cardSub }}</p>
                 </div>
               </div>
-              <div class="card-price">
-                <span class="currency">Rp</span>
-                <span class="amount">99.000</span>
-                <span class="period">/bulan</span>
-              </div>
-              <ul class="features-list">
-                <li><Check class="icon-check blue" /><span>Manajemen produk (maks. 100)</span></li>
-                <li><Check class="icon-check blue" /><span>Transaksi kasir</span></li>
-                <li><Check class="icon-check blue" /><span>Laporan penjualan dasar</span></li>
-                <li><Check class="icon-check blue" /><span>Support email</span></li>
-              </ul>
-            </div>
-            <a href="https://wa.me/6281234567890?text=Halo%20tim%20IKI%20KASIR,%20saya%20ingin%20berlangganan%20Paket%20Basic" target="_blank" class="btn-outline-blue">Mulai Langganan</a>
-          </div>
 
-          <!-- Pro Card (Highlighted Solid Blue) -->
-          <div class="price-card pro reveal-up delay-200">
-            <div class="badge-populer">Populer</div>
-            <div>
-              <div class="card-header">
-                <div class="card-icon white-trans"><Crown class="icon-md" /></div>
-                <div>
-                  <h3 class="card-name text-white">Pro</h3>
-                  <p class="card-sub text-blue-light">Untuk bisnis yang sedang berkembang.</p>
-                </div>
-              </div>
-              <div class="card-price text-white">
-                <span class="currency text-blue-light">Rp</span>
-                <span class="amount">199.000</span>
-                <span class="period text-blue-light">/bulan</span>
-              </div>
-              <ul class="features-list white">
-                <li><Check class="icon-check text-white" /><span>Semua fitur Basic</span></li>
-                <li><Check class="icon-check text-white" /><span>Manajemen stok real-time</span></li>
-                <li><Check class="icon-check text-white" /><span>Multi user (hingga 5 user)</span></li>
-                <li><Check class="icon-check text-white" /><span>Laporan lengkap</span></li>
-                <li><Check class="icon-check text-white" /><span>Support prioritas 24/7</span></li>
-              </ul>
-            </div>
-            <a href="https://wa.me/6281234567890?text=Halo%20tim%20IKI%20KASIR,%20saya%20ingin%20berlangganan%20Paket%20Pro" target="_blank" class="btn-solid-white">Mulai Langganan</a>
-          </div>
-
-          <!-- Custom Card -->
-          <div class="price-card custom reveal-up delay-300">
-            <div>
-              <div class="card-header">
-                <div class="card-icon blue"><Store class="icon-md" /></div>
-                <div>
-                  <h3 class="card-name">Custom</h3>
-                  <p class="card-sub">Untuk kebutuhan bisnis skala besar.</p>
-                </div>
-              </div>
-              <div class="card-price">
-                <div class="price-label">Mulai dari</div>
+              <!-- Price Display (Nominal vs Consultation) -->
+              <div v-if="!plan.isConsultation" class="card-price">
                 <span class="currency">Rp</span>
-                <span class="amount">399.000</span>
-                <span class="period">/bulan</span>
+                <span class="amount">{{ plan.price?.toLocaleString('id-ID') }}</span>
+                <span class="period">{{ plan.period }}</span>
               </div>
-              <ul class="features-list">
-                <li><Check class="icon-check blue" /><span>Semua fitur Pro</span></li>
-                <li><Check class="icon-check blue" /><span>Fitur khusus sesuai kebutuhan</span></li>
-                <li><Check class="icon-check blue" /><span>Integrasi sistem (jika diperlukan)</span></li>
-                <li><Check class="icon-check blue" /><span>Dedicated support</span></li>
+              <div v-else class="card-price text-white flex flex-col items-start gap-1 py-2">
+                <span class="text-xl font-extrabold text-white">{{ plan.priceTitle }}</span>
+                <span class="text-xs text-blue-light">{{ plan.priceSubtext }}</span>
+              </div>
+
+              <!-- Features List -->
+              <ul :class="['features-list', plan.isConsultation ? 'white' : '']">
+                <li v-for="(feat, fIdx) in plan.features" :key="fIdx">
+                  <Check :class="['icon-check', plan.isConsultation ? 'text-white' : 'blue']" />
+                  <span>{{ feat }}</span>
+                </li>
               </ul>
             </div>
-            <a href="https://wa.me/6281234567890?text=Halo%20tim%20IKI%20KASIR,%20saya%20ingin%20berlangganan%20Paket%20Custom" target="_blank" class="btn-outline-blue">Mulai Langganan</a>
+
+            <!-- Action Button opening Registration Modal -->
+            <button 
+              @click="openRegistrationModal(plan.name)" 
+              :class="[plan.btnClass, 'cursor-pointer w-full text-center flex items-center justify-center gap-2']"
+            >
+              {{ plan.btnText }}
+            </button>
           </div>
 
         </div>
@@ -687,7 +681,7 @@ const rightFeatures = [
               <h4 class="cta-title">Masih punya pertanyaan lain?</h4>
               <p class="cta-desc">Tim Customer Support kami siap membantu Anda kapan saja.</p>
             </div>
-            <a href="https://wa.me/6281234567890" target="_blank" class="btn-primary-sm">
+            <a href="https://wa.me/6289571051221?text=Halo%20tim%20IKI%20KASIR,%20saya%20ingin%20konsultasi%20mengenai%20aplikasi%20kasir" target="_blank" class="btn-primary-sm cursor-pointer">
               Hubungi Support
               <ArrowRight class="icon-xs" />
             </a>
@@ -708,7 +702,7 @@ const rightFeatures = [
               <IkiKasirLogo size="lg" :is-dark-bg="true" :show-tagline="true" />
             </div>
             <p class="brand-tagline">Solusi Kasir Digital Terpercaya<br />untuk Memajukan Bisnis Anda.</p>
-            <div class="copyright-text">© 2025 IKI KASIR. All rights reserved.</div>
+            <div class="copyright-text">© 2025IKI KASIR. All rights reserved.</div>
           </div>
 
           <div class="footer-col">
@@ -725,36 +719,44 @@ const rightFeatures = [
           <div class="footer-col">
             <h4 class="col-title">Kontak</h4>
             <ul class="footer-contact">
-              <li><Phone class="icon-contact" /><span>+62 812 3456 7890</span></li>
-              <li><Mail class="icon-contact" /><span>cs@ikikasir.id</span></li>
-              <li><MapPin class="icon-contact" /><span>Jl. Melati No. 123<br />Jakarta, Indonesia</span></li>
+              <li>
+                <a href="https://wa.me/6289571051221" target="_blank" rel="noopener noreferrer">
+                  <Phone class="icon-contact" />
+                  <span>0895710512221</span>
+                </a>
+              </li>
+              <li>
+                <a href="mailto:ikikasir.id@gmail.com">
+                  <Mail class="icon-contact" />
+                  <span>ikikasir.id@gmail.com</span>
+                </a>
+              </li>
+              <li>
+                <MapPin class="icon-contact" />
+                <span>Jalan Raya Wonosari<br />RT.003 RW.002<br />Gondang Wetan<br />Kab. Pasuruan 67174</span>
+              </li>
             </ul>
           </div>
 
           <div class="footer-col">
             <h4 class="col-title">Ikuti Kami</h4>
             <div class="social-icons">
-              <a href="#" class="social-btn"><Instagram class="icon-sm" /></a>
-              <a href="#" class="social-btn"><Youtube class="icon-sm" /></a>
-              <a href="#" class="social-btn">
+              <a href="https://www.instagram.com/iki_kasir?stkn=d242OG96YnRrdmN1" target="_blank" rel="noopener noreferrer" class="social-btn" title="Instagram">
+                <Instagram class="icon-sm" />
+              </a>
+              <a href="https://www.tiktok.com/@ptpws.id?_r=1&_t=ZS-9A6IAEMGN0O" target="_blank" rel="noopener noreferrer" class="social-btn" title="TikTok">
                 <svg viewBox="0 0 24 24" class="icon-sm fill-current"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-5.2 1.74 2.89 2.89 0 012.31-4.64 2.93 2.93 0 01.88.13V9.4a6.84 6.84 0 00-1-.05A6.33 6.33 0 005 20.1a6.34 6.34 0 0010.86-4.43v-7a8.16 8.16 0 004.77 1.52v-3.4a4.85 4.85 0 01-1-.1z"/></svg>
               </a>
-              <a href="#" class="social-btn"><Facebook class="icon-sm" /></a>
+              <a href="https://wa.me/6289571051221" target="_blank" rel="noopener noreferrer" class="social-btn" title="WhatsApp">
+                <svg viewBox="0 0 24 24" class="icon-sm fill-current"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+              </a>
             </div>
-            
-            <button class="google-play-btn">
-              <svg viewBox="0 0 512 512" class="gplay-icon" fill="currentColor"><path d="M99.617 8.057a50.191 50.191 0 00-38.815-6.713l230.932 230.933 74.846-74.846L99.617 8.057zM32.139 20.116c-6.441 8.563-10.148 19.077-10.148 30.199v411.358c0 11.123 3.708 21.636 10.148 30.199l235.877-235.877L32.139 20.116zM464.261 212.087l-67.266-37.637-81.544 81.545 81.548 81.548 67.273-37.64c16.117-9.03 25.738-25.442 25.738-43.908s-9.621-34.877-25.749-43.908zM291.733 279.711L60.815 510.629c3.123 1.083 6.445 1.544 10.004 1.544 9.175 0 18.223-3.146 25.989-7.442l277.927-155.482-82.998-83.006z"/></svg>
-              <div>
-                <div class="gplay-sub">GET IT ON</div>
-                <div class="gplay-main">Google Play</div>
-              </div>
-            </button>
           </div>
 
         </div>
 
         <div class="footer-bottom">
-          <p>© 2025 IKI KASIR. All rights reserved.</p>
+          <p>© 2026 IKI KASIR. All rights reserved.</p>
           <div class="bottom-links">
             <a href="#">Syarat & Ketentuan</a>
             <span>|</span>
@@ -764,6 +766,13 @@ const rightFeatures = [
 
       </div>
     </footer>
+
+    <!-- Website Self-Registration Modal -->
+    <RegistrationModal 
+      :is-open="isRegistrationModalOpen" 
+      :default-package="selectedPackageForReg" 
+      @close="isRegistrationModalOpen = false" 
+    />
 
   </div>
 </template>
@@ -975,13 +984,13 @@ const rightFeatures = [
   position: absolute;
   top: 0;
   right: 0;
-  width: 65%;
+  width: 60%;
   height: 100%;
   background: linear-gradient(
     to left,
-    rgba(15, 23, 42, 0.75) 0%,
-    rgba(15, 23, 42, 0.50) 55%,
-    rgba(15, 23, 42, 0) 100%
+    rgba(234, 243, 253, 0.95) 0%,
+    rgba(234, 243, 253, 0.65) 55%,
+    rgba(234, 243, 253, 0) 100%
   );
   pointer-events: none;
   z-index: 2;
@@ -992,8 +1001,8 @@ const rightFeatures = [
     width: 100%;
     background: linear-gradient(
       to bottom,
-      rgba(15, 23, 42, 0.65) 0%,
-      rgba(15, 23, 42, 0.90) 100%
+      rgba(234, 243, 253, 0.70) 0%,
+      rgba(234, 243, 253, 0.95) 100%
     );
   }
   .hero-inner {
@@ -1032,19 +1041,19 @@ const rightFeatures = [
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: #ffffff;
+  background: rgba(37, 99, 235, 0.08);
+  border: 1px solid rgba(37, 99, 235, 0.2);
+  color: #1d4ed8;
   padding: 0.35rem 1.1rem;
   border-radius: 9999px;
   font-size: 0.875rem;
   font-weight: 600;
   margin-bottom: 1.5rem;
   backdrop-filter: blur(8px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.08);
 }
 .star-icon {
-  color: #60a5fa;
+  color: #2563eb;
   font-size: 0.875rem;
 }
 
@@ -1052,25 +1061,25 @@ const rightFeatures = [
   font-size: 3.5rem;
   font-weight: 800;
   line-height: 1.15;
-  color: #ffffff;
+  color: #0f172a;
   margin-bottom: 1.25rem;
   letter-spacing: -0.02em;
-  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.7);
+  text-shadow: none;
 }
 .text-blue { 
-  color: #60A5FA; 
+  color: #2563eb; 
   font-weight: 800;
 }
-.text-sky { color: #00a3ff; }
+.text-sky { color: #0284c7; }
 
 .hero-subtitle {
   font-size: 1.05rem;
-  color: #e2e8f0;
+  color: #334155;
   font-weight: 500;
   line-height: 1.65;
   max-width: 520px;
   margin-bottom: 2.25rem;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+  text-shadow: none;
 }
 
 .hero-cta-group {
@@ -1148,8 +1157,8 @@ const rightFeatures = [
   gap: 0.5rem;
   font-size: 0.875rem;
   font-weight: 700;
-  color: #ffffff;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+  color: #1e293b;
+  text-shadow: none;
 }
 .bullet-icon-box {
   width: 30px;
@@ -1497,9 +1506,9 @@ const rightFeatures = [
 .pricing-subtitle { font-size: 1.125rem; color: #475569; margin-top: 0.5rem; }
 .pricing-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 2rem;
-  max-width: 1100px;
+  max-width: 860px;
   margin: 0 auto;
   align-items: stretch;
 }
@@ -1512,6 +1521,7 @@ const rightFeatures = [
   flex-direction: column;
   justify-content: space-between;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+  position: relative;
 }
 .price-card.pro {
   background: #2563eb;
@@ -1523,17 +1533,22 @@ const rightFeatures = [
 }
 .badge-populer {
   position: absolute;
-  top: 1.5rem;
-  right: 1.5rem;
-  background: #dbeafe;
-  color: #1e40af;
-  font-size: 0.6875rem;
+  top: 1.25rem;
+  right: 1.25rem;
+  background: rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: #ffffff;
+  font-size: 0.625rem;
   font-weight: 800;
   text-transform: uppercase;
+  letter-spacing: 0.04em;
   padding: 0.25rem 0.75rem;
   border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  z-index: 5;
 }
-.card-header { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem; }
+.card-header { display: flex; align-items: flex-start; gap: 1rem; margin-bottom: 1.5rem; padding-right: 2rem; }
 .card-icon {
   width: 46px; height: 46px; border-radius: 1rem;
   display: flex; align-items: center; justify-content: center; flex-shrink: 0;
@@ -1632,6 +1647,8 @@ const rightFeatures = [
 .footer-links a { color: #94a3b8; text-decoration: none; transition: color 0.2s; }
 .footer-links a:hover { color: #ffffff; }
 .footer-contact li { display: flex; align-items: flex-start; gap: 0.75rem; }
+.footer-contact a { color: #94a3b8; text-decoration: none; transition: color 0.2s; display: flex; align-items: flex-start; gap: 0.75rem; }
+.footer-contact a:hover { color: #ffffff; }
 .icon-contact { width: 18px; height: 18px; color: #60a5fa; flex-shrink: 0; margin-top: 2px; }
 .social-icons { display: flex; gap: 0.75rem; margin-bottom: 1.5rem; }
 .social-btn {

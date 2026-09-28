@@ -19,6 +19,11 @@ const router = createRouter({
       component: () => import('../views/manajemen-promo/PromoIndex.vue')
     },
     {
+      path: '/kelola-paket',
+      name: 'kelola-paket',
+      component: () => import('../views/kelola-paket/KelolaPaketIndex.vue')
+    },
+    {
       path: '/calon-client',
       name: 'calon-client',
       component: () => import('../views/crm-client/CalonClientIndex.vue')

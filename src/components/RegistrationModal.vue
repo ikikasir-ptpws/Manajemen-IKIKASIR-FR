@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { ref, watch, nextTick } from 'vue'
+import { ref, watch, nextTick, computed } from 'vue'
 import { X, CheckCircle2, AlertCircle, Sparkles, Store, User, Phone, Mail, MapPin, Package, Loader2 } from 'lucide-vue-next'
 import { useAppData } from '../composables/useAppData'
 
 const props = defineProps<{
   isOpen: boolean
-  defaultPackage?: 'Basic' | 'Custom / IT One'
+  defaultPackage?: string
 }>()
 
 const emit = defineEmits<{
@@ -13,7 +13,9 @@ const emit = defineEmits<{
   (e: 'submitted', leadId: string): void
 }>()
 
-const { addRegistration } = useAppData()
+const { addRegistration, packages } = useAppData()
+
+const activePackages = computed(() => packages.value.filter(p => p.isActive))
 
 // Form Data
 const formData = ref({
@@ -23,7 +25,7 @@ const formData = ref({
   phone: '',
   email: '',
   address: '',
-  packageInterest: 'Basic' as 'Basic' | 'Custom / IT One'
+  packageInterest: ''
 })
 
 // Validation Errors
@@ -47,6 +49,7 @@ watch(() => props.isOpen, (open) => {
     isSuccess.value = false
     errors.value = {}
     submitError.value = null
+    const firstActivePkg = activePackages.value[0]?.name || ''
     formData.value = {
       name: '',
       businessName: '',
@@ -54,7 +57,7 @@ watch(() => props.isOpen, (open) => {
       phone: '',
       email: '',
       address: '',
-      packageInterest: props.defaultPackage || 'Basic'
+      packageInterest: props.defaultPackage || firstActivePkg
     }
   }
 })
@@ -365,30 +368,24 @@ const closeModal = () => {
 
               <div class="grid grid-cols-2 gap-2.5 pt-0.5">
                 <label 
+                  v-for="pkg in activePackages" 
+                  :key="pkg.id"
                   class="p-2.5 rounded-2xl border-2 cursor-pointer transition-all flex flex-col justify-between"
-                  :class="formData.packageInterest === 'Basic' ? 'border-indigo-600 bg-indigo-50/60 shadow-xs' : 'border-slate-200 bg-slate-50 hover:bg-slate-100/70'"
+                  :class="formData.packageInterest === pkg.name ? 'border-indigo-600 bg-indigo-50/60 shadow-xs' : 'border-slate-200 bg-slate-50 hover:bg-slate-100/70'"
                 >
                   <div class="flex items-center justify-between">
-                    <span class="font-extrabold text-slate-800">Basic</span>
-                    <input type="radio" v-model="formData.packageInterest" @change="clearError('packageInterest')" value="Basic" class="text-indigo-600" />
+                    <span class="font-extrabold text-slate-800">{{ pkg.name }}</span>
+                    <input type="radio" v-model="formData.packageInterest" @change="clearError('packageInterest')" :value="pkg.name" class="text-indigo-600" />
                   </div>
                   <div class="mt-1">
-                    <span class="text-xs font-bold text-indigo-600">Rp 250.000</span>
-                    <span class="text-[10px] text-slate-500 block">/ bulan</span>
-                  </div>
-                </label>
-
-                <label 
-                  class="p-2.5 rounded-2xl border-2 cursor-pointer transition-all flex flex-col justify-between"
-                  :class="formData.packageInterest === 'Custom / IT One' ? 'border-indigo-600 bg-indigo-50/60 shadow-xs' : 'border-slate-200 bg-slate-50 hover:bg-slate-100/70'"
-                >
-                  <div class="flex items-center justify-between">
-                    <span class="font-extrabold text-slate-800">Custom / IT One</span>
-                    <input type="radio" v-model="formData.packageInterest" @change="clearError('packageInterest')" value="Custom / IT One" class="text-indigo-600" />
-                  </div>
-                  <div class="mt-1">
-                    <span class="text-xs font-bold text-purple-600">Konsultasi</span>
-                    <span class="text-[10px] text-slate-500 block">Fitur Kustom</span>
+                    <template v-if="!pkg.isConsultation">
+                      <span class="text-xs font-bold text-indigo-600">Rp {{ pkg.price.toLocaleString('id-ID') }}</span>
+                      <span class="text-[10px] text-slate-500 block">{{ pkg.period }}</span>
+                    </template>
+                    <template v-else>
+                      <span class="text-xs font-bold text-purple-600">Konsultasi</span>
+                      <span class="text-[10px] text-slate-500 block">Fitur Kustom</span>
+                    </template>
                   </div>
                 </label>
               </div>
