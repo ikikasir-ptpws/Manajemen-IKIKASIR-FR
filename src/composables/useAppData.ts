@@ -43,7 +43,7 @@ export function getCustomerWaUrl(phone: string, text: string) {
 const STORAGE_KEY_LEADS = 'ikikasir_leads_v3'
 const STORAGE_KEY_CUSTOMERS = 'ikikasir_customers_v3'
 const STORAGE_KEY_INVOICES = 'ikikasir_invoices_v3'
-const STORAGE_KEY_PACKAGES = 'ikikasir_packages_v1'
+const STORAGE_KEY_PACKAGES = 'ikikasir_packages_v2'
 
 // INVOICE INTERFACE
 export interface SubscriptionInvoice {
@@ -365,8 +365,21 @@ function loadAllFromStorage() {
     else { invoices.value = [...initialInvoices]; saveStorage(STORAGE_KEY_INVOICES, invoices.value) }
 
     const rawP = localStorage.getItem(STORAGE_KEY_PACKAGES)
-    if (rawP) packages.value = JSON.parse(rawP)
-    else { packages.value = [...initialPackages]; saveStorage(STORAGE_KEY_PACKAGES, packages.value) }
+    if (rawP) {
+      const parsed: PricingPackage[] = JSON.parse(rawP)
+      // Migration guard: if any package is missing required fields, reset to seed
+      const isValid = Array.isArray(parsed) && parsed.length > 0 &&
+        parsed.every(p => p.id && p.name && typeof p.isActive === 'boolean')
+      if (isValid) {
+        packages.value = parsed
+      } else {
+        packages.value = [...initialPackages]
+        saveStorage(STORAGE_KEY_PACKAGES, packages.value)
+      }
+    } else {
+      packages.value = [...initialPackages]
+      saveStorage(STORAGE_KEY_PACKAGES, packages.value)
+    }
   } catch (e) {
     console.error('Failed loading storage', e)
     leads.value = [...initialLeads]
