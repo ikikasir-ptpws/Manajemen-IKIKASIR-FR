@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 import { describe, it, expect, beforeEach } from 'vitest'
 import { useAppData } from '../composables/useAppData'
 

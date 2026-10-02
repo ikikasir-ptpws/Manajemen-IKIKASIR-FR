@@ -172,34 +172,68 @@ const handleSaveFollowUp = () => {
           <!-- Right Column (8 cols): Detail Info & Follow Up Timeline -->
           <div class="md:col-span-8 space-y-4 sm:space-y-5">
             
-            <!-- Card 1: Informasi Client & Usaha -->
+            <!-- Card 1: Informasi Client & Usaha (Seluruh Pertanyaan Google Form) -->
             <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-xs">
-              <h4 class="text-sm font-bold text-slate-800 mb-3 pb-2 border-b border-slate-100">Informasi Usaha & Kontak</h4>
+              <h4 class="text-sm font-bold text-slate-800 mb-3 pb-2 border-b border-slate-100 flex items-center justify-between">
+                <span>Jawaban Pendaftaran Client</span>
+                <span class="text-[11px] font-normal text-slate-400 font-mono">ID: {{ client.id }}</span>
+              </h4>
               
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
                 <div>
-                  <span class="text-slate-400 block text-[11px]">Nama Toko / Bisnis:</span>
-                  <p class="font-bold text-slate-800">{{ client.businessName }}</p>
+                  <span class="text-slate-400 block text-[11px]">1. Nama Lengkap:</span>
+                  <p class="font-bold text-slate-800">{{ client.name }}</p>
                 </div>
 
                 <div>
-                  <span class="text-slate-400 block text-[11px]">Jenis Bisnis:</span>
-                  <p class="font-bold text-slate-700">{{ client.businessCategory || 'Retail' }}</p>
+                  <span class="text-slate-400 block text-[11px]">2. Nama Toko / Usaha:</span>
+                  <p class="font-bold text-slate-800">{{ client.businessName }}</p>
                 </div>
 
                 <div class="sm:col-span-2">
-                  <span class="text-slate-400 block text-[11px]">Alamat:</span>
-                  <p class="font-medium text-slate-700">{{ client.address || 'Jl. Merdeka No. 10, Jakarta Pusat' }}</p>
+                  <span class="text-slate-400 block text-[11px]">3. Alamat Lengkap:</span>
+                  <p class="font-medium text-slate-700 bg-slate-50 p-2.5 rounded-xl border border-slate-100 mt-0.5">{{ client.address || '-' }}</p>
+                </div>
+
+                <div>
+                  <span class="text-slate-400 block text-[11px]">4. Paket Berlangganan:</span>
+                  <p class="font-bold text-indigo-700">{{ client.packageInterest || 'Basic' }}</p>
+                </div>
+
+                <div>
+                  <span class="text-slate-400 block text-[11px]">5. Email:</span>
+                  <p class="font-medium text-slate-700">{{ client.email || '-' }}</p>
+                </div>
+
+                <div>
+                  <span class="text-slate-400 block text-[11px]">6. No WhatsApp:</span>
+                  <p class="font-bold text-slate-800 font-mono">{{ client.phone }}</p>
+                </div>
+
+                <div>
+                  <span class="text-slate-400 block text-[11px]">7. Jumlah Karyawan Kasir:</span>
+                  <p class="font-bold text-emerald-700">{{ client.employeeCount || '-' }}</p>
+                </div>
+
+                <div>
+                  <span class="text-slate-400 block text-[11px]">8. Minat Membaca Aplikasi (Saat Rilis):</span>
+                  <p class="font-bold text-blue-700">{{ client.willingToTry || '-' }}</p>
+                </div>
+
+                <div>
+                  <span class="text-slate-400 block text-[11px]">9. Kesediaan Menjadi Tester:</span>
+                  <p class="font-bold text-purple-700">{{ client.willingToTest || '-' }}</p>
                 </div>
 
                 <div class="sm:col-span-2">
-                  <span class="text-slate-400 block text-[11px]">Catatan:</span>
-                  <p class="font-medium text-slate-700 bg-slate-50 p-2.5 sm:p-3 rounded-xl border border-slate-100 mt-1">
-                    {{ client.notes || 'Client tertarik dengan paket Custom / IT One. Akan follow up minggu depan.' }}
+                  <span class="text-slate-400 block text-[11px]">Catatan Internal / Sistem:</span>
+                  <p class="font-medium text-slate-700 bg-slate-50 p-2.5 rounded-xl border border-slate-100 mt-1">
+                    {{ client.notes || 'Pendaftaran masuk dari Form Official.' }}
                   </p>
                 </div>
               </div>
             </div>
+
 
             <!-- Card 2: Riwayat Follow Up Timeline -->
             <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-xs">

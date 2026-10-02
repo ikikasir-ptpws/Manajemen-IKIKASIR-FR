@@ -32,8 +32,8 @@ export function getAdminWaUrl(customText?: string) {
 
 export function getCustomerWaUrl(phone: string, text: string) {
   const cleanPhone = phone.replace(/[^0-9]/g, '')
-  const formattedPhone = cleanPhone.startsWith('0') 
-    ? '62' + cleanPhone.slice(1) 
+  const formattedPhone = cleanPhone.startsWith('0')
+    ? '62' + cleanPhone.slice(1)
     : (cleanPhone.startsWith('62') ? cleanPhone : '62' + cleanPhone)
   const encodedText = encodeURIComponent(text)
   return `https://api.whatsapp.com/send?phone=${formattedPhone}&text=${encodedText}`
@@ -84,29 +84,28 @@ const initialPackages: PricingPackage[] = [
     isActive: true
   },
   {
-    id: 'custom',
-    name: 'Custom / IT One',
+    id: 'pro',
+    name: 'Pro',
     cardClass: 'price-card pro',
-    badge: 'Solusi Khusus',
-    cardSub: 'Solusi khusus sesuai kebutuhan skala besar.',
+    badge: 'Paling Populer',
+    cardSub: 'Solusi lengkap & fitur lanjutan untuk bisnis berkembang.',
     icon: 'Crown',
-    isConsultation: true,
-    price: 0,
-    priceTitle: 'Konsultasi Terlebih Dahulu',
-    priceSubtext: 'Tanya-tanya & penyesuaian fitur bisnis',
-    period: '',
+    isConsultation: false,
+    price: 500000,
+    period: '/bulan',
     features: [
       'Semua fitur Basic',
-      'Fitur khusus sesuai kebutuhan bisnis',
-      'Integrasi sistem & modul khusus',
-      'Dedicated support & pendampingan'
+      'Multi kasir & manajemen karyawan',
+      'Laporan keuangan & analitik lengkap',
+      'Dedicated support & pendampingan 24/7'
     ],
-    btnText: 'Konsultasi Sekarang',
-    btnClass: 'btn-solid-white',
-    waText: 'Halo tim IKI KASIR, saya ingin konsultasi mengenai Paket Custom IT One',
+    btnText: 'Mulai Langganan',
+    btnClass: 'btn-solid-blue',
+    waText: 'Halo tim IKI KASIR, saya ingin berlangganan Paket Pro',
     isActive: true
   }
 ]
+
 
 const initialLeads: ClientLead[] = [
   {
@@ -343,14 +342,15 @@ const initialInvoices: SubscriptionInvoice[] = [
     status: 'Pending'
   }
 ]
-
 // SINGLETON REACTIVE STATE
 const leads = ref<ClientLead[]>([])
-const customers = ref<Customer[]>([])
+const customers = ref<
+  Customer[]>([])
 const invoices = ref<SubscriptionInvoice[]>([])
 const packages = ref<PricingPackage[]>([])
 
 function loadAllFromStorage() {
+  if (typeof localStorage === 'undefined') return
   try {
     const rawL = localStorage.getItem(STORAGE_KEY_LEADS)
     if (rawL) leads.value = JSON.parse(rawL)
@@ -377,9 +377,11 @@ function loadAllFromStorage() {
 }
 
 function saveStorage(key: string, data: any) {
-  try { localStorage.setItem(key, JSON.stringify(data)) } 
+  if (typeof localStorage === 'undefined') return
+  try { localStorage.setItem(key, JSON.stringify(data)) }
   catch (e) { console.error('Failed saving storage', e) }
 }
+
 
 // Initial load
 loadAllFromStorage()
@@ -399,7 +401,7 @@ export function useAppData() {
   const getComputedCustomerStatus = (c: Customer) => {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
-    
+
     // Parse expiredDate string (supports 'YYYY-MM-DD' or 'DD MMM YYYY')
     let expDate: Date
     if (c.expiredDate.includes('-')) {
@@ -471,16 +473,25 @@ export function useAppData() {
     phone: string
     email: string
     address: string
-    packageInterest: PackageType
+    packageInterest: PackageType | string
     source?: LeadSource
     notes?: string
+    employeeCount?: string
+    employeeCountChoice?: string
+    employeeCountCustom?: string
+    willingToTry?: string
+    willingToTest?: string
   }) => {
     const today = getTodayFormatted()
     const nowIso = new Date().toISOString()
     const source: LeadSource = data.source || 'Website'
     const uniqueId = 'REG-' + Date.now() + '-' + Math.floor(Math.random() * 1000)
-    const packagePrice = data.packageInterest === 'Basic' ? 250000 : 0
+    const packagePrice = data.packageInterest === 'Pro' ? 500000 : (data.packageInterest === 'Basic' ? 250000 : 0)
     const currentTime = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+
+    const empCountVal = data.employeeCountChoice === 'Yang lain'
+      ? (data.employeeCountCustom ? `Yang lain (${data.employeeCountCustom})` : 'Yang lain')
+      : (data.employeeCount || data.employeeCountChoice || '-')
 
     const newLead: ClientLead = {
       id: uniqueId,
@@ -509,6 +520,11 @@ export function useAppData() {
       followUpSchedule: 'Hari ini',
       created_at: nowIso,
       updated_at: nowIso,
+      employeeCount: empCountVal,
+      employeeCountChoice: data.employeeCountChoice,
+      employeeCountCustom: data.employeeCountCustom,
+      willingToTry: data.willingToTry || '-',
+      willingToTest: data.willingToTest || '-',
       followUpHistory: [
         {
           id: 'fh-' + Date.now(),
@@ -524,6 +540,7 @@ export function useAppData() {
     saveStorage(STORAGE_KEY_LEADS, leads.value)
     return newLead
   }
+
 
   // Update Lead Status
   const updateLeadStatus = (id: string, newStatus: LeadStatus) => {
@@ -564,7 +581,7 @@ export function useAppData() {
     // Check if customer already exists (Anti-Duplication Rule)
     let targetCustomer: Customer
     const existing = customers.value.find(c => c.id === 'cust-' + lead.id || (lead.phone && c.phone === lead.phone) || (lead.email && c.email === lead.email))
-    
+
     if (existing) {
       targetCustomer = existing
     } else {
@@ -578,7 +595,7 @@ export function useAppData() {
         no: customers.value.length + 1,
         name: lead.name,
         businessName: lead.businessName,
-        packageType: lead.packageInterest || 'Basic',
+        packageType: (lead.packageInterest as import('../types/dashboard').PackageType) || 'Basic',
         phone: lead.phone,
         email: lead.email,
         category: lead.businessCategory || 'Retail',
@@ -677,7 +694,7 @@ export function useAppData() {
         const today = new Date()
         const newExpDate = new Date(today)
         newExpDate.setMonth(newExpDate.getMonth() + (inv.billingCycleMonths || 1))
-        
+
         customer.expiredDate = newExpDate.toISOString().substring(0, 10)
         customer.status = 'active'
         saveStorage(STORAGE_KEY_CUSTOMERS, customers.value)
@@ -728,8 +745,8 @@ export function useAppData() {
     // 3. If Paid, recalculate Expired Date dynamically (Rule 10 & 13)
     if (isPaid) {
       const today = new Date()
-      today.setHours(0,0,0,0)
-      
+      today.setHours(0, 0, 0, 0)
+
       let baseDate = new Date(today)
       // If customer was already active with a future expiration, extend from that date
       if (customer.expiredDate) {
@@ -742,7 +759,7 @@ export function useAppData() {
       baseDate.setMonth(baseDate.getMonth() + data.billingCycleMonths)
       customer.expiredDate = baseDate.toISOString().substring(0, 10)
       customer.status = 'active'
-      
+
       saveStorage(STORAGE_KEY_CUSTOMERS, customers.value)
     }
 
@@ -762,6 +779,7 @@ export function useAppData() {
     const websiteLeads = leads.value.filter(l => l.source === 'Website').length
     const googleFormLeads = leads.value.filter(l => l.source === 'Google Form').length
     const basicLeads = leads.value.filter(l => l.packageInterest === 'Basic').length
+    const proLeads = leads.value.filter(l => l.packageInterest === 'Pro').length
     const customLeads = leads.value.filter(l => l.packageInterest === 'Custom / IT One').length
 
     const totalCustomers = customers.value.length
@@ -789,6 +807,7 @@ export function useAppData() {
       googleFormLeads,
       googleFormCount: googleFormLeads,
       basicCount: basicLeads,
+      proCount: proLeads,
       customCount: customLeads,
       totalCustomers,
       totalInvoices,
@@ -796,6 +815,7 @@ export function useAppData() {
       totalExpired,
       totalExpiringSoon
     }
+
   })
 
   // ==========================================

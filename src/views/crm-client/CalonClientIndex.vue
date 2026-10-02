@@ -81,7 +81,7 @@ const showPackageDropdown = ref(false)
 
 const statusOptions = ['Semua Status', 'New', 'Contacted', 'Follow Up', 'Interested', 'Converted', 'Lost']
 const sourceOptions = ['Semua Sumber', 'Website', 'Google Form', 'Instagram', 'WhatsApp', 'Facebook Ads', 'Referral']
-const packageOptions = ['Semua Paket', 'Basic', 'Custom / IT One']
+const packageOptions = ['Semua Paket', 'Basic', 'Pro', 'Custom / IT One']
 
 // Badges colors
 const statusBadges: Record<LeadStatus, { bg: string, text: string, label: string }> = {
@@ -321,7 +321,8 @@ const sendWhatsAppDirect = (client: ClientLead) => {
         <div class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-700 font-medium flex items-center gap-2">
           <span>Paket:</span>
           <span class="px-2 py-0.5 rounded-md bg-blue-100 text-blue-700 font-bold">Basic: {{ statistics.basicCount }}</span>
-          <span class="px-2 py-0.5 rounded-md bg-purple-100 text-purple-700 font-bold">Custom / IT One: {{ statistics.customCount }}</span>
+          <span class="px-2 py-0.5 rounded-md bg-indigo-100 text-indigo-700 font-bold">Pro: {{ statistics.proCount }}</span>
+          <span class="px-2 py-0.5 rounded-md bg-purple-100 text-purple-700 font-bold">Custom: {{ statistics.customCount }}</span>
         </div>
       </div>
 

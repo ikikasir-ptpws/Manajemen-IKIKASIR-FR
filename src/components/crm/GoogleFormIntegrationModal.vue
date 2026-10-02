@@ -13,32 +13,49 @@ const emit = defineEmits<{
 const copied = ref(false)
 
 const scriptSnippet = `// GOOGLE APPS SCRIPT: Automated Sync to Super Admin
+// Pasang trigger ini di Google Form / Google Sheets melalui Tools > Script editor
 function onFormSubmit(e) {
   var itemResponses = e.response.getItemResponses();
   var formData = {};
   
   for (var i = 0; i < itemResponses.length; i++) {
-    var title = itemResponses[i].getItem().getTitle();
+    var title = itemResponses[i].getItem().getTitle().toLowerCase();
     var response = itemResponses[i].getResponse();
     
-    if (title.match(/nama lengkap/i)) formData.name = response;
-    else if (title.match(/nama bisnis|usaha/i)) formData.businessName = response;
-    else if (title.match(/whatsapp|hp/i)) formData.phone = response;
-    else if (title.match(/email/i)) formData.email = response;
-    else if (title.match(/paket/i)) formData.packageInterest = response;
-    else if (title.match(/alamat/i)) formData.address = response;
+    // Pemetaan 9 Pertanyaan sesuai Google Form IKI KASIR
+    if (title.match(/nama lengkap/i))               formData.name = response;
+    else if (title.match(/nama toko|nama usaha/i))  formData.businessName = response;
+    else if (title.match(/alamat lengkap|alamat/i)) formData.address = response;
+    else if (title.match(/paket/i))                 formData.packageInterest = response;
+    else if (title.match(/email/i))                 formData.email = response;
+    else if (title.match(/whatsapp|wa|hp/i))        formData.phone = response;
+    else if (title.match(/jumlah karyawan/i)) {
+      formData.employeeCountChoice = Array.isArray(response) ? response[0] : response;
+      // Cek jika ada field "Yang lain" (other field)
+      if (formData.employeeCountChoice === 'Yang lain') {
+        formData.employeeCountCustom = itemResponses[i].getResponse() || '';
+      }
+    }
+    else if (title.match(/bersedia mencoba|saat.*diluncurkan/i))   formData.willingToTry = response;
+    else if (title.match(/tester|pengguna awal/i))                 formData.willingToTest = response;
   }
   
-  formData.source = 'google_form';
+  formData.source = 'Google Form';
   
-  // POST request to IKIKASIR API Endpoint
+  // POST ke endpoint API IKI KASIR (ganti dengan URL API Anda)
   var options = {
     'method': 'post',
     'contentType': 'application/json',
-    'payload': JSON.stringify(formData)
+    'payload': JSON.stringify(formData),
+    'muteHttpExceptions': true
   };
   
-  UrlFetchApp.fetch('https://api.ikikasir.id/v1/registrations', options);
+  try {
+    UrlFetchApp.fetch('https://api.ikikasir.id/v1/registrations', options);
+    Logger.log('✅ Data berhasil dikirim ke Super Admin');
+  } catch(err) {
+    Logger.log('❌ Error: ' + err.message);
+  }
 }`
 
 const copyCode = () => {
@@ -102,53 +119,79 @@ const closeModal = () => {
           <div>
             <h4 class="font-bold text-slate-800 mb-2 flex items-center gap-1.5">
               <CheckCircle2 class="w-4 h-4 text-emerald-600" />
-              <span>Pemetaan Field Pendaftaran (100% Konsisten)</span>
+              <span>Pemetaan 9 Pertanyaan Pendaftaran (100% Konsisten dengan Google Form)</span>
             </h4>
 
             <div class="bg-slate-50 rounded-2xl border border-slate-200 overflow-hidden">
               <table class="w-full text-left text-xs">
                 <thead class="bg-slate-100/70 border-b border-slate-200 text-slate-600 font-bold">
                   <tr>
+                    <th class="py-2.5 px-3">No</th>
                     <th class="py-2.5 px-3">Field Website</th>
                     <th class="py-2.5 px-3">Field Google Form</th>
-                    <th class="py-2.5 px-3">Status Konsistensi</th>
+                    <th class="py-2.5 px-3">Status</th>
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-200/60 text-slate-700">
                   <tr>
-                    <td class="py-2 px-3 font-semibold text-indigo-600">Nama Lengkap</td>
-                    <td class="py-2 px-3">Nama Lengkap Pendaftar</td>
+                    <td class="py-2 px-3 text-slate-400 font-mono">1</td>
+                    <td class="py-2 px-3 font-semibold text-indigo-600">Nama Lengkap *</td>
+                    <td class="py-2 px-3">Nama Lengkap</td>
                     <td class="py-2 px-3"><span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-700 font-bold text-[10px]">✔ Identik</span></td>
                   </tr>
                   <tr>
-                    <td class="py-2 px-3 font-semibold text-indigo-600">Nama Bisnis/Usaha</td>
-                    <td class="py-2 px-3">Nama Bisnis / Toko</td>
+                    <td class="py-2 px-3 text-slate-400 font-mono">2</td>
+                    <td class="py-2 px-3 font-semibold text-indigo-600">Nama Toko / Usaha *</td>
+                    <td class="py-2 px-3">Nama Toko / Usaha</td>
                     <td class="py-2 px-3"><span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-700 font-bold text-[10px]">✔ Identik</span></td>
                   </tr>
                   <tr>
-                    <td class="py-2 px-3 font-semibold text-indigo-600">Nomor WhatsApp</td>
-                    <td class="py-2 px-3">Nomor WhatsApp (Aktif)</td>
+                    <td class="py-2 px-3 text-slate-400 font-mono">3</td>
+                    <td class="py-2 px-3 font-semibold text-indigo-600">Alamat Lengkap *</td>
+                    <td class="py-2 px-3">Alamat Lengkap</td>
                     <td class="py-2 px-3"><span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-700 font-bold text-[10px]">✔ Identik</span></td>
                   </tr>
                   <tr>
-                    <td class="py-2 px-3 font-semibold text-indigo-600">Email</td>
+                    <td class="py-2 px-3 text-slate-400 font-mono">4</td>
+                    <td class="py-2 px-3 font-semibold text-indigo-600">Paket Berlangganan * (Basic/Pro)</td>
+                    <td class="py-2 px-3">Paket Berlangganan (Basic/Pro)</td>
+                    <td class="py-2 px-3"><span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-700 font-bold text-[10px]">✔ Identik</span></td>
+                  </tr>
+                  <tr>
+                    <td class="py-2 px-3 text-slate-400 font-mono">5</td>
+                    <td class="py-2 px-3 font-semibold text-indigo-600">Alamat Email</td>
                     <td class="py-2 px-3">Alamat Email</td>
                     <td class="py-2 px-3"><span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-700 font-bold text-[10px]">✔ Identik</span></td>
                   </tr>
                   <tr>
-                    <td class="py-2 px-3 font-semibold text-indigo-600">Paket yang Dipilih</td>
-                    <td class="py-2 px-3">Pilihan Paket (Basic / Custom IT One)</td>
+                    <td class="py-2 px-3 text-slate-400 font-mono">6</td>
+                    <td class="py-2 px-3 font-semibold text-indigo-600">No WhatsApp aktif *</td>
+                    <td class="py-2 px-3">No WhatsApp aktif</td>
                     <td class="py-2 px-3"><span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-700 font-bold text-[10px]">✔ Identik</span></td>
                   </tr>
                   <tr>
-                    <td class="py-2 px-3 font-semibold text-indigo-600">Alamat Usaha</td>
-                    <td class="py-2 px-3">Alamat Lengkap Usaha</td>
+                    <td class="py-2 px-3 text-slate-400 font-mono">7</td>
+                    <td class="py-2 px-3 font-semibold text-indigo-600">Jumlah Karyawan Kasir * (1-5, Lainnya)</td>
+                    <td class="py-2 px-3">Jumlah Karyawan Kasir (1-5, Yang lain + isian)</td>
+                    <td class="py-2 px-3"><span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-700 font-bold text-[10px]">✔ Identik</span></td>
+                  </tr>
+                  <tr>
+                    <td class="py-2 px-3 text-slate-400 font-mono">8</td>
+                    <td class="py-2 px-3 font-semibold text-indigo-600">Minat Mencoba Saat Rilis *</td>
+                    <td class="py-2 px-3">Minat Mencoba (Ya Saya tertarik / Mungkin / Masih Mencoba / Tidak)</td>
+                    <td class="py-2 px-3"><span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-700 font-bold text-[10px]">✔ Identik</span></td>
+                  </tr>
+                  <tr>
+                    <td class="py-2 px-3 text-slate-400 font-mono">9</td>
+                    <td class="py-2 px-3 font-semibold text-indigo-600">Kesediaan Jadi Tester *</td>
+                    <td class="py-2 px-3">Bersedia Menjadi Tester (Ya / Tidak)</td>
                     <td class="py-2 px-3"><span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-700 font-bold text-[10px]">✔ Identik</span></td>
                   </tr>
                 </tbody>
               </table>
             </div>
           </div>
+
 
           <!-- Apps Script Code Snippet -->
           <div>

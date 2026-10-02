@@ -2,7 +2,17 @@
 @custom-variant dark (&:where(.dark, .dark *));
 @layer base {
   * {
-    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    font-family:
+      "Plus Jakarta Sans",
+      system-ui,
+      -apple-system,
+      BlinkMacSystemFont,
+      "Segoe UI",
+      Roboto,
+      Oxygen,
+      Ubuntu,
+      Cantarell,
+      sans-serif;
   }
   html:not(.lenis) {
     scroll-behavior: smooth;
@@ -26,8 +36,15 @@
 }
 
 @keyframes pulse-subtle {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.85; transform: scale(1.03); }
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1.03);
+  }
 }
 
 .animate-pulse-subtle {
@@ -41,8 +58,8 @@
 
 /* Hide scrollbar for IE, Edge and Firefox */
 .no-scrollbar {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
 }
 
 /* Page Transition Animations */
@@ -76,16 +93,30 @@
 .animate-fade-in-up {
   animation: fadeInUp 0.4s ease-out both;
 }
-.animate-delay-1 { animation-delay: 0.05s; }
-.animate-delay-2 { animation-delay: 0.1s; }
-.animate-delay-3 { animation-delay: 0.15s; }
-.animate-delay-4 { animation-delay: 0.2s; }
+.animate-delay-1 {
+  animation-delay: 0.05s;
+}
+.animate-delay-2 {
+  animation-delay: 0.1s;
+}
+.animate-delay-3 {
+  animation-delay: 0.15s;
+}
+.animate-delay-4 {
+  animation-delay: 0.2s;
+}
 
 /* Animated counter number */
 @keyframes countPulse {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.05); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 .count-animate {
@@ -97,7 +128,7 @@
   position: relative;
 }
 .copy-tooltip::after {
-  content: 'Disalin!';
+  content: "Disalin!";
   position: absolute;
   bottom: 100%;
   left: 50%;
@@ -129,7 +160,9 @@
 
 /* Progress bar animation */
 @keyframes progressFill {
-  from { width: 0%; }
+  from {
+    width: 0%;
+  }
 }
 .animate-progress {
   animation: progressFill 1s ease-out both;
@@ -142,11 +175,21 @@
    ============================================ */
 
 /* --- Base Text Colors --- */
-.dark h1, .dark h2, .dark h3, .dark h4, .dark h5, .dark h6 {
+.dark h1,
+.dark h2,
+.dark h3,
+.dark h4,
+.dark h5,
+.dark h6 {
   color: #f1f5f9 !important; /* slate-100 */
 }
 
-.dark p:not([class*="text-emerald"]):not([class*="text-rose"]):not([class*="text-amber"]):not([class*="text-indigo"]):not([class*="text-blue"]):not([class*="text-red"]):not([class*="text-green"]) {
+.dark
+  p:not([class*="text-emerald"]):not([class*="text-rose"]):not(
+    [class*="text-amber"]
+  ):not([class*="text-indigo"]):not([class*="text-blue"]):not(
+    [class*="text-red"]
+  ):not([class*="text-green"]) {
   color: #cbd5e1; /* slate-300 */
 }
 
@@ -168,18 +211,12 @@
   color: #64748b !important; /* slate-500 stays as-is or slightly brighter */
 }
 
-.dark .text-\[#0F172A\],
-.dark .text-\[#1E293B\] {
-  color: #e2e8f0 !important;
-}
-
 /* --- Background Cards & Containers --- */
 .dark .bg-white {
   background-color: #1e293b !important; /* slate-800 */
 }
 
-.dark .bg-slate-50,
-.dark .bg-\[#F8F9FD\] {
+.dark .bg-slate-50 {
   background-color: #0f172a !important; /* slate-900 */
 }
 
@@ -200,7 +237,10 @@
 }
 
 /* Also ensure all borders within tables are dark */
-.dark table, .dark th, .dark td, .dark tr {
+.dark table,
+.dark th,
+.dark td,
+.dark tr {
   border-color: #334155 !important;
 }
 
@@ -252,60 +292,29 @@
   background-color: rgba(99, 102, 241, 0.12) !important;
 }
 
-.dark .bg-emerald-50,
-.dark .bg-\[#ECFDF5\] {
+.dark .bg-emerald-50 {
   background-color: rgba(16, 185, 129, 0.12) !important;
 }
 
-.dark .bg-rose-50,
-.dark .bg-\[#FEF2F2\] {
+.dark .bg-rose-50 {
   background-color: rgba(239, 68, 68, 0.12) !important;
 }
 
-.dark .bg-amber-50,
-.dark .bg-\[#FFFBEB\] {
+.dark .bg-amber-50 {
   background-color: rgba(245, 158, 11, 0.12) !important;
 }
 
-.dark .bg-blue-50,
-.dark .bg-\[#EFF6FF\] {
+.dark .bg-blue-50 {
   background-color: rgba(59, 130, 246, 0.12) !important;
-}
-
-.dark .bg-\[#EEF2FF\] {
-  background-color: rgba(99, 102, 241, 0.12) !important;
-}
-
-/* --- Colored Text (brighten for dark mode) --- */
-.dark .text-\[#4F46E5\] {
-  color: #818cf8 !important; /* indigo-400 */
-}
-
-.dark .text-\[#6366F1\] {
-  color: #a5b4fc !important; /* indigo-300 */
-}
-
-.dark .text-\[#10B981\] {
-  color: #34d399 !important; /* emerald-400 */
-}
-
-.dark .text-\[#EF4444\] {
-  color: #f87171 !important; /* rose-400 */
-}
-
-.dark .text-\[#F59E0B\] {
-  color: #fbbf24 !important; /* amber-400 */
-}
-
-.dark .text-\[#3B82F6\] {
-  color: #60a5fa !important; /* blue-400 */
 }
 
 /* --- Shadows --- */
 .dark .shadow-xs,
 .dark .shadow-sm,
 .dark .shadow-md {
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3), 0 1px 2px -1px rgba(0, 0, 0, 0.3) !important;
+  box-shadow:
+    0 1px 3px 0 rgba(0, 0, 0, 0.3),
+    0 1px 2px -1px rgba(0, 0, 0, 0.3) !important;
 }
 
 .dark .shadow-indigo-200 {
@@ -406,13 +415,15 @@
 /* --- Print: Reset dark mode for printing --- */
 @media print {
   .dark .bg-white,
-  .dark .bg-slate-50,
-  .dark .bg-\[#F8F9FD\] {
+  .dark .bg-slate-50 {
     background-color: #ffffff !important;
   }
-  .dark h1, .dark h2, .dark h3, .dark h4 {
+  .dark h1,
+  .dark h2,
+  .dark h3,
+  .dark h4 {
     color: #1e293b !important;
-}
+  }
   .dark .text-slate-800,
   .dark .text-slate-700 {
     color: #334155 !important;
@@ -429,34 +440,40 @@
 }
 
 @keyframes spin-kpi-border {
-  0% { --kpi-angle: 0deg; }
-  100% { --kpi-angle: 360deg; }
+  0% {
+    --kpi-angle: 0deg;
+  }
+  100% {
+    --kpi-angle: 360deg;
+  }
 }
 
 .dark .kpi-card {
   border: 1.5px solid transparent !important;
-  background: 
+  background:
     linear-gradient(#1e293b, #1e293b) padding-box,
-    conic-gradient(from var(--kpi-angle), 
-      rgba(99, 102, 241, 0.05) 0deg, 
-      rgba(168, 85, 247, 0.9) 120deg, 
-      rgba(236, 72, 153, 0.9) 240deg, 
-      rgba(99, 102, 241, 0.05) 360deg
-    ) border-box !important;
+    conic-gradient(
+        from var(--kpi-angle),
+        rgba(99, 102, 241, 0.05) 0deg,
+        rgba(168, 85, 247, 0.9) 120deg,
+        rgba(236, 72, 153, 0.9) 240deg,
+        rgba(99, 102, 241, 0.05) 360deg
+      )
+      border-box !important;
   animation: spin-kpi-border 5s linear infinite;
   box-shadow: 0 4px 25px -5px rgba(168, 85, 247, 0.2) !important;
 }
 
 /* Override for the primary 'Saldo Bersih' card which has a gradient background */
 .dark .kpi-card.kpi-primary {
-  background: 
+  background:
     linear-gradient(#1e1b4b, #312e81) padding-box,
-    conic-gradient(from var(--kpi-angle), 
-      rgba(56, 189, 248, 0.1) 0deg, 
-      rgba(168, 85, 247, 1) 120deg, 
-      rgba(56, 189, 248, 1) 240deg, 
-      rgba(56, 189, 248, 0.1) 360deg
-    ) border-box !important;
+    conic-gradient(
+        from var(--kpi-angle),
+        rgba(56, 189, 248, 0.1) 0deg,
+        rgba(168, 85, 247, 1) 120deg,
+        rgba(56, 189, 248, 1) 240deg,
+        rgba(56, 189, 248, 0.1) 360deg
+      )
+      border-box !important;
 }
-
-

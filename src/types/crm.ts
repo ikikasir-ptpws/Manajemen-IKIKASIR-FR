@@ -18,7 +18,7 @@ export interface ClientLead {
   nama_lengkap?: string
   businessName: string
   nama_bisnis?: string
-  businessCategory: string
+  businessCategory?: string
   kategori_bisnis?: string
   phone: string
   whatsapp?: string
@@ -29,7 +29,7 @@ export interface ClientLead {
   registrationDate?: string
   tanggal_pendaftaran?: string
   lastFollowUp: string
-  packageInterest?: 'Basic' | 'Custom / IT One'
+  packageInterest?: 'Basic' | 'Pro' | 'Custom / IT One' | string
   paket?: string
   harga_paket?: number
   estimatedDeal?: number
@@ -39,4 +39,12 @@ export interface ClientLead {
   followUpSchedule?: 'Hari ini' | 'Besok' | '2 Hari lagi' | '3 Hari lagi' | '5 Hari lagi' | 'Terlambat'
   created_at?: string
   updated_at?: string
+
+  // Google Form Aligned Fields
+  employeeCount?: string
+  employeeCountChoice?: string
+  employeeCountCustom?: string
+  willingToTry?: 'Ya Saya tertarik' | 'Mungkin' | 'Masih Mencoba' | 'Tidak' | string
+  willingToTest?: 'Ya' | 'Tidak' | string
 }
+

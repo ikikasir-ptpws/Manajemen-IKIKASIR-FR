@@ -46,7 +46,7 @@ const formData = ref({
   address: '',
   status: 'New' as LeadStatus,
   source: 'Website' as LeadSource,
-  packageInterest: 'Basic' as 'Basic' | 'Custom / IT One',
+  packageInterest: 'Basic' as 'Basic' | 'Pro' | 'Custom / IT One' | string,
   estimatedDeal: 250000,
   notes: '',
   followUpSchedule: 'Hari ini' as 'Hari ini' | 'Besok' | '2 Hari lagi' | '3 Hari lagi' | '5 Hari lagi' | 'Terlambat'
