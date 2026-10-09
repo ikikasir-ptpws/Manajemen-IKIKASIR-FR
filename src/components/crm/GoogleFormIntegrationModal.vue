@@ -22,22 +22,37 @@ function onFormSubmit(e) {
     var title = itemResponses[i].getItem().getTitle().toLowerCase();
     var response = itemResponses[i].getResponse();
     
-    // Pemetaan 9 Pertanyaan sesuai Google Form IKI KASIR
-    if (title.match(/nama lengkap/i))               formData.name = response;
-    else if (title.match(/nama toko|nama usaha/i))  formData.businessName = response;
-    else if (title.match(/alamat lengkap|alamat/i)) formData.address = response;
-    else if (title.match(/paket/i))                 formData.packageInterest = response;
-    else if (title.match(/email/i))                 formData.email = response;
-    else if (title.match(/whatsapp|wa|hp/i))        formData.phone = response;
-    else if (title.match(/jumlah karyawan/i)) {
-      formData.employeeCountChoice = Array.isArray(response) ? response[0] : response;
-      // Cek jika ada field "Yang lain" (other field)
-      if (formData.employeeCountChoice === 'Yang lain') {
-        formData.employeeCountCustom = itemResponses[i].getResponse() || '';
-      }
+    if (title.match(/nama lengkap/i))                         formData.name = response;
+    else if (title.match(/whatsapp|wa|hp/i))                  formData.phone = response;
+    else if (title.match(/email/i))                           formData.email = response;
+    else if (title.match(/nama toko|nama usaha/i))            formData.businessName = response;
+    else if (title.match(/jenis usaha/i))                     formData.businessType = response;
+    else if (title.match(/kota|kabupaten/i))                  formData.city = response;
+    else if (title.match(/alamat lengkap|alamat/i))           formData.address = response;
+    else if (title.match(/jumlah outlet/i))                   formData.outletCount = response;
+    else if (title.match(/jumlah karyawan|pemakai aplikasi/i)) formData.employeeAppCount = response;
+    else if (title.match(/mencatat penjualan/i))              formData.currentRecordingMethod = response;
+    else if (title.match(/fitur yang dibutuhkan/i)) {
+      var featureResponses = Array.isArray(response) ? response : [response];
+      var otherFeature = featureResponses.find(function(value) { return /^lainnya\s*:/i.test(value); });
+      formData.neededFeatures = featureResponses.map(function(value) {
+        return /^lainnya\s*:/i.test(value) ? 'Lainnya' : value;
+      });
+      if (otherFeature) formData.otherNeededFeature = otherFeature.replace(/^lainnya\s*:\s*/i, '');
     }
-    else if (title.match(/bersedia mencoba|saat.*diluncurkan/i))   formData.willingToTry = response;
-    else if (title.match(/tester|pengguna awal/i))                 formData.willingToTest = response;
+    else if (title.match(/fitur.*lainnya|lainnya.*fitur/i))   formData.otherNeededFeature = response;
+    else if (title.match(/paket yang diminati/i))             formData.packageInterest = response;
+    else if (title.match(/kendala|kebutuhan khusus/i))        formData.specialNeed = response;
+    else if (title.match(/bersedia mencoba|saat.*diluncurkan/i)) formData.willingToTry = response;
+    else if (title.match(/tester|pengguna awal/i))             formData.willingToTest = response;
+    else if (title.match(/dari mana mengetahui/i)) {
+      var sourceResponse = String(response);
+      var otherSource = sourceResponse.match(/^lainnya\s*:\s*(.+)$/i);
+      formData.knownFrom = otherSource ? 'Lainnya' : response;
+      if (otherSource) formData.otherKnownFrom = otherSource[1];
+    }
+    else if (title.match(/sumber informasi lainnya|lainnya.*sumber/i)) formData.otherKnownFrom = response;
+    else if (title.match(/setuju data|persetujuan penggunaan data/i)) formData.consentAgreed = response === 'Ya';
   }
   
   formData.source = 'Google Form';

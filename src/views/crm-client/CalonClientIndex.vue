@@ -81,7 +81,7 @@ const showPackageDropdown = ref(false)
 
 const statusOptions = ['Semua Status', 'New', 'Contacted', 'Follow Up', 'Interested', 'Converted', 'Lost']
 const sourceOptions = ['Semua Sumber', 'Website', 'Google Form', 'Instagram', 'WhatsApp', 'Facebook Ads', 'Referral']
-const packageOptions = ['Semua Paket', 'Basic', 'Pro', 'Custom / IT One']
+const packageOptions = ['Semua Paket', 'Basic', 'Add on', 'Custom', 'Pro', 'Custom / IT One']
 
 // Badges colors
 const statusBadges: Record<LeadStatus, { bg: string, text: string, label: string }> = {
@@ -321,6 +321,7 @@ const sendWhatsAppDirect = (client: ClientLead) => {
         <div class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-700 font-medium flex items-center gap-2">
           <span>Paket:</span>
           <span class="px-2 py-0.5 rounded-md bg-blue-100 text-blue-700 font-bold">Basic: {{ statistics.basicCount }}</span>
+          <span class="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-700 font-bold">Add on: {{ statistics.addOnCount }}</span>
           <span class="px-2 py-0.5 rounded-md bg-indigo-100 text-indigo-700 font-bold">Pro: {{ statistics.proCount }}</span>
           <span class="px-2 py-0.5 rounded-md bg-purple-100 text-purple-700 font-bold">Custom: {{ statistics.customCount }}</span>
         </div>
@@ -485,7 +486,7 @@ const sendWhatsAppDirect = (client: ClientLead) => {
                 <td class="py-3.5 px-3.5 font-semibold">
                   <span 
                     class="px-2.5 py-1 rounded-lg text-[11px] font-bold inline-block border"
-                    :class="client.packageInterest === 'Custom / IT One' ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-indigo-50 text-indigo-700 border-indigo-200'"
+                    :class="['Custom', 'Custom / IT One'].includes(client.packageInterest || '') ? 'bg-purple-50 text-purple-700 border-purple-200' : client.packageInterest === 'Add on' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-indigo-50 text-indigo-700 border-indigo-200'"
                   >
                     {{ client.packageInterest || 'Basic' }}
                   </span>

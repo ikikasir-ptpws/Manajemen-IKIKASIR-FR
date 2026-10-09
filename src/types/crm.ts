@@ -18,6 +18,7 @@ export interface ClientLead {
   nama_lengkap?: string
   businessName: string
   nama_bisnis?: string
+  /** @deprecated gunakan businessType untuk data baru */
   businessCategory?: string
   kategori_bisnis?: string
   phone: string
@@ -29,7 +30,7 @@ export interface ClientLead {
   registrationDate?: string
   tanggal_pendaftaran?: string
   lastFollowUp: string
-  packageInterest?: 'Basic' | 'Pro' | 'Custom / IT One' | string
+  packageInterest?: 'Basic' | 'Add on' | 'Custom' | 'Pro' | 'Custom / IT One' | string
   paket?: string
   harga_paket?: number
   estimatedDeal?: number
@@ -40,11 +41,36 @@ export interface ClientLead {
   created_at?: string
   updated_at?: string
 
-  // Google Form Aligned Fields
+  // === FIELD LAMA (tetap ada untuk kompatibilitas data lama) ===
   employeeCount?: string
   employeeCountChoice?: string
   employeeCountCustom?: string
-  willingToTry?: 'Ya Saya tertarik' | 'Mungkin' | 'Masih Mencoba' | 'Tidak' | string
-  willingToTest?: 'Ya' | 'Tidak' | string
+  willingToTry?: string
+  willingToTest?: string
+
+  // === FIELD BARU (semua optional agar data lama tidak rusak) ===
+  /** Jenis Usaha: Kafe/Restoran, Toko Kelontong, Fashion, Laundry, Barbershop/Salon, Bengkel, Lainnya */
+  businessType?: string
+  /** Kota / Kabupaten */
+  city?: string
+  /** Jumlah Outlet: "1" | "2-3" | "4 atau lebih" */
+  outletCount?: string
+  /** Jumlah Karyawan Pakai Aplikasi: "1" | "2" | "3" | "4" | "5 atau lebih" */
+  employeeAppCount?: string
+  /** Metode pencatatan saat ini: Buku/manual, Excel, Aplikasi kasir lain, Belum mencatat */
+  currentRecordingMethod?: string
+  /** Fitur yang dibutuhkan (array checkbox) */
+  neededFeatures?: string[]
+  /** Input teks jika memilih "Lainnya" di neededFeatures */
+  otherNeededFeature?: string
+  /** Kendala terbesar atau kebutuhan khusus (opsional) */
+  specialNeed?: string
+  /** Dari mana mengetahui IKI KASIR */
+  knownFrom?: string
+  /** Input teks jika memilih "Lainnya" di knownFrom */
+  otherKnownFrom?: string
+  /** Sudah menyetujui persetujuan data */
+  consentAgreed?: boolean
 }
+
 

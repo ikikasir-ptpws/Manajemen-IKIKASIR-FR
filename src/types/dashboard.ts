@@ -1,4 +1,4 @@
-export type PackageType = 'Basic' | 'Pro' | 'Custom / IT One'
+export type PackageType = 'Basic' | 'Add on' | 'Custom' | 'Pro' | 'Custom / IT One'
 
 export interface Customer {
   id: string

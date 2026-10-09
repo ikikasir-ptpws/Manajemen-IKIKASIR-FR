@@ -469,29 +469,67 @@ export function useAppData() {
   const addRegistration = (data: {
     name: string
     businessName: string
+    /** @deprecated gunakan businessType */
     businessCategory?: string
     phone: string
     email: string
-    address: string
+    address?: string
     packageInterest: PackageType | string
     source?: LeadSource
     notes?: string
+    // Field lama (kompatibilitas)
     employeeCount?: string
     employeeCountChoice?: string
     employeeCountCustom?: string
     willingToTry?: string
     willingToTest?: string
+    // Field baru
+    businessType?: string
+    city?: string
+    outletCount?: string
+    employeeAppCount?: string
+    currentRecordingMethod?: string
+    neededFeatures?: string[]
+    otherNeededFeature?: string
+    specialNeed?: string
+    knownFrom?: string
+    otherKnownFrom?: string
+    consentAgreed?: boolean
   }) => {
     const today = getTodayFormatted()
     const nowIso = new Date().toISOString()
     const source: LeadSource = data.source || 'Website'
     const uniqueId = 'REG-' + Date.now() + '-' + Math.floor(Math.random() * 1000)
-    const packagePrice = data.packageInterest === 'Pro' ? 500000 : (data.packageInterest === 'Basic' ? 250000 : 0)
+    const selectedPackage = packages.value.find(pkg => pkg.name === data.packageInterest)
+    const packagePrice = selectedPackage?.isConsultation ? 0 : (selectedPackage?.price ?? 0)
     const currentTime = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
 
     const empCountVal = data.employeeCountChoice === 'Yang lain'
       ? (data.employeeCountCustom ? `Yang lain (${data.employeeCountCustom})` : 'Yang lain')
       : (data.employeeCount || data.employeeCountChoice || '-')
+
+    // Gabungkan neededFeatures menjadi string yang mudah dibaca untuk notes
+    const featuresText = data.neededFeatures?.length
+      ? data.neededFeatures.join(', ') + (data.otherNeededFeature ? `, Lainnya: ${data.otherNeededFeature}` : '')
+      : '-'
+    const knownFromText = data.knownFrom === 'Lainnya' && data.otherKnownFrom
+      ? `Lainnya (${data.otherKnownFrom})`
+      : (data.knownFrom || '-')
+
+    const autoNotes = data.notes || [
+      `Pendaftaran mandiri via ${source}.`,
+      `Paket: ${data.packageInterest}.`,
+      data.businessType ? `Jenis Usaha: ${data.businessType}.` : '',
+      data.city ? `Kota: ${data.city}.` : '',
+      data.outletCount ? `Jumlah outlet: ${data.outletCount}.` : '',
+      data.employeeAppCount ? `Pemakai aplikasi: ${data.employeeAppCount}.` : '',
+      data.currentRecordingMethod ? `Pencatatan saat ini: ${data.currentRecordingMethod}.` : '',
+      featuresText !== '-' ? `Fitur dibutuhkan: ${featuresText}.` : '',
+      data.willingToTry ? `Minat mencoba: ${data.willingToTry}.` : '',
+      data.willingToTest ? `Tester: ${data.willingToTest}.` : '',
+      knownFromText !== '-' ? `Sumber info: ${knownFromText}.` : '',
+      data.specialNeed ? `Kebutuhan khusus: ${data.specialNeed}.` : '',
+    ].filter(Boolean).join(' ')
 
     const newLead: ClientLead = {
       id: uniqueId,
@@ -501,12 +539,12 @@ export function useAppData() {
       nama_lengkap: data.name.trim(),
       businessName: data.businessName.trim(),
       nama_bisnis: data.businessName.trim(),
-      businessCategory: data.businessCategory?.trim() || 'Retail',
-      kategori_bisnis: data.businessCategory?.trim() || 'Retail',
+      businessCategory: data.businessType || data.businessCategory?.trim() || '-',
+      kategori_bisnis: data.businessType || data.businessCategory?.trim() || '-',
       phone: data.phone.trim(),
       whatsapp: data.phone.trim(),
       email: data.email.trim(),
-      address: data.address.trim(),
+      address: data.address?.trim() || '',
       status: 'New',
       source: source,
       registrationDate: today,
@@ -516,15 +554,28 @@ export function useAppData() {
       paket: data.packageInterest,
       harga_paket: packagePrice,
       estimatedDeal: packagePrice,
-      notes: data.notes || `Pendaftaran mandiri via ${source}. Paket: ${data.packageInterest}`,
+      notes: autoNotes,
       followUpSchedule: 'Hari ini',
       created_at: nowIso,
       updated_at: nowIso,
+      // Field lama
       employeeCount: empCountVal,
       employeeCountChoice: data.employeeCountChoice,
       employeeCountCustom: data.employeeCountCustom,
       willingToTry: data.willingToTry || '-',
       willingToTest: data.willingToTest || '-',
+      // Field baru
+      businessType: data.businessType,
+      city: data.city,
+      outletCount: data.outletCount,
+      employeeAppCount: data.employeeAppCount,
+      currentRecordingMethod: data.currentRecordingMethod,
+      neededFeatures: data.neededFeatures,
+      otherNeededFeature: data.otherNeededFeature,
+      specialNeed: data.specialNeed,
+      knownFrom: data.knownFrom,
+      otherKnownFrom: data.otherKnownFrom,
+      consentAgreed: data.consentAgreed,
       followUpHistory: [
         {
           id: 'fh-' + Date.now(),
@@ -779,8 +830,9 @@ export function useAppData() {
     const websiteLeads = leads.value.filter(l => l.source === 'Website').length
     const googleFormLeads = leads.value.filter(l => l.source === 'Google Form').length
     const basicLeads = leads.value.filter(l => l.packageInterest === 'Basic').length
+    const addOnLeads = leads.value.filter(l => l.packageInterest === 'Add on').length
     const proLeads = leads.value.filter(l => l.packageInterest === 'Pro').length
-    const customLeads = leads.value.filter(l => l.packageInterest === 'Custom / IT One').length
+    const customLeads = leads.value.filter(l => ['Custom', 'Custom / IT One'].includes(l.packageInterest || '')).length
 
     const totalCustomers = customers.value.length
     const totalInvoices = invoices.value.length
@@ -807,6 +859,7 @@ export function useAppData() {
       googleFormLeads,
       googleFormCount: googleFormLeads,
       basicCount: basicLeads,
+      addOnCount: addOnLeads,
       proCount: proLeads,
       customCount: customLeads,
       totalCustomers,

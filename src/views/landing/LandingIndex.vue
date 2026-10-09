@@ -40,7 +40,7 @@ import HeroImage from "../../components/HeroImage.vue";
 import IkiKasirLogo from "../../components/IkiKasirLogo.vue";
 import RegistrationModal from "../../components/RegistrationModal.vue";
 import { useAppData } from "../../composables/useAppData";
-import bannerImg from "../../images/hero-banner-1.svg";
+import bannerImg from "../../images/hero-user.jpg";
 import phoneMockup from "../../images/phone-mockup.png";
 
 const isMobileMenuOpen = ref(false);

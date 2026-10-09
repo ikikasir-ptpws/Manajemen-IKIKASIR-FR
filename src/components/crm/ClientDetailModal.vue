@@ -190,39 +190,69 @@ const handleSaveFollowUp = () => {
                   <p class="font-bold text-slate-800">{{ client.businessName }}</p>
                 </div>
 
+                <div>
+                  <span class="text-slate-400 block text-[11px]">Jenis Usaha:</span>
+                  <p class="font-bold text-slate-800">{{ client.businessType || client.businessCategory || '-' }}</p>
+                </div>
+
+                <div>
+                  <span class="text-slate-400 block text-[11px]">Kota / Kabupaten:</span>
+                  <p class="font-bold text-slate-800">{{ client.city || '-' }}</p>
+                </div>
+
                 <div class="sm:col-span-2">
-                  <span class="text-slate-400 block text-[11px]">3. Alamat Lengkap:</span>
+                  <span class="text-slate-400 block text-[11px]">Alamat Lengkap:</span>
                   <p class="font-medium text-slate-700 bg-slate-50 p-2.5 rounded-xl border border-slate-100 mt-0.5">{{ client.address || '-' }}</p>
                 </div>
 
                 <div>
-                  <span class="text-slate-400 block text-[11px]">4. Paket Berlangganan:</span>
+                  <span class="text-slate-400 block text-[11px]">Jumlah Outlet:</span>
+                  <p class="font-bold text-slate-800">{{ client.outletCount || '-' }}</p>
+                </div>
+
+                <div>
+                  <span class="text-slate-400 block text-[11px]">Jumlah Pemakai Aplikasi:</span>
+                  <p class="font-bold text-emerald-700">{{ client.employeeAppCount || client.employeeCount || '-' }}</p>
+                </div>
+
+                <div>
+                  <span class="text-slate-400 block text-[11px]">Pencatatan Penjualan Saat Ini:</span>
+                  <p class="font-medium text-slate-700">{{ client.currentRecordingMethod || '-' }}</p>
+                </div>
+
+                <div>
+                  <span class="text-slate-400 block text-[11px]">Paket yang Diminati:</span>
                   <p class="font-bold text-indigo-700">{{ client.packageInterest || 'Basic' }}</p>
                 </div>
 
-                <div>
-                  <span class="text-slate-400 block text-[11px]">5. Email:</span>
-                  <p class="font-medium text-slate-700">{{ client.email || '-' }}</p>
+                <div class="sm:col-span-2">
+                  <span class="text-slate-400 block text-[11px]">Fitur yang Dibutuhkan:</span>
+                  <p class="font-medium text-slate-700">{{ client.neededFeatures?.join(', ') || '-' }}{{ client.otherNeededFeature ? ` (${client.otherNeededFeature})` : '' }}</p>
+                </div>
+
+                <div class="sm:col-span-2">
+                  <span class="text-slate-400 block text-[11px]">Kendala Terbesar / Kebutuhan Khusus:</span>
+                  <p class="font-medium text-slate-700">{{ client.specialNeed || '-' }}</p>
                 </div>
 
                 <div>
-                  <span class="text-slate-400 block text-[11px]">6. No WhatsApp:</span>
-                  <p class="font-bold text-slate-800 font-mono">{{ client.phone }}</p>
-                </div>
-
-                <div>
-                  <span class="text-slate-400 block text-[11px]">7. Jumlah Karyawan Kasir:</span>
-                  <p class="font-bold text-emerald-700">{{ client.employeeCount || '-' }}</p>
-                </div>
-
-                <div>
-                  <span class="text-slate-400 block text-[11px]">8. Minat Membaca Aplikasi (Saat Rilis):</span>
+                  <span class="text-slate-400 block text-[11px]">Tertarik Mencoba:</span>
                   <p class="font-bold text-blue-700">{{ client.willingToTry || '-' }}</p>
                 </div>
 
                 <div>
-                  <span class="text-slate-400 block text-[11px]">9. Kesediaan Menjadi Tester:</span>
+                  <span class="text-slate-400 block text-[11px]">Bersedia Menjadi Tester:</span>
                   <p class="font-bold text-purple-700">{{ client.willingToTest || '-' }}</p>
+                </div>
+
+                <div>
+                  <span class="text-slate-400 block text-[11px]">Mengetahui IKI KASIR Dari:</span>
+                  <p class="font-medium text-slate-700">{{ client.knownFrom === 'Lainnya' && client.otherKnownFrom ? `Lainnya (${client.otherKnownFrom})` : client.knownFrom || '-' }}</p>
+                </div>
+
+                <div>
+                  <span class="text-slate-400 block text-[11px]">Persetujuan Penggunaan Data:</span>
+                  <p class="font-bold" :class="client.consentAgreed ? 'text-emerald-700' : 'text-slate-500'">{{ client.consentAgreed === undefined ? '-' : client.consentAgreed ? 'Ya' : 'Tidak' }}</p>
                 </div>
 
                 <div class="sm:col-span-2">

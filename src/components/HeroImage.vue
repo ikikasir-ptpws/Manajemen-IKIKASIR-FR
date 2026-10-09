@@ -170,15 +170,30 @@ onUnmounted(() => {
   image-rendering: high-quality;
   backface-visibility: hidden;
   animation: hero-cinematic-zoom 7.5s ease-in-out infinite alternate;
-  transform-origin: 75% 30%;
+  transform-origin: 85% 50%;
+  transform: translateX(140px);
 }
 
 @keyframes hero-cinematic-zoom {
   0% {
-    transform: scale(1) translate(0, 0);
+    transform: translateX(140px) scale(1);
   }
   100% {
-    transform: scale(1.028) translate(-0.4%, -0.2%);
+    transform: translateX(140px) scale(1.028);
+  }
+}
+
+@media (max-width: 991px) {
+  .hero-image__img {
+    transform: translateX(0);
+  }
+  @keyframes hero-cinematic-zoom {
+    0% {
+      transform: translateX(0) scale(1);
+    }
+    100% {
+      transform: translateX(0) scale(1.028);
+    }
   }
 }
 
