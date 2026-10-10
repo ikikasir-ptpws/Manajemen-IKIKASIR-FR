@@ -1,0 +1,45 @@
+<svg viewBox="0 0 400 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="iki-dot-g" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00d2ff" />
+      <stop offset="100%" stop-color="#0066ff" />
+    </linearGradient>
+
+    <linearGradient id="iki-stem-g" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0088ff" />
+      <stop offset="100%" stop-color="#1d4ed8" />
+    </linearGradient>
+
+    <linearGradient id="iki-k-upper" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2563eb" />
+      <stop offset="100%" stop-color="#3b82f6" />
+    </linearGradient>
+
+    <linearGradient id="iki-k-lower" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e40af" />
+      <stop offset="50%" stop-color="#3b82f6" />
+      <stop offset="100%" stop-color="#7c3aed" />
+    </linearGradient>
+    
+    <filter id="iki-fold-shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="-2" dy="3" stdDeviation="3" flood-color="#0a1628" flood-opacity="0.3" />
+    </filter>
+  </defs>
+
+  <!-- Logo Mark Icon -->
+  <g transform="translate(10, 5)">
+    <circle cx="26" cy="16" r="10" fill="url(#iki-dot-g)" />
+    <rect x="16" y="32" width="20" height="64" rx="10" fill="url(#iki-stem-g)" />
+    <path d="M 40,56 L 76,22 C 81,17 90,17 95,22 C 100,27 100,35 95,40 L 58,74 Z" fill="url(#iki-k-upper)" />
+    <path d="M 40,42 L 76,78 C 81,83 81,91 76,96 C 71,101 63,101 58,96 L 40,78 Z" fill="url(#iki-k-lower)" filter="url(#iki-fold-shadow)" />
+  </g>
+
+  <!-- Typography Text -->
+  <text x="130" y="65" font-family="'Plus Jakarta Sans', system-ui, sans-serif" font-weight="900" font-size="48" letter-spacing="2">
+    <tspan fill="#2563eb">IKI </tspan>
+    <tspan fill="#0f172a">KASIR</tspan>
+  </text>
+  <text x="130" y="92" font-family="'Plus Jakarta Sans', system-ui, sans-serif" font-weight="700" font-size="12" fill="#64748b" letter-spacing="1.5">
+    MUDA MEMBANGUN, BISNIS MAJU BERSAMA TEKNOLOGI
+  </text>
+</svg>
