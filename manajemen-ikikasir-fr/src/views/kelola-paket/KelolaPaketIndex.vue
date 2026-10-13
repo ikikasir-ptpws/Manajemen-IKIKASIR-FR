@@ -7,7 +7,7 @@ import {
   Trash2,
   XCircle,
 } from "lucide-vue-next";
-import { ref } from "vue";
+import { ref } from "vue"; 
 import type { PricingPackage } from "../../composables/useAppData";
 import { useAppData } from "../../composables/useAppData";
 

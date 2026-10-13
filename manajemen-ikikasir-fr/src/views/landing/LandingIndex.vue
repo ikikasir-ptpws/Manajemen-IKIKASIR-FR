@@ -1998,9 +1998,9 @@ const openRegistrationModal = (pkgName?: string) => {
 }
 .pricing-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 2rem;
-  max-width: 860px;
+  max-width: 1100px;
   margin: 0 auto;
   align-items: stretch;
 }

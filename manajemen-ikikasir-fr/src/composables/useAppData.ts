@@ -100,8 +100,31 @@ const initialPackages: PricingPackage[] = [
       'Dedicated support & pendampingan 24/7'
     ],
     btnText: 'Mulai Langganan',
-    btnClass: 'btn-solid-blue',
+    btnClass: 'btn-solid-white',
     waText: 'Halo tim IKI KASIR, saya ingin berlangganan Paket Pro',
+    isActive: true
+  },
+  {
+    id: 'custom-it-one',
+    name: 'Custom / IT One',
+    cardClass: 'price-card pro',
+    badge: 'Solusi Khusus',
+    cardSub: 'Solusi sistem kasir khusus sesuai alur dan kebutuhan bisnis Anda.',
+    icon: 'Crown',
+    isConsultation: true,
+    price: 0,
+    priceTitle: 'Konsultasi Terlebih Dahulu',
+    priceSubtext: 'Harga disesuaikan kebutuhan & modul bisnis',
+    period: '',
+    features: [
+      'Semua fitur Basic & Pro',
+      'Kustomisasi alur & fitur khusus',
+      'Integrasi sistem modul custom',
+      'Dedicated support & pendampingan tim'
+    ],
+    btnText: 'Konsultasi Sekarang',
+    btnClass: 'btn-outline-blue',
+    waText: 'Halo tim IKI KASIR, saya ingin konsultasi mengenai Paket Custom / IT One',
     isActive: true
   }
 ]
@@ -365,8 +388,20 @@ function loadAllFromStorage() {
     else { invoices.value = [...initialInvoices]; saveStorage(STORAGE_KEY_INVOICES, invoices.value) }
 
     const rawP = localStorage.getItem(STORAGE_KEY_PACKAGES)
-    if (rawP) packages.value = JSON.parse(rawP)
-    else { packages.value = [...initialPackages]; saveStorage(STORAGE_KEY_PACKAGES, packages.value) }
+    if (rawP) {
+      packages.value = JSON.parse(rawP)
+      const hasCustom = packages.value.some(p => p.name === 'Custom / IT One' || p.id === 'custom-it-one')
+      if (!hasCustom) {
+        const customPkg = initialPackages.find(p => p.id === 'custom-it-one')
+        if (customPkg) {
+          packages.value.push({ ...customPkg })
+          saveStorage(STORAGE_KEY_PACKAGES, packages.value)
+        }
+      }
+    } else {
+      packages.value = [...initialPackages]
+      saveStorage(STORAGE_KEY_PACKAGES, packages.value)
+    }
   } catch (e) {
     console.error('Failed loading storage', e)
     leads.value = [...initialLeads]
