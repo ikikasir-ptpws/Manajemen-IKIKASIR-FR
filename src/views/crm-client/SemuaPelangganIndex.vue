@@ -20,8 +20,7 @@ const showToast = (msg: string) => {
   setTimeout(() => { toastMessage.value = null }, 3500)
 }
 
-// Form state
-const form = ref({ name: '', business: '', type: 'Basic' as 'Basic' | 'Custom / IT One', phone: '', address: '' })
+const form = ref({ name: '', business: '', type: 'Basic' as 'Basic' | 'Pro' | 'Custom / IT One', phone: '', address: '' })
 
 const filteredCustomers = computed(() => {
   let list = customers.value.map(c => {
@@ -157,7 +156,7 @@ const deleteCustomer = () => {
             <ChevronDown class="w-3 h-3" />
           </button>
           <div v-if="showFilterDropdown" class="absolute right-0 mt-1.5 w-40 bg-white rounded-xl shadow-xl border border-slate-100 py-1 z-30 text-xs">
-            <button v-for="t in ['Semua', 'Basic', 'Custom / IT One']" :key="t"
+            <button v-for="t in ['Semua', 'Basic', 'Pro', 'Custom / IT One']" :key="t"
               @click="filterType = t; showFilterDropdown = false"
               class="w-full text-left px-3 py-2 hover:bg-indigo-50 hover:text-indigo-600 font-medium cursor-pointer"
               :class="filterType === t ? 'bg-indigo-50 text-indigo-600' : 'text-slate-700'"
@@ -216,6 +215,7 @@ const deleteCustomer = () => {
                 <span class="px-2.5 py-1 rounded-md text-[11px] font-bold"
                   :class="{
                     'bg-indigo-50 text-indigo-700 border border-indigo-100': cust.type === 'Custom / IT One',
+                    'bg-blue-50 text-blue-700 border border-blue-100': cust.type === 'Pro',
                     'bg-slate-100 text-slate-600 border border-slate-200': cust.type === 'Basic'
                   }"
                 >
@@ -301,6 +301,7 @@ const deleteCustomer = () => {
             <label class="text-xs font-semibold text-slate-600 mb-1 block">Tipe Paket</label>
             <select v-model="form.type" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-500">
               <option>Basic</option>
+              <option>Pro</option>
               <option>Custom / IT One</option>
             </select>
           </div>

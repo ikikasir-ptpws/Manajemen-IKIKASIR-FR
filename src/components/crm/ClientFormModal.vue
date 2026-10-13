@@ -408,6 +408,8 @@ const handleSubmit = () => {
                 class="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 font-medium bg-white"
               >
                 <option value="Basic">Paket Basic (Rp 250.000 / bln)</option>
+                <option value="Pro">Paket Pro (Rp 500.000 / bln)</option>
+                <option value="Add on">Paket Add on</option>
                 <option value="Custom / IT One">Paket Custom / IT One (Konsultasi)</option>
               </select>
             </div>

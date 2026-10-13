@@ -1,7 +1,9 @@
 @import "tailwindcss";
 @custom-variant dark (&:where(.dark, .dark *));
 @layer base {
-  * {
+  *,
+  *::before,
+  *::after {
     font-family:
       "Plus Jakarta Sans",
       system-ui,
@@ -13,9 +15,55 @@
       Ubuntu,
       Cantarell,
       sans-serif;
+    box-sizing: border-box;
+    /* HD font rendering */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
+
+  html {
+    /* Crisp pixel-perfect rendering */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    font-feature-settings: "kern" 1, "liga" 1, "calt" 1, "pnum" 1, "tnum" 0, "onum" 1, "lnum" 0, "dlig" 0;
+    font-variant-ligatures: common-ligatures;
+    font-kerning: normal;
+  }
+
   html:not(.lenis) {
     scroll-behavior: smooth;
+  }
+
+  body {
+    /* Subpixel rendering for crisper text */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    font-synthesis: none;
+    /* Prevent layout shift */
+    min-height: 100dvh;
+  }
+
+  /* HD image rendering */
+  img,
+  svg,
+  canvas,
+  video {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+    shape-rendering: geometricPrecision;
+  }
+
+  /* GPU-accelerated compositing for smooth UI */
+  .fixed,
+  [class*="modal"],
+  [class*="Modal"],
+  [class*="animate-"],
+  [class*="transition"] {
+    will-change: auto;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
   }
 }
 
@@ -476,4 +524,77 @@
         rgba(56, 189, 248, 0.1) 360deg
       )
       border-box !important;
+}
+
+/* ============================================
+   HD / CRISP QUALITY ENHANCEMENT
+   Membuat semua elemen lebih tajam, jelas,
+   dan berkualitas tinggi (HD).
+   ============================================ */
+
+/* --- Crisp Typography --- */
+h1, h2, h3, h4, h5, h6 {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-synthesis: none;
+}
+
+p, span, div, td, th, label, li, a {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* --- Sharp Icon Rendering (SVG) --- */
+svg {
+  shape-rendering: geometricPrecision;
+  text-rendering: geometricPrecision;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+}
+
+/* --- GPU-accelerated Card/Container for crisp borders --- */
+.rounded-xl, .rounded-2xl, .rounded-3xl, .rounded-lg {
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  transform: translate3d(0, 0, 0);
+  -webkit-transform: translate3d(0, 0, 0);
+}
+
+/* --- Higher quality shadows (light mode) --- */
+:root:not(.dark) .shadow-xs { box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(0,0,0,0.025); }
+:root:not(.dark) .shadow-sm { box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.07), 0 1px 2px -1px rgba(0, 0, 0, 0.04); }
+:root:not(.dark) .shadow-md { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.04); }
+
+/* --- Crisp Focus Rings --- */
+*:focus-visible {
+  outline: 2px solid rgba(99, 102, 241, 0.8);
+  outline-offset: 2px;
+}
+
+/* --- Pixel-Perfect Input Borders --- */
+input, select, textarea {
+  border-width: 1.5px;
+}
+
+/* Fix blurry modals/overlays */
+.fixed.inset-0,
+[class*="z-50"] {
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+}
+
+/* --- HD Dark Mode Text --- */
+.dark h1, .dark h2, .dark h3, .dark h4 {
+  color: #f8fafc !important;
+}
+
+.dark td, .dark th {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* --- Crisp dividers --- */
+.dark .divide-y > :not([hidden]) ~ :not([hidden]) {
+  border-color: rgba(51, 65, 85, 0.7) !important;
 }
