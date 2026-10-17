@@ -45,7 +45,7 @@ export class LoginSalesUseCase {
       }
 
       // 4. Validasi hak akses khusus: Harus memiliki role SALES
-      if (user.role !== UserRole.SALES) {
+      if (!user.isSales()) {
         // Penjelasan: User memiliki kredensial valid tetapi rolenya bukan Sales (misal: kasir atau staff)
         throw new ForbiddenError(
           `Akses ditolak: Akun ini terdaftar sebagai role '${user.role}', bukan sebagai Sales.`

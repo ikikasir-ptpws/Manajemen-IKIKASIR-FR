@@ -2,6 +2,8 @@ import express, { Application, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import authRoutes from './presentation/routes/auth.routes.js';
+import roleRoutes from './presentation/routes/role.routes.js';
+import userRoutes from './presentation/routes/user.routes.js';
 import { errorHandler } from './presentation/middlewares/error.middleware.js';
 import { NotFoundError } from './domain/errors/AppError.js';
 
@@ -28,8 +30,10 @@ export function createApp(): Application {
     });
   });
 
-  // Routing Modul Autentikasi
+  // Routing Modul
   app.use('/api/auth', authRoutes);
+  app.use('/api/roles', roleRoutes);
+  app.use('/api/users', userRoutes);
 
   // Penanganan rute 404 Not Found
   app.use((req: Request, _res: Response, next: NextFunction) => {

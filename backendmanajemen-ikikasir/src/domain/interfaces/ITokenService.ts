@@ -1,10 +1,9 @@
-import { UserRole } from '../enums/Role.js';
-
 export interface TokenPayload {
   id: string;
   email: string;
   name: string;
-  role: UserRole;
+  role: string;
+  roleId?: string | null;
 }
 
 /**

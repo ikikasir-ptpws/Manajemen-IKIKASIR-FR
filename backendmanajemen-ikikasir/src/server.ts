@@ -21,6 +21,8 @@ async function bootstrap() {
       console.log(`💼 [Auth Sales]        POST http://localhost:${config.port}/api/auth/login/sales`);
       console.log(`🌐 [Auth Umum]         POST http://localhost:${config.port}/api/auth/login`);
       console.log(`👤 [Auth Me Profile]   GET  http://localhost:${config.port}/api/auth/me`);
+      console.log(`👥 [Manajemen User]    GET/POST http://localhost:${config.port}/api/users`);
+      console.log(`🛡️ [Manajemen Role]    GET/POST http://localhost:${config.port}/api/roles`);
       console.log('----------------------------------------------------');
     });
 

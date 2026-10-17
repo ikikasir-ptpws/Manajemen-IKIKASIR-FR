@@ -1,7 +1,6 @@
 import 'dotenv/config';
 import bcrypt from 'bcryptjs';
 import { prisma } from '../src/infrastructure/database/prisma.js';
-import { UserRole } from '../src/domain/enums/Role.js';
 
 async function seed() {
   console.log('🌱 [Seeder] Memulai pengisian data awal (seeding)...');
@@ -10,51 +9,315 @@ async function seed() {
     const salt = await bcrypt.genSalt(10);
     const defaultPasswordHash = await bcrypt.hash('password123', salt);
 
-    // 1. Buat / Perbarui akun Super Admin
-    const superAdminEmail = 'superadmin@ikikasir.com';
-    const existingSuperAdmin = await prisma.user.findUnique({
-      where: { email: superAdminEmail },
+    // ==========================================
+    // 1. SEED ROLES & MENU ACCESS SWITCHES
+    // ==========================================
+    console.log('📦 [Seeder] Menyiapkan data role dan hak akses menu switch...');
+
+    // A. Role Super Admin (Semua menu TRUE)
+    const superAdminRole = await prisma.role.upsert({
+      where: { name: 'Super Admin' },
+      update: {
+        description: 'Hak akses penuh ke seluruh modul dan pengaturan sistem',
+        menuAccess: {
+          upsert: {
+            create: {
+              dashboard: true,
+              manajemenPengguna: true,
+              manajemenRole: true,
+              manajemenPromo: true,
+              kelolaPaket: true,
+              calonClient: true,
+              semuaPelanggan: true,
+              langganan: true,
+              expired: true,
+              arusKas: true,
+              labaRugi: true,
+              neraca: true,
+              laporanPenjualan: true,
+              landingPage: true,
+            },
+            update: {
+              dashboard: true,
+              manajemenPengguna: true,
+              manajemenRole: true,
+              manajemenPromo: true,
+              kelolaPaket: true,
+              calonClient: true,
+              semuaPelanggan: true,
+              langganan: true,
+              expired: true,
+              arusKas: true,
+              labaRugi: true,
+              neraca: true,
+              laporanPenjualan: true,
+              landingPage: true,
+            },
+          },
+        },
+      },
+      create: {
+        name: 'Super Admin',
+        description: 'Hak akses penuh ke seluruh modul dan pengaturan sistem',
+        menuAccess: {
+          create: {
+            dashboard: true,
+            manajemenPengguna: true,
+            manajemenRole: true,
+            manajemenPromo: true,
+            kelolaPaket: true,
+            calonClient: true,
+            semuaPelanggan: true,
+            langganan: true,
+            expired: true,
+            arusKas: true,
+            labaRugi: true,
+            neraca: true,
+            laporanPenjualan: true,
+            landingPage: true,
+          },
+        },
+      },
+    });
+    console.log(`✅ [Seeder] Role '${superAdminRole.name}' siap (Semua switch menu: TRUE).`);
+
+    // B. Role Sales / Seles (Hanya halaman tambah client / calon client yang TRUE)
+    const salesRole = await prisma.role.upsert({
+      where: { name: 'Sales' },
+      update: {
+        description: 'Akses khusus sales: Hanya halaman tambah client (calon client)',
+        menuAccess: {
+          upsert: {
+            create: {
+              dashboard: false,
+              manajemenPengguna: false,
+              manajemenRole: false,
+              manajemenPromo: false,
+              kelolaPaket: false,
+              calonClient: true, // Hanya halaman tambah client
+              semuaPelanggan: false,
+              langganan: false,
+              expired: false,
+              arusKas: false,
+              labaRugi: false,
+              neraca: false,
+              laporanPenjualan: false,
+              landingPage: false,
+            },
+            update: {
+              dashboard: false,
+              manajemenPengguna: false,
+              manajemenRole: false,
+              manajemenPromo: false,
+              kelolaPaket: false,
+              calonClient: true, // Hanya halaman tambah client
+              semuaPelanggan: false,
+              langganan: false,
+              expired: false,
+              arusKas: false,
+              labaRugi: false,
+              neraca: false,
+              laporanPenjualan: false,
+              landingPage: false,
+            },
+          },
+        },
+      },
+      create: {
+        name: 'Sales',
+        description: 'Akses khusus sales: Hanya halaman tambah client (calon client)',
+        menuAccess: {
+          create: {
+            dashboard: false,
+            manajemenPengguna: false,
+            manajemenRole: false,
+            manajemenPromo: false,
+            kelolaPaket: false,
+            calonClient: true, // Hanya halaman tambah client
+            semuaPelanggan: false,
+            langganan: false,
+            expired: false,
+            arusKas: false,
+            labaRugi: false,
+            neraca: false,
+            laporanPenjualan: false,
+            landingPage: false,
+          },
+        },
+      },
+    });
+    console.log(`✅ [Seeder] Role '${salesRole.name}' siap (Hanya calon client: TRUE, lainnya: FALSE).`);
+
+    // C. Role Admin
+    const adminRole = await prisma.role.upsert({
+      where: { name: 'Admin' },
+      update: {
+        description: 'Pengelolaan operasional penjualan, paket, dan laporan',
+      },
+      create: {
+        name: 'Admin',
+        description: 'Pengelolaan operasional penjualan, paket, dan laporan',
+        menuAccess: {
+          create: {
+            dashboard: true,
+            manajemenPengguna: false,
+            manajemenRole: false,
+            manajemenPromo: true,
+            kelolaPaket: true,
+            calonClient: true,
+            semuaPelanggan: true,
+            langganan: true,
+            expired: true,
+            arusKas: true,
+            labaRugi: true,
+            neraca: true,
+            laporanPenjualan: true,
+            landingPage: true,
+          },
+        },
+      },
     });
 
-    if (!existingSuperAdmin) {
-      await prisma.user.create({
-        data: {
-          name: 'Super Admin IKIKASIR',
-          email: superAdminEmail,
-          password: defaultPasswordHash,
-          role: UserRole.SUPERADMIN as any,
-          phone: '081234567890',
-          isActive: true,
+    // D. Role Staff
+    const staffRole = await prisma.role.upsert({
+      where: { name: 'Staff' },
+      update: {
+        description: 'Staf operasional pengelolaan data pelanggan dan promo',
+      },
+      create: {
+        name: 'Staff',
+        description: 'Staf operasional pengelolaan data pelanggan dan promo',
+        menuAccess: {
+          create: {
+            dashboard: true,
+            manajemenPengguna: false,
+            manajemenRole: false,
+            manajemenPromo: true,
+            kelolaPaket: false,
+            calonClient: true,
+            semuaPelanggan: true,
+            langganan: false,
+            expired: false,
+            arusKas: false,
+            labaRugi: false,
+            neraca: false,
+            laporanPenjualan: true,
+            landingPage: true,
+          },
         },
-      });
-      console.log(`✅ [Seeder] Berhasil membuat akun Super Admin: ${superAdminEmail} (password: password123)`);
-    } else {
-      console.log(`ℹ️ [Seeder] Akun Super Admin (${superAdminEmail}) sudah ada.`);
-    }
-
-    // 2. Buat / Perbarui akun Sales (Seles)
-    const salesEmail = 'sales@ikikasir.com';
-    const existingSales = await prisma.user.findUnique({
-      where: { email: salesEmail },
+      },
     });
 
-    if (!existingSales) {
-      await prisma.user.create({
-        data: {
-          name: 'Tim Sales IKIKASIR',
-          email: salesEmail,
+    // E. Role Kasir
+    const kasirRole = await prisma.role.upsert({
+      where: { name: 'Kasir' },
+      update: {
+        description: 'Akses transaksi kasir dan laporan penjualan harian',
+      },
+      create: {
+        name: 'Kasir',
+        description: 'Akses transaksi kasir dan laporan penjualan harian',
+        menuAccess: {
+          create: {
+            dashboard: true,
+            manajemenPengguna: false,
+            manajemenRole: false,
+            manajemenPromo: false,
+            kelolaPaket: false,
+            calonClient: false,
+            semuaPelanggan: false,
+            langganan: false,
+            expired: false,
+            arusKas: false,
+            labaRugi: false,
+            neraca: false,
+            laporanPenjualan: true,
+            landingPage: true,
+          },
+        },
+      },
+    });
+
+    // ==========================================
+    // 2. SEED USERS SESUAI FORM FRONTEND
+    // ==========================================
+    console.log('👥 [Seeder] Menyiapkan data pengguna awal...');
+
+    const initialUsers = [
+      {
+        email: 'superadmin@ikikasir.com',
+        name: 'Super Admin IKIKASIR',
+        role: 'Super Admin',
+        roleId: superAdminRole.id,
+        phone: '081234567890',
+        isActive: true,
+      },
+      {
+        email: 'sales@ikikasir.com',
+        name: 'Tim Sales IKIKASIR',
+        role: 'Sales',
+        roleId: salesRole.id,
+        phone: '089876543210',
+        isActive: true,
+      },
+      {
+        email: 'budi@ikikasir.com',
+        name: 'Budi Santoso',
+        role: 'Super Admin',
+        roleId: superAdminRole.id,
+        phone: '081345678901',
+        isActive: true,
+      },
+      {
+        email: 'siti@ikikasir.com',
+        name: 'Siti Aisyah',
+        role: 'Admin',
+        roleId: adminRole.id,
+        phone: '081456789012',
+        isActive: true,
+      },
+      {
+        email: 'andi@ikikasir.com',
+        name: 'Andi Wijaya',
+        role: 'Staff',
+        roleId: staffRole.id,
+        phone: '081567890123',
+        isActive: false, // Inactive seperti di form
+      },
+      {
+        email: 'dewi.kasir@ikikasir.com',
+        name: 'Dewi Lestari',
+        role: 'Kasir',
+        roleId: kasirRole.id,
+        phone: '081678901234',
+        isActive: true,
+      },
+    ];
+
+    for (const u of initialUsers) {
+      await prisma.user.upsert({
+        where: { email: u.email },
+        update: {
+          name: u.name,
+          role: u.role,
+          roleId: u.roleId,
+          phone: u.phone,
+          isActive: u.isActive,
+        },
+        create: {
+          name: u.name,
+          email: u.email,
           password: defaultPasswordHash,
-          role: UserRole.SALES as any,
-          phone: '089876543210',
-          isActive: true,
+          role: u.role,
+          roleId: u.roleId,
+          phone: u.phone,
+          isActive: u.isActive,
         },
       });
-      console.log(`✅ [Seeder] Berhasil membuat akun Sales: ${salesEmail} (password: password123)`);
-    } else {
-      console.log(`ℹ️ [Seeder] Akun Sales (${salesEmail}) sudah ada.`);
+      console.log(`👤 [Seeder] User '${u.name}' (${u.email}) [${u.role}] - Status: ${u.isActive ? 'Active' : 'Inactive'}`);
     }
 
-    console.log('🎉 [Seeder] Selesai! Data awal berhasil disiapkan.');
+    console.log('🎉 [Seeder] Selesai! Data role switch dan pengguna berhasil disiapkan.');
   } catch (error) {
     console.error('❌ [Seeder] Terjadi kesalahan saat seeding:', error);
     process.exit(1);

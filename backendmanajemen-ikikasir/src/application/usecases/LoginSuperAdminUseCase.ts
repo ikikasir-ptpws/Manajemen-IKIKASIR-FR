@@ -45,7 +45,7 @@ export class LoginSuperAdminUseCase {
       }
 
       // 4. Validasi hak akses khusus: Harus memiliki role SUPERADMIN
-      if (user.role !== UserRole.SUPERADMIN) {
+      if (!user.isSuperAdmin()) {
         // Penjelasan: User memiliki kredensial valid tetapi rolenya bukan Super Admin (misal: akun Sales mencoba masuk ke portal Super Admin)
         throw new ForbiddenError(
           `Akses ditolak: Akun ini terdaftar sebagai role '${user.role}', bukan sebagai Super Admin.`
