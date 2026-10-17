@@ -1,44 +1,21 @@
 import { Router } from 'express';
-import { UserController } from '../controllers/UserController.js';
-import { PrismaUserRepository } from '../../repositories/PrismaUserRepository.js';
-import { BcryptPasswordService } from '../../infrastructure/security/BcryptPasswordService.js';
 import {
-  GetUsersUseCase,
-  GetUserByIdUseCase,
-  CreateUserUseCase,
-  UpdateUserUseCase,
-  ToggleUserStatusUseCase,
-  DeleteUserUseCase,
-} from '../../application/usecases/UserUseCases.js';
+  getAll,
+  getById,
+  create,
+  update,
+  toggleStatus,
+  deleteUser,
+} from '../controllers/UserController.js';
 import { validateBody } from '../middlewares/validation.middleware.js';
 import {
   createUserSchema,
   updateUserSchema,
   toggleUserStatusSchema,
 } from '../validations/user.validation.js';
-import { authenticate, authorizeRoles, authorizeMenuAccess } from '../middlewares/auth.middleware.js';
+import { authenticate, authorizeRoles } from '../middlewares/auth.middleware.js';
 
 const router = Router();
-
-// Dependensi
-const userRepository = new PrismaUserRepository();
-const passwordService = new BcryptPasswordService();
-
-const getUsersUseCase = new GetUsersUseCase(userRepository);
-const getUserByIdUseCase = new GetUserByIdUseCase(userRepository);
-const createUserUseCase = new CreateUserUseCase(userRepository, passwordService);
-const updateUserUseCase = new UpdateUserUseCase(userRepository, passwordService);
-const toggleUserStatusUseCase = new ToggleUserStatusUseCase(userRepository);
-const deleteUserUseCase = new DeleteUserUseCase(userRepository);
-
-const userController = new UserController(
-  getUsersUseCase,
-  getUserByIdUseCase,
-  createUserUseCase,
-  updateUserUseCase,
-  toggleUserStatusUseCase,
-  deleteUserUseCase
-);
 
 /**
  * Route: Mengambil semua data pengguna (dengan filter search, role, status)
@@ -48,7 +25,7 @@ router.get(
   '/',
   authenticate,
   authorizeRoles('SUPERADMIN', 'Super Admin'),
-  userController.getAll
+  getAll
 );
 
 /**
@@ -59,7 +36,7 @@ router.get(
   '/:id',
   authenticate,
   authorizeRoles('SUPERADMIN', 'Super Admin'),
-  userController.getById
+  getById
 );
 
 /**
@@ -71,7 +48,7 @@ router.post(
   authenticate,
   authorizeRoles('SUPERADMIN', 'Super Admin'),
   validateBody(createUserSchema),
-  userController.create
+  create
 );
 
 /**
@@ -83,7 +60,7 @@ router.put(
   authenticate,
   authorizeRoles('SUPERADMIN', 'Super Admin'),
   validateBody(updateUserSchema),
-  userController.update
+  update
 );
 
 /**
@@ -95,7 +72,7 @@ router.patch(
   authenticate,
   authorizeRoles('SUPERADMIN', 'Super Admin'),
   validateBody(toggleUserStatusSchema),
-  userController.toggleStatus
+  toggleStatus
 );
 
 /**
@@ -106,7 +83,7 @@ router.delete(
   '/:id',
   authenticate,
   authorizeRoles('SUPERADMIN', 'Super Admin'),
-  userController.delete
+  deleteUser
 );
 
 export default router;

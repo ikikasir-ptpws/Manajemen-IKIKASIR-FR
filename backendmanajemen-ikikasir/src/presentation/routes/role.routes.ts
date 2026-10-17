@@ -1,43 +1,23 @@
 import { Router } from 'express';
-import { RoleController } from '../controllers/RoleController.js';
-import { PrismaRoleRepository } from '../../repositories/PrismaRoleRepository.js';
 import {
-  GetRolesUseCase,
-  GetRoleByIdUseCase,
-  CreateRoleUseCase,
-  UpdateRoleUseCase,
-  DeleteRoleUseCase,
-  GetMenuCatalogUseCase,
-} from '../../application/usecases/RoleUseCases.js';
+  getAll,
+  getById,
+  create,
+  update,
+  deleteRole,
+  getMenuCatalog,
+} from '../controllers/RoleController.js';
 import { validateBody } from '../middlewares/validation.middleware.js';
 import { createRoleSchema, updateRoleSchema } from '../validations/role.validation.js';
-import { authenticate, authorizeRoles, authorizeMenuAccess } from '../middlewares/auth.middleware.js';
+import { authenticate, authorizeRoles } from '../middlewares/auth.middleware.js';
 
 const router = Router();
-
-// Dependensi
-const roleRepository = new PrismaRoleRepository();
-const getRolesUseCase = new GetRolesUseCase(roleRepository);
-const getRoleByIdUseCase = new GetRoleByIdUseCase(roleRepository);
-const createRoleUseCase = new CreateRoleUseCase(roleRepository);
-const updateRoleUseCase = new UpdateRoleUseCase(roleRepository);
-const deleteRoleUseCase = new DeleteRoleUseCase(roleRepository);
-const getMenuCatalogUseCase = new GetMenuCatalogUseCase();
-
-const roleController = new RoleController(
-  getRolesUseCase,
-  getRoleByIdUseCase,
-  createRoleUseCase,
-  updateRoleUseCase,
-  deleteRoleUseCase,
-  getMenuCatalogUseCase
-);
 
 /**
  * Route: Ambil katalog master daftar menu untuk pembuatan switch toggle di frontend
  * GET /api/roles/menus/list
  */
-router.get('/menus/list', authenticate, roleController.getMenuCatalog);
+router.get('/menus/list', authenticate, getMenuCatalog);
 
 /**
  * Route: Mengambil semua daftar role hak akses beserta switch izin menu
@@ -47,7 +27,7 @@ router.get(
   '/',
   authenticate,
   authorizeRoles('SUPERADMIN', 'Super Admin'),
-  roleController.getAll
+  getAll
 );
 
 /**
@@ -58,7 +38,7 @@ router.get(
   '/:id',
   authenticate,
   authorizeRoles('SUPERADMIN', 'Super Admin'),
-  roleController.getById
+  getById
 );
 
 /**
@@ -70,7 +50,7 @@ router.post(
   authenticate,
   authorizeRoles('SUPERADMIN', 'Super Admin'),
   validateBody(createRoleSchema),
-  roleController.create
+  create
 );
 
 /**
@@ -82,7 +62,7 @@ router.put(
   authenticate,
   authorizeRoles('SUPERADMIN', 'Super Admin'),
   validateBody(updateRoleSchema),
-  roleController.update
+  update
 );
 
 /**
@@ -93,7 +73,7 @@ router.delete(
   '/:id',
   authenticate,
   authorizeRoles('SUPERADMIN', 'Super Admin'),
-  roleController.delete
+  deleteRole
 );
 
 export default router;
