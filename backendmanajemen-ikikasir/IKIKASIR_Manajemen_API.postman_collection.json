@@ -1,0 +1,640 @@
+{
+  "info": {
+    "_postman_id": "b1a2c3d4-e5f6-7890-abcd-1234567890ef",
+    "name": "IKIKASIR-Manajemen API",
+    "description": "Koleksi lengkap testing Postman untuk IKIKASIR Backend Manajemen: Autentikasi, Manajemen Role (switch boolean menu), Manajemen Pengguna (CRUD), dan Kelola Paket Langganan.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000/api",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "testRoleId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "testUserId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "testPackageId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "AUTH",
+      "item": [
+        {
+          "name": "POST Login SuperAdmin (Auto Simpan Token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var res = pm.response.json();",
+                  "if (res.success && res.data && res.data.token) {",
+                  "    pm.collectionVariables.set('token', res.data.token);",
+                  "    console.log('✅ Token tersimpan ke variabel koleksi: ' + res.data.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"superadmin@ikikasir.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login/superadmin",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login", "superadmin"]
+            },
+            "description": "Login khusus Super Admin. Script tes otomatis menyimpan JWT token ke variabel 'token' koleksi Postman."
+          }
+        },
+        {
+          "name": "POST Login Sales",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var res = pm.response.json();",
+                  "if (res.success && res.data && res.data.token) {",
+                  "    pm.collectionVariables.set('token', res.data.token);",
+                  "    console.log('✅ Token Sales tersimpan: ' + res.data.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"sales@ikikasir.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login/sales",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login", "sales"]
+            },
+            "description": "Login khusus akun Sales."
+          }
+        },
+        {
+          "name": "POST Login Umum",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var res = pm.response.json();",
+                  "if (res.success && res.data && res.data.token) {",
+                  "    pm.collectionVariables.set('token', res.data.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"superadmin@ikikasir.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Login umum (mendeteksi semua role secara otomatis)."
+          }
+        },
+        {
+          "name": "GET Auth Me Profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "me"]
+            },
+            "description": "Mengambil profil pengguna saat ini yang sedang login beserta role-nya."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Manajemen Role",
+      "item": [
+        {
+          "name": "GET Master Katalog Menu Switch",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/roles/menus/list",
+              "host": ["{{baseUrl}}"],
+              "path": ["roles", "menus", "list"]
+            },
+            "description": "Mengambil katalog seluruh menu sistem untuk pembuatan switch toggle di UI frontend."
+          }
+        },
+        {
+          "name": "GET List Semua Role",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/roles",
+              "host": ["{{baseUrl}}"],
+              "path": ["roles"],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Pencarian nama atau deskripsi role"
+                }
+              ]
+            },
+            "description": "Mengambil semua daftar role, jumlah pengguna tiap role, dan konfigurasi switch akses menu boolean (Super Admin true semua, Sales hanya calonClient true)."
+          }
+        },
+        {
+          "name": "POST Tambah Role Baru (Switch Boolean)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var res = pm.response.json();",
+                  "if (res.success && res.data && res.data.id) {",
+                  "    pm.collectionVariables.set('testRoleId', res.data.id);",
+                  "    console.log('✅ Role ID baru disimpan: ' + res.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Marketing Support\",\n  \"description\": \"Role khusus marketing: hanya akses modul calon client, semua pelanggan, dan promo\",\n  \"menuAccess\": {\n    \"dashboard\": true,\n    \"calonClient\": true,\n    \"semuaPelanggan\": true,\n    \"manajemenPromo\": true,\n    \"manajemenPengguna\": false,\n    \"manajemenRole\": false,\n    \"kelolaPaket\": false,\n    \"langganan\": false,\n    \"expired\": false,\n    \"arusKas\": false,\n    \"labaRugi\": false,\n    \"neraca\": false,\n    \"laporanPenjualan\": false,\n    \"landingPage\": true\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/roles",
+              "host": ["{{baseUrl}}"],
+              "path": ["roles"]
+            },
+            "description": "Membuat role baru beserta konfigurasi boolean switch menu."
+          }
+        },
+        {
+          "name": "GET Detail Role by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/roles/{{testRoleId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["roles", "{{testRoleId}}"]
+            },
+            "description": "Mengambil detail satu role beserta switch akses menunya."
+          }
+        },
+        {
+          "name": "PUT Update Role & Switch Menu",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Marketing Support Lead\",\n  \"description\": \"Update deskripsi dan switch izin menu\",\n  \"menuAccess\": {\n    \"dashboard\": true,\n    \"calonClient\": true,\n    \"laporanPenjualan\": true\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/roles/{{testRoleId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["roles", "{{testRoleId}}"]
+            },
+            "description": "Memperbarui nama role, deskripsi, atau switch boolean hak akses menu."
+          }
+        },
+        {
+          "name": "DELETE Hapus Role",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/roles/{{testRoleId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["roles", "{{testRoleId}}"]
+            },
+            "description": "Menghapus role (terproteksi jika role adalah Super Admin atau masih digunakan user)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Manajemen Pengguna",
+      "item": [
+        {
+          "name": "GET all-pengguna",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["users"],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Cari berdasarkan nama/email"
+                },
+                {
+                  "key": "role",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filter role (Super Admin, Sales, Admin, Staff, Kasir)"
+                },
+                {
+                  "key": "status",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filter status: Active atau Inactive"
+                }
+              ]
+            },
+            "description": "Mengambil seluruh data pengguna sistem di /api/users."
+          }
+        },
+        {
+          "name": "GET Filter Pengguna (Role & Status)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users?role=Sales&status=Active",
+              "host": ["{{baseUrl}}"],
+              "path": ["users"],
+              "query": [
+                {
+                  "key": "role",
+                  "value": "Sales"
+                },
+                {
+                  "key": "status",
+                  "value": "Active"
+                }
+              ]
+            },
+            "description": "Filter daftar pengguna berdasarkan nama Role dan Status akun."
+          }
+        },
+        {
+          "name": "GET Search Pengguna",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users?search=Budi",
+              "host": ["{{baseUrl}}"],
+              "path": ["users"],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "Budi"
+                }
+              ]
+            },
+            "description": "Pencarian nama atau email pengguna."
+          }
+        },
+        {
+          "name": "POST Tambah Pengguna Baru (Sesuai Form)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var res = pm.response.json();",
+                  "if (res.success && res.data && res.data.id) {",
+                  "    pm.collectionVariables.set('testUserId', res.data.id);",
+                  "    console.log('✅ User ID baru disimpan: ' + res.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Rian Pratama\",\n  \"email\": \"rian.sales@ikikasir.com\",\n  \"password\": \"password123\",\n  \"role\": \"Sales\",\n  \"status\": \"Active\",\n  \"phone\": \"081298765432\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["users"]
+            },
+            "description": "Menambahkan pengguna baru sesuai dengan form modal frontend (Nama, Email, Role, Status, Password, No Telepon opsional)."
+          }
+        },
+        {
+          "name": "GET Detail Pengguna by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{testUserId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "{{testUserId}}"]
+            },
+            "description": "Mengambil detail satu pengguna berdasarkan ID."
+          }
+        },
+        {
+          "name": "PUT Update Pengguna",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Rian Pratama S.Kom\",\n  \"role\": \"Admin\",\n  \"status\": \"Active\",\n  \"phone\": \"081200001111\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/{{testUserId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "{{testUserId}}"]
+            },
+            "description": "Memperbarui data profil pengguna, role, status, atau kata sandi baru (opsional)."
+          }
+        },
+        {
+          "name": "PATCH Toggle Status Pengguna",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"Inactive\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/{{testUserId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "{{testUserId}}", "status"]
+            },
+            "description": "Mengubah status aktif/nonaktif akun pengguna secara cepat (tombol badge switch di tabel)."
+          }
+        },
+        {
+          "name": "DELETE Hapus Pengguna",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{testUserId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "{{testUserId}}"]
+            },
+            "description": "Menghapus akun pengguna dari sistem database."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Kelola Paket",
+      "item": [
+        {
+          "name": "GET List Semua Paket (Landing Page / Kelola Paket)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/packages",
+              "host": ["{{baseUrl}}"],
+              "path": ["packages"],
+              "query": [
+                {
+                  "key": "isActive",
+                  "value": "true",
+                  "disabled": true,
+                  "description": "Hanya tampilkan paket yang aktif di website"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Cari berdasarkan nama atau deskripsi paket"
+                }
+              ]
+            },
+            "description": "Mengambil seluruh daftar paket langganan (bisa diakses publik untuk tampilan landing page pricing cards)."
+          }
+        },
+        {
+          "name": "POST Tambah Paket Baru (Sesuai Form Modal)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var res = pm.response.json();",
+                  "if (res.success && res.data && res.data.id) {",
+                  "    pm.collectionVariables.set('testPackageId', res.data.id);",
+                  "    console.log('✅ Package ID baru disimpan: ' + res.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Enterprise Cloud\",\n  \"description\": \"Solusi cloud kasir untuk bisnis multi cabang skala besar.\",\n  \"isConsultation\": false,\n  \"price\": 1000000,\n  \"period\": \"/bulan\",\n  \"features\": [\n    \"Semua fitur Pro tanpa batas\",\n    \"Multi cabang terpusat\",\n    \"Integrasi API & ERP\",\n    \"Dedicated Account Manager 24/7\"\n  ],\n  \"isActive\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/packages",
+              "host": ["{{baseUrl}}"],
+              "path": ["packages"]
+            },
+            "description": "Menambahkan paket langganan baru dengan field esensial (Nama, Deskripsi Singkat, Mode Konsultasi, Harga, Satuan Periode, Daftar Fitur, dan Status Tampil)."
+          }
+        },
+        {
+          "name": "GET Detail Paket by ID",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/packages/{{testPackageId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["packages", "{{testPackageId}}"]
+            },
+            "description": "Mengambil detail satu paket langganan berdasarkan ID."
+          }
+        },
+        {
+          "name": "PUT Update Paket",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Enterprise Cloud Plus\",\n  \"description\": \"Paket enterprise cloud kasir dengan backup otomatis harian.\",\n  \"price\": 1250000,\n  \"features\": [\n    \"Semua fitur Pro tanpa batas\",\n    \"Multi cabang terpusat\",\n    \"Integrasi API & ERP\",\n    \"Dedicated Account Manager 24/7\",\n    \"Backup otomatis harian\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/packages/{{testPackageId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["packages", "{{testPackageId}}"]
+            },
+            "description": "Memperbarui isi data paket langganan (nama, deskripsi, harga, fitur, dll)."
+          }
+        },
+        {
+          "name": "PATCH Toggle Status Paket (Tampil / Sembunyi)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isActive\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/packages/{{testPackageId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["packages", "{{testPackageId}}", "status"]
+            },
+            "description": "Toggle tombol status Aktif / Nonaktif pada tabel Kelola Paket untuk menampilkan atau menyembunyikan paket dari Landing Page."
+          }
+        },
+        {
+          "name": "DELETE Hapus Paket",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/packages/{{testPackageId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["packages", "{{testPackageId}}"]
+            },
+            "description": "Menghapus paket langganan dari database."
+          }
+        }
+      ]
+    }
+  ]
+}

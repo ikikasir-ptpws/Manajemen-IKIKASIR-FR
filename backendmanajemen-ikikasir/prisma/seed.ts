@@ -317,7 +317,76 @@ async function seed() {
       console.log(`👤 [Seeder] User '${u.name}' (${u.email}) [${u.role}] - Status: ${u.isActive ? 'Active' : 'Inactive'}`);
     }
 
-    console.log('🎉 [Seeder] Selesai! Data role switch dan pengguna berhasil disiapkan.');
+    // ==========================================
+    // 3. SEED PACKAGES (KELOLA PAKET FRONTEND)
+    // ==========================================
+    console.log('📦 [Seeder] Menyiapkan data paket langganan (Kelola Paket)...');
+
+    const initialPackages = [
+      {
+        name: 'Basic',
+        description: 'Cocok untuk usaha kecil, menengah, dan pemula.',
+        isConsultation: false,
+        price: 250000,
+        period: '/bulan',
+        features: [
+          'Manajemen produk tanpa batas',
+          'Transaksi kasir cepat & akurat',
+          'Laporan penjualan lengkap',
+          'Support bantuan pelanggan',
+        ],
+        isActive: true,
+      },
+      {
+        name: 'Pro',
+        description: 'Solusi lengkap & fitur lanjutan untuk bisnis berkembang.',
+        isConsultation: false,
+        price: 500000,
+        period: '/bulan',
+        features: [
+          'Semua fitur Basic',
+          'Multi kasir & manajemen karyawan',
+          'Laporan keuangan & analitik lengkap',
+          'Dedicated support & pendampingan 24/7',
+        ],
+        isActive: true,
+      },
+      {
+        name: 'Custom / IT One',
+        description: 'Solusi sistem kasir khusus sesuai alur dan kebutuhan bisnis Anda.',
+        isConsultation: true,
+        price: 0,
+        period: '',
+        features: [
+          'Semua fitur Basic & Pro',
+          'Kustomisasi alur & fitur khusus',
+          'Integrasi sistem modul custom',
+          'Dedicated support & pendampingan tim',
+        ],
+        isActive: true,
+      },
+    ];
+
+    for (const pkg of initialPackages) {
+      const existing = await prisma.package.findFirst({
+        where: { name: pkg.name },
+      });
+
+      if (!existing) {
+        await prisma.package.create({
+          data: pkg,
+        });
+        console.log(`📦 [Seeder] Paket baru dibuat: ${pkg.name}`);
+      } else {
+        await prisma.package.update({
+          where: { id: existing.id },
+          data: pkg,
+        });
+        console.log(`📦 [Seeder] Paket diperbarui: ${pkg.name}`);
+      }
+    }
+
+    console.log('🎉 [Seeder] Selesai! Data role switch, pengguna, dan kelola paket berhasil disiapkan.');
   } catch (error) {
     console.error('❌ [Seeder] Terjadi kesalahan saat seeding:', error);
     process.exit(1);

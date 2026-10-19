@@ -5,20 +5,21 @@ import type { Customer, PackageType } from '../types/dashboard'
 export interface PricingPackage {
   id: string
   name: string
-  cardClass: string
-  badge: string
-  cardSub: string
-  icon: string
+  description?: string
+  cardSub?: string
   isConsultation: boolean
   price: number
-  priceTitle?: string
-  priceSubtext?: string
   period: string
   features: string[]
-  btnText: string
-  btnClass: string
-  waText: string
   isActive: boolean
+  badge?: string
+  cardClass?: string
+  icon?: string
+  btnText?: string
+  btnClass?: string
+  waText?: string
+  priceTitle?: string
+  priceSubtext?: string
 }
 
 // CONSTANTS (Rule 14 & 15: Single Admin WhatsApp Constant)
@@ -65,10 +66,8 @@ const initialPackages: PricingPackage[] = [
   {
     id: 'basic',
     name: 'Basic',
-    cardClass: 'price-card basic',
-    badge: '',
+    description: 'Cocok untuk usaha kecil, menengah, dan pemula.',
     cardSub: 'Cocok untuk usaha kecil, menengah, dan pemula.',
-    icon: 'Box',
     isConsultation: false,
     price: 250000,
     period: '/bulan',
@@ -78,18 +77,13 @@ const initialPackages: PricingPackage[] = [
       'Laporan penjualan lengkap',
       'Support bantuan pelanggan'
     ],
-    btnText: 'Mulai Langganan',
-    btnClass: 'btn-outline-blue',
-    waText: 'Halo tim IKI KASIR, saya ingin berlangganan Paket Basic',
     isActive: true
   },
   {
     id: 'pro',
     name: 'Pro',
-    cardClass: 'price-card pro',
-    badge: 'Paling Populer',
+    description: 'Solusi lengkap & fitur lanjutan untuk bisnis berkembang.',
     cardSub: 'Solusi lengkap & fitur lanjutan untuk bisnis berkembang.',
-    icon: 'Crown',
     isConsultation: false,
     price: 500000,
     period: '/bulan',
@@ -99,22 +93,15 @@ const initialPackages: PricingPackage[] = [
       'Laporan keuangan & analitik lengkap',
       'Dedicated support & pendampingan 24/7'
     ],
-    btnText: 'Mulai Langganan',
-    btnClass: 'btn-solid-white',
-    waText: 'Halo tim IKI KASIR, saya ingin berlangganan Paket Pro',
     isActive: true
   },
   {
     id: 'custom-it-one',
     name: 'Custom / IT One',
-    cardClass: 'price-card pro',
-    badge: 'Solusi Khusus',
+    description: 'Solusi sistem kasir khusus sesuai alur dan kebutuhan bisnis Anda.',
     cardSub: 'Solusi sistem kasir khusus sesuai alur dan kebutuhan bisnis Anda.',
-    icon: 'Crown',
     isConsultation: true,
     price: 0,
-    priceTitle: 'Konsultasi Terlebih Dahulu',
-    priceSubtext: 'Harga disesuaikan kebutuhan & modul bisnis',
     period: '',
     features: [
       'Semua fitur Basic & Pro',
@@ -122,9 +109,6 @@ const initialPackages: PricingPackage[] = [
       'Integrasi sistem modul custom',
       'Dedicated support & pendampingan tim'
     ],
-    btnText: 'Konsultasi Sekarang',
-    btnClass: 'btn-outline-blue',
-    waText: 'Halo tim IKI KASIR, saya ingin konsultasi mengenai Paket Custom / IT One',
     isActive: true
   }
 ]

@@ -23,6 +23,7 @@ async function bootstrap() {
       console.log(`👤 [Auth Me Profile]   GET  http://localhost:${config.port}/api/auth/me`);
       console.log(`👥 [Manajemen User]    GET/POST http://localhost:${config.port}/api/users`);
       console.log(`🛡️ [Manajemen Role]    GET/POST http://localhost:${config.port}/api/roles`);
+      console.log(`📦 [Kelola Paket]      GET/POST http://localhost:${config.port}/api/packages`);
       console.log('----------------------------------------------------');
     });
 
