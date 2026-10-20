@@ -30,6 +30,16 @@
       "key": "testPackageId",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "testCustomerId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "testCustomerEmail",
+      "value": "toko.berkah.jaya@ikikasir.com",
+      "type": "string"
     }
   ],
   "auth": {
@@ -632,6 +642,333 @@
               "path": ["packages", "{{testPackageId}}"]
             },
             "description": "Menghapus paket langganan dari database."
+          }
+        }
+      ]
+    },
+    {
+      "name": "PELANGGAN & LANGGANAN (CUSTOMER CRM)",
+      "item": [
+        {
+          "name": "POST Tambah Pelanggan Baru (Auto Ambil Durasi Paket)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var res = pm.response.json();",
+                  "if (res.success && res.data && res.data.id) {",
+                  "    pm.collectionVariables.set('testCustomerId', res.data.id);",
+                  "    pm.collectionVariables.set('testCustomerEmail', res.data.email);",
+                  "    console.log('✅ testCustomerId tersimpan: ' + res.data.id);",
+                  "    console.log('✅ testCustomerEmail tersimpan: ' + res.data.email);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Haji Ahmad\",\n  \"businessName\": \"Toko Berkah Jaya\",\n  \"email\": \"toko.berkah.jaya@ikikasir.com\",\n  \"phone\": \"081234567899\",\n  \"address\": \"Jl. Ahmad Yani No. 12, Surabaya\",\n  \"packageId\": \"{{testPackageId}}\",\n  \"billingCycleMonths\": 1,\n  \"paymentMethod\": \"QRIS\",\n  \"notes\": \"Pendaftaran kasir baru Android\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/customers",
+              "host": ["{{baseUrl}}"],
+              "path": ["customers"]
+            },
+            "description": "Mendaftarkan pelanggan baru. Sistem otomatis mengambil durasi paket (misal /bulan = 1 bulan) dan menghitung tanggal kedaluwarsa (expiresAt). ID dan Email otomatis disimpan ke variabel Postman."
+          }
+        },
+        {
+          "name": "GET Daftar Semua Pelanggan (Search & Status Filter)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/customers?search=Berkah",
+              "host": ["{{baseUrl}}"],
+              "path": ["customers"],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "Berkah",
+                  "description": "Filter pencarian nama pelanggan, nama usaha, email, atau no HP"
+                },
+                {
+                  "key": "status",
+                  "value": "ACTIVE",
+                  "disabled": true,
+                  "description": "Filter status: ACTIVE, EXPIRED, atau SUSPENDED"
+                }
+              ]
+            },
+            "description": "Mengambil daftar seluruh pelanggan beserta info masa aktif, sisa hari, dan status langganan."
+          }
+        },
+        {
+          "name": "GET Detail Pelanggan by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/customers/{{testCustomerId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["customers", "{{testCustomerId}}"]
+            },
+            "description": "Mengambil informasi detail satu pelanggan berdasarkan ID."
+          }
+        },
+        {
+          "name": "PUT Update Data Pelanggan",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Haji Ahmad Fauzi\",\n  \"businessName\": \"Toko Berkah Jaya Abadi\",\n  \"phone\": \"081234567800\",\n  \"address\": \"Jl. Ahmad Yani No. 12B, Surabaya\",\n  \"notes\": \"Data toko diperbarui\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/customers/{{testCustomerId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["customers", "{{testCustomerId}}"]
+            },
+            "description": "Memperbarui data profil pelanggan (nama, usaha, telepon, alamat, catatan)."
+          }
+        },
+        {
+          "name": "POST Perpanjang Masa Aktif (Renew Subscription)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"billingCycleMonths\": 3,\n  \"paymentMethod\": \"Transfer BCA\",\n  \"notes\": \"Perpanjangan 3 bulan lunas via admin\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/customers/{{testCustomerId}}/renew",
+              "host": ["{{baseUrl}}"],
+              "path": ["customers", "{{testCustomerId}}", "renew"]
+            },
+            "description": "Memperpanjang masa aktif langganan pelanggan. Jika pelanggan belum expired, masa aktif ditambah dari tanggal expiresAt lama. Jika sudah expired, masa aktif dihitung mulai dari hari ini."
+          }
+        },
+        {
+          "name": "GET Daftar Pelanggan Kedaluwarsa (Menu Expired)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/customers/expired",
+              "host": ["{{baseUrl}}"],
+              "path": ["customers", "expired"]
+            },
+            "description": "Mengambil khusus daftar pelanggan yang masa aktifnya telah habis (expiresAt < waktu server) untuk ditampilkan di halaman Expired Web Manajemen."
+          }
+        },
+        {
+          "name": "GET Riwayat Invoice / Pembayaran Langganan Pelanggan",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/customers/{{testCustomerId}}/histories",
+              "host": ["{{baseUrl}}"],
+              "path": ["customers", "{{testCustomerId}}", "histories"]
+            },
+            "description": "Mengambil seluruh riwayat pembayaran, paket, dan perpanjangan langganan untuk pelanggan tertentu."
+          }
+        },
+        {
+          "name": "DELETE Hapus Pelanggan",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/customers/{{testCustomerId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["customers", "{{testCustomerId}}"]
+            },
+            "description": "Menghapus data pelanggan dan riwayat langganannya dari sistem."
+          }
+        }
+      ]
+    },
+    {
+      "name": "PENGECEKAN ANDROID & TESTING EXPIRED",
+      "item": [
+        {
+          "name": "1. GET Cek Subscription Android - Status AKTIF (canAccess: true)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var res = pm.response.json();",
+                  "pm.test('Akses Diizinkan (canAccess = true)', function() {",
+                  "    pm.expect(res.data.canAccess).to.eql(true);",
+                  "    pm.expect(res.data.status).to.eql('ACTIVE');",
+                  "    pm.expect(res.data.isExpired).to.eql(false);",
+                  "});",
+                  "console.log('✅ Android canAccess: ' + res.data.canAccess + ' | Sisa hari: ' + res.data.daysRemaining);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/subscriptions/check?email={{testCustomerEmail}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["subscriptions", "check"],
+              "query": [
+                {
+                  "key": "email",
+                  "value": "{{testCustomerEmail}}"
+                }
+              ]
+            },
+            "description": "Endpoint yang dipanggil oleh aplikasi Android IKIKASIR saat Splash Screen / Login. Mengirimkan email akun Firebase pengguna. Jika status ACTIVE, aplikasi lanjut ke layar utama kasir."
+          }
+        },
+        {
+          "name": "2. POST Simulasi Expired Pelanggan (Set Kedaluwarsa untuk Testing)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var res = pm.response.json();",
+                  "pm.test('Status berhasil diubah menjadi EXPIRED', function() {",
+                  "    pm.expect(res.data.computedStatus).to.eql('EXPIRED');",
+                  "    pm.expect(res.data.isExpired).to.eql(true);",
+                  "});",
+                  "console.log('⚠️ Pelanggan kini berstatus EXPIRED dengan tanggal: ' + res.data.expiresAt);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{testCustomerEmail}}\",\n  \"daysAgo\": 2\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/subscriptions/simulate-expired",
+              "host": ["{{baseUrl}}"],
+              "path": ["subscriptions", "simulate-expired"]
+            },
+            "description": "Helper endpoint khusus testing! Mengubah tanggal expiresAt pelanggan ke 2 hari yang lalu agar developer Android bisa langsung menguji tampilan dialog popup kadaluarsa di aplikasi HP."
+          }
+        },
+        {
+          "name": "3. GET Cek Subscription Android - Status EXPIRED (canAccess: false & Kunci Popup)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var res = pm.response.json();",
+                  "pm.test('Akses Ditolak (canAccess = false)', function() {",
+                  "    pm.expect(res.data.canAccess).to.eql(false);",
+                  "    pm.expect(res.data.status).to.eql('EXPIRED');",
+                  "    pm.expect(res.data.isExpired).to.eql(true);",
+                  "});",
+                  "console.log('🛑 [KUNCI POPUP ANDROID] Pesan Notifikasi: ' + res.data.message);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/subscriptions/check?email={{testCustomerEmail}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["subscriptions", "check"],
+              "query": [
+                {
+                  "key": "email",
+                  "value": "{{testCustomerEmail}}"
+                }
+              ]
+            },
+            "description": "Pengecekan Android saat status sudah EXPIRED. Respons mengembalikan 'canAccess: false'. Android langsung mengunci layar dan menampilkan dialog modal kadaluarsa."
+          }
+        },
+        {
+          "name": "4. GET Cek Subscription Android - Email Belum Terdaftar (NOT_FOUND)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var res = pm.response.json();",
+                  "pm.test('Status NOT_FOUND dan canAccess = false', function() {",
+                  "    pm.expect(res.data.canAccess).to.eql(false);",
+                  "    pm.expect(res.data.status).to.eql('NOT_FOUND');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/subscriptions/check?email=email.belum.terdaftar@gmail.com",
+              "host": ["{{baseUrl}}"],
+              "path": ["subscriptions", "check"],
+              "query": [
+                {
+                  "key": "email",
+                  "value": "email.belum.terdaftar@gmail.com"
+                }
+              ]
+            },
+            "description": "Pengecekan akun email Firebase yang belum didaftarkan di Web Manajemen IKIKASIR."
           }
         }
       ]

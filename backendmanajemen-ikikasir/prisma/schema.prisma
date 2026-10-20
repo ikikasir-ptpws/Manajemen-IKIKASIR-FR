@@ -75,8 +75,55 @@ model Package {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
+  customers             Customer[]
+  subscriptionHistories SubscriptionHistory[]
+
   @@index([name])
   @@index([isActive])
   @@map("packages")
+}
+
+model Customer {
+  id                    String                @id @default(uuid())
+  name                  String
+  businessName          String
+  email                 String                @unique
+  phone                 String
+  address               String?               @default("")
+  packageId             String?
+  package               Package?              @relation(fields: [packageId], references: [id], onDelete: SetNull)
+  status                String                @default("ACTIVE") // ACTIVE, EXPIRED, SUSPENDED
+  startedAt             DateTime              @default(now())
+  expiresAt             DateTime
+  notes                 String?               @default("")
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+  subscriptionHistories SubscriptionHistory[]
+
+  @@index([email])
+  @@index([status])
+  @@index([expiresAt])
+  @@map("customers")
+}
+
+model SubscriptionHistory {
+  id                 String    @id @default(uuid())
+  customerId         String
+  customer           Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  packageId          String?
+  package            Package?  @relation(fields: [packageId], references: [id], onDelete: SetNull)
+  packageName        String
+  amount             Float     @default(0)
+  billingCycleMonths Int       @default(1)
+  paymentMethod      String    @default("QRIS")
+  paymentStatus      String    @default("PAID") // PAID, PENDING, FAILED
+  notes              String?   @default("")
+  startedAt          DateTime  @default(now())
+  expiresAt          DateTime
+  createdAt          DateTime  @default(now())
+
+  @@index([customerId])
+  @@index([packageId])
+  @@map("subscription_histories")
 }
 

@@ -1,0 +1,543 @@
+{
+  "info": {
+    "_postman_id": "c1d2e3f4-a5b6-7890-bcde-9876543210ab",
+    "name": "IKIKASIR - Pengetesan Pelanggan & Expired Android",
+    "description": "Koleksi Postman khusus untuk pengujian alur pendaftaran pelanggan baru dan pengecekan status expired di Android (Status Aktif, Simulasi Expired, Pengecekan Android Terkunci, dan Perpanjangan Langganan).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000/api",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "testPackageId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "testCustomerId",
+      "value": "d7c23694-d64b-4862-8d31-5646cff72a95",
+      "type": "string"
+    },
+    {
+      "key": "testEmail",
+      "value": "ikikasir.id@gmail.com",
+      "type": "string"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "1. AUTH & SETUP",
+      "item": [
+        {
+          "name": "1.1 POST Login Super Admin (Auto-Save Token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var res = pm.response.json();",
+                  "pm.test('Status Code 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Token JWT Berhasil Didapatkan', function () {",
+                  "    pm.expect(res.success).to.eql(true);",
+                  "    pm.expect(res.data.token).to.be.a('string');",
+                  "    pm.collectionVariables.set('token', res.data.token);",
+                  "    console.log('✅ Token tersimpan ke variabel Postman');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"superadmin@ikikasir.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Login sebagai Super Admin untuk mendapatkan Bearer Token. Script otomatis menyimpan token ke variabel koleksi 'token'."
+          }
+        },
+        {
+          "name": "1.2 GET Ambil Paket Langganan (Auto-Save Package ID)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var res = pm.response.json();",
+                  "pm.test('Status Code 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Daftar Paket Berhasil Diambil', function () {",
+                  "    pm.expect(res.data).to.be.an('array');",
+                  "    var basicPkg = res.data.find(function(p) { return p.name === 'Basic'; }) || res.data[0];",
+                  "    pm.expect(basicPkg).to.be.an('object');",
+                  "    pm.collectionVariables.set('testPackageId', basicPkg.id);",
+                  "    console.log('✅ Package ID tersimpan: ' + basicPkg.id + ' (' + basicPkg.name + ')');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/packages",
+              "host": ["{{baseUrl}}"],
+              "path": ["packages"]
+            },
+            "description": "Mengambil daftar paket langganan yang tersedia (Basic, Pro, dll) dan otomatis menyimpan ID paket ke variabel 'testPackageId'."
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. MANAJEMEN PELANGGAN (TAMBAH & LIHAT)",
+      "item": [
+        {
+          "name": "2.1 POST Tambah Pelanggan Baru (Auto Hitung Expired dari Paket)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var res = pm.response.json();",
+                  "pm.test('Pelanggan Baru Berhasil Didaftarkan (201 Created)', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    pm.expect(res.success).to.eql(true);",
+                  "});",
+                  "pm.test('Validasi Data & Masa Aktif Terhitung Otomatis', function () {",
+                  "    pm.expect(res.data.id).to.be.a('string');",
+                  "    pm.expect(res.data.email).to.eql(pm.collectionVariables.get('testEmail'));",
+                  "    pm.expect(res.data.computedStatus).to.eql('ACTIVE');",
+                  "    pm.expect(res.data.isExpired).to.eql(false);",
+                  "    pm.expect(res.data.canAccess).to.eql(true);",
+                  "    pm.expect(res.data.daysRemaining).to.be.above(0);",
+                  "    pm.collectionVariables.set('testCustomerId', res.data.id);",
+                  "    console.log('✅ Customer ID tersimpan: ' + res.data.id);",
+                  "    console.log('📅 Tanggal Kedaluwarsa: ' + res.data.expiresAt + ' (Sisa ' + res.data.daysRemaining + ' hari)');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Sayyid\",\n  \"businessName\": \"Toko Sayyid\",\n  \"email\": \"{{testEmail}}\",\n  \"phone\": \"081234567890\",\n  \"address\": \"Jl. Merdeka No. 1, Jakarta\",\n  \"packageId\": \"{{testPackageId}}\",\n  \"billingCycleMonths\": 1,\n  \"paymentMethod\": \"QRIS\",\n  \"notes\": \"Pendaftaran kasir baru Android\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/customers",
+              "host": ["{{baseUrl}}"],
+              "path": ["customers"]
+            },
+            "description": "Mendaftarkan pelanggan baru. Sistem backend otomatis menghitung expiresAt dari durasi paket yang dipilih (misal 1 bulan). Customer ID otomatis disimpan ke variabel 'testCustomerId'."
+          }
+        },
+        {
+          "name": "2.2 GET Daftar Semua Pelanggan (Search & Status Filter)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var res = pm.response.json();",
+                  "pm.test('Status Code 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(res.success).to.eql(true);",
+                  "});",
+                  "pm.test('Data Pelanggan Muncul di Tabel', function () {",
+                  "    pm.expect(res.data).to.be.an('array');",
+                  "    var found = res.data.find(function(c) { return c.email === pm.collectionVariables.get('testEmail'); });",
+                  "    pm.expect(found).to.be.an('object');",
+                  "    console.log('✅ Pelanggan ditemukan di daftar: ' + found.name + ' - Status: ' + found.computedStatus);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/customers?search=Sayyid",
+              "host": ["{{baseUrl}}"],
+              "path": ["customers"],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "Sayyid"
+                }
+              ]
+            },
+            "description": "Mengambil daftar pelanggan untuk tabel 'Semua Pelanggan' dengan query pencarian."
+          }
+        },
+        {
+          "name": "2.3 GET Detail Pelanggan by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var res = pm.response.json();",
+                  "pm.test('Status Code 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(res.data.id).to.eql(pm.collectionVariables.get('testCustomerId'));",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/customers/{{testCustomerId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["customers", "{{testCustomerId}}"]
+            },
+            "description": "Mengambil detail lengkap satu pelanggan berdasarkan ID."
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. PENGETESAN EXPIRED & ANDROID FLOW",
+      "item": [
+        {
+          "name": "3.1 GET Cek Status Android - KONDISI AKTIF (isActive: true)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var res = pm.response.json();",
+                  "pm.test('Status Code 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Apakah Data Masih Aktif ? -> YA (canAccess = true, isActive = true)', function () {",
+                  "    pm.expect(res.data.isActive).to.eql(true);",
+                  "    pm.expect(res.data.canAccess).to.eql(true);",
+                  "    pm.expect(res.data.status).to.eql('ACTIVE');",
+                  "    pm.expect(res.data.isExpired).to.eql(false);",
+                  "    pm.expect(res.data.daysRemaining).to.be.above(0);",
+                  "});",
+                  "console.log('🟢 [ANDROID] Status Aktif! Sisa hari: ' + res.data.daysRemaining + '. Android lanjut login ke kasir.');"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/subscriptions/check?email={{testEmail}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["subscriptions", "check"],
+              "query": [
+                {
+                  "key": "email",
+                  "value": "{{testEmail}}"
+                }
+              ]
+            },
+            "description": "Endpoint ini dipanggil oleh aplikasi Android (Fetch API data expired diserver). Saat status aktif, isActive bernilai true sehingga Android menyimpan ke Session Cache dan melanjutkan login aplikasi."
+          }
+        },
+        {
+          "name": "3.2 POST Simulasi Expired (Set Masa Aktif ke 2 Hari Lalu)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var res = pm.response.json();",
+                  "pm.test('Simulasi Expired Berhasil Diaktifkan', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(res.data.computedStatus).to.eql('EXPIRED');",
+                  "    pm.expect(res.data.isExpired).to.eql(true);",
+                  "    pm.expect(res.data.canAccess).to.eql(false);",
+                  "});",
+                  "console.log('⚠️ [SIMULASI] Pelanggan kini berstatus EXPIRED dengan tanggal: ' + res.data.expiresAt);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{testEmail}}\",\n  \"daysAgo\": 2\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/subscriptions/simulate-expired",
+              "host": ["{{baseUrl}}"],
+              "path": ["subscriptions", "simulate-expired"]
+            },
+            "description": "Endpoint khusus pengetesan: Mengubah expiresAt pelanggan ke 2 hari yang lalu sehingga statusnya seketika menjadi EXPIRED tanpa harus menunggu 1 bulan."
+          }
+        },
+        {
+          "name": "3.3 GET Cek Status Android - KONDISI EXPIRED (isActive: false & Popup Terkunci)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var res = pm.response.json();",
+                  "pm.test('Status Code 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Apakah Data Masih Aktif ? -> TIDAK (isActive = false, canAccess = false)', function () {",
+                  "    pm.expect(res.data.isActive).to.eql(false);",
+                  "    pm.expect(res.data.canAccess).to.eql(false);",
+                  "    pm.expect(res.data.status).to.eql('EXPIRED');",
+                  "    pm.expect(res.data.isExpired).to.eql(true);",
+                  "    pm.expect(res.data.daysRemaining).to.eql(0);",
+                  "    pm.expect(res.data.message).to.contain('telah berakhir');",
+                  "});",
+                  "console.log('🔴 [ANDROID TERKUNCI] Popup Kadaluarsa Ditampilkan!');",
+                  "console.log('📢 Pesan Popup: ' + res.data.message);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/subscriptions/check?email={{testEmail}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["subscriptions", "check"],
+              "query": [
+                {
+                  "key": "email",
+                  "value": "{{testEmail}}"
+                }
+              ]
+            },
+            "description": "Pengecekan dari Android saat pelanggan sudah expired. Mengembalikan isActive: false. Android seketika mengunci aplikasi dan menampilkan popup kedaluwarsa non-dismissible."
+          }
+        },
+        {
+          "name": "3.4 GET Daftar Pelanggan Kedaluwarsa (Menu Expired Web)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var res = pm.response.json();",
+                  "pm.test('Status Code 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(res.success).to.eql(true);",
+                  "});",
+                  "pm.test('Pelanggan Muncul di Menu Expired Web Manajemen', function () {",
+                  "    pm.expect(res.data).to.be.an('array');",
+                  "    var expiredCustomer = res.data.find(function(c) { return c.email === pm.collectionVariables.get('testEmail'); });",
+                  "    pm.expect(expiredCustomer).to.be.an('object');",
+                  "    pm.expect(expiredCustomer.isExpired).to.eql(true);",
+                  "    pm.expect(expiredCustomer.daysExpired).to.be.at.least(1);",
+                  "    console.log('✅ Pelanggan muncul di tabel Expired: Telah kedaluwarsa ' + expiredCustomer.daysExpired + ' hari.');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/customers/expired",
+              "host": ["{{baseUrl}}"],
+              "path": ["customers", "expired"]
+            },
+            "description": "Mengambil daftar pelanggan yang muncul di halaman menu 'Expired' pada Web Manajemen IKIKASIR."
+          }
+        },
+        {
+          "name": "3.5 POST Perpanjang Langganan (Renew Subscription)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var res = pm.response.json();",
+                  "pm.test('Status Code 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(res.success).to.eql(true);",
+                  "});",
+                  "pm.test('Status Pelanggan Pulih Menjadi ACTIVE', function () {",
+                  "    pm.expect(res.data.computedStatus).to.eql('ACTIVE');",
+                  "    pm.expect(res.data.isExpired).to.eql(false);",
+                  "    pm.expect(res.data.canAccess).to.eql(true);",
+                  "    pm.expect(res.data.daysRemaining).to.be.above(0);",
+                  "    console.log('🎉 Perpanjangan sukses! Masa aktif baru hingga: ' + res.data.expiresAt);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"billingCycleMonths\": 1,\n  \"paymentMethod\": \"Transfer BCA\",\n  \"notes\": \"Perpanjangan 1 bulan lunas dikonfirmasi admin\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/customers/{{testCustomerId}}/renew",
+              "host": ["{{baseUrl}}"],
+              "path": ["customers", "{{testCustomerId}}", "renew"]
+            },
+            "description": "Admin memperpanjang masa aktif pelanggan di Web Manajemen. Status pelanggan kembali menjadi ACTIVE dan tanggal kedaluwarsa ditambah."
+          }
+        },
+        {
+          "name": "3.6 GET Cek Status Android - KEMBALI AKTIF (isActive: true)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var res = pm.response.json();",
+                  "pm.test('Status Code 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Pelanggan Kembali Aktif (isActive = true & canAccess = true)', function () {",
+                  "    pm.expect(res.data.isActive).to.eql(true);",
+                  "    pm.expect(res.data.canAccess).to.eql(true);",
+                  "    pm.expect(res.data.status).to.eql('ACTIVE');",
+                  "    pm.expect(res.data.isExpired).to.eql(false);",
+                  "});",
+                  "console.log('🟢 [ANDROID PULIH] Setelah tombol Cek Status Lagi ditekan, aplikasi terbuka normal kembali!');"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/subscriptions/check?email={{testEmail}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["subscriptions", "check"],
+              "query": [
+                {
+                  "key": "email",
+                  "value": "{{testEmail}}"
+                }
+              ]
+            },
+            "description": "Pengecekan kembali dari Android (misal saat pengguna menekan tombol 'Cek Status Lagi' di popup). Status telah kembali aktif sehingga aplikasi membuka akses kasir secara normal."
+          }
+        },
+        {
+          "name": "3.7 DELETE Hapus Data Pelanggan Testing (Cleanup)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status Code 200 OK - Data Dihapus Bersih', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    console.log('🧹 Data pelanggan testing berhasil dibersihkan dari database.');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/customers/{{testCustomerId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["customers", "{{testCustomerId}}"]
+            },
+            "description": "Opsional: Menghapus data pelanggan testing agar database tetap bersih."
+          }
+        }
+      ]
+    }
+  ]
+}
