@@ -38,6 +38,8 @@ export const registerSchema = z.object({
     UserRole.ADMIN,
     UserRole.STAFF,
     UserRole.KASIR,
+    UserRole.FINANCE,
+    UserRole.TEKNISI,
   ]),
   phone: z.string().optional(),
 });

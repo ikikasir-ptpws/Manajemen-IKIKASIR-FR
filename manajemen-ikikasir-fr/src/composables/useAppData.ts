@@ -40,11 +40,18 @@ export function getCustomerWaUrl(phone: string, text: string) {
   return `https://api.whatsapp.com/send?phone=${formattedPhone}&text=${encodedText}`
 }
 
+// SAMPLE RECEIPT SVGS FOR VERIFICATION DEMO
+export const SAMPLE_RECEIPT_BCA = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="360" height="480" viewBox="0 0 360 480"><rect width="360" height="480" rx="16" fill="%23ffffff" stroke="%23cbd5e1" stroke-width="2"/><rect width="360" height="70" rx="16" fill="%23005baa"/><text x="180" y="44" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="%23ffffff" text-anchor="middle">m-Transfer BCA</text><circle cx="180" cy="115" r="26" fill="%23ecfdf5"/><path d="M170 115 l7 7 l14 -14" stroke="%23059669" stroke-width="3" fill="none" stroke-linecap="round"/><text x="180" y="155" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="%23059669" text-anchor="middle">TRANSFER BERHASIL</text><text x="180" y="175" font-family="Arial, sans-serif" font-size="11" fill="%2364748b" text-anchor="middle">20 Sep 2026 - 14:22:10 WIB</text><line x1="30" y1="195" x2="330" y2="195" stroke="%23e2e8f0" stroke-dasharray="4 4"/><text x="35" y="225" font-family="Arial, sans-serif" font-size="12" fill="%2364748b">No. Referensi</text><text x="325" y="225" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="%231e293b" text-anchor="end">202609201422891</text><text x="35" y="255" font-family="Arial, sans-serif" font-size="12" fill="%2364748b">Tujuan</text><text x="325" y="255" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="%231e293b" text-anchor="end">BCA 8735019283</text><text x="325" y="272" font-family="Arial, sans-serif" font-size="11" fill="%23005baa" text-anchor="end">PT PUNDI MAS BERKAH</text><text x="35" y="305" font-family="Arial, sans-serif" font-size="12" fill="%2364748b">Nominal Transfer</text><text x="325" y="305" font-family="Arial, sans-serif" font-size="15" font-weight="bold" fill="%230f172a" text-anchor="end">Rp 250.000,00</text><text x="35" y="335" font-family="Arial, sans-serif" font-size="12" fill="%2364748b">Berita / Catatan</text><text x="325" y="335" font-family="Arial, sans-serif" font-size="12" fill="%23334155" text-anchor="end">Paket Basic Toko ABC</text><line x1="30" y1="365" x2="330" y2="365" stroke="%23e2e8f0"/><text x="180" y="400" font-family="Arial, sans-serif" font-size="10" fill="%2394a3b8" text-anchor="middle">Simpan bukti transaksi ini sebagai bukti transfer yang sah.</text><text x="180" y="445" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="%23005baa" text-anchor="middle">IKIKASIR Official Payment</text></svg>'
+
+export const SAMPLE_RECEIPT_QRIS = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="360" height="480" viewBox="0 0 360 480"><rect width="360" height="480" rx="16" fill="%23ffffff" stroke="%23cbd5e1" stroke-width="2"/><rect width="360" height="70" rx="16" fill="%23dc2626"/><text x="180" y="44" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="%23ffffff" text-anchor="middle">QRIS Pembayaran Sukses</text><circle cx="180" cy="115" r="26" fill="%23ecfdf5"/><path d="M170 115 l7 7 l14 -14" stroke="%23059669" stroke-width="3" fill="none" stroke-linecap="round"/><text x="180" y="155" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="%23059669" text-anchor="middle">TRANSAKSI BERHASIL</text><text x="180" y="175" font-family="Arial, sans-serif" font-size="11" fill="%2364748b" text-anchor="middle">21 Sep 2026 - 09:15:33 WIB</text><line x1="30" y1="195" x2="330" y2="195" stroke="%23e2e8f0" stroke-dasharray="4 4"/><text x="35" y="225" font-family="Arial, sans-serif" font-size="12" fill="%2364748b">Merchant</text><text x="325" y="225" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="%231e293b" text-anchor="end">IKI KASIR - PT PUNDI MAS</text><text x="35" y="255" font-family="Arial, sans-serif" font-size="12" fill="%2364748b">NMID</text><text x="325" y="255" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="%231e293b" text-anchor="end">ID1020091823901</text><text x="35" y="285" font-family="Arial, sans-serif" font-size="12" fill="%2364748b">ID Transaksi</text><text x="325" y="285" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="%23dc2626" text-anchor="end">QRIS-20260921-8819</text><text x="35" y="315" font-family="Arial, sans-serif" font-size="12" fill="%2364748b">Total Bayar</text><text x="325" y="315" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="%230f172a" text-anchor="end">Rp 500.000,00</text><line x1="30" y1="345" x2="330" y2="345" stroke="%23e2e8f0"/><text x="180" y="390" font-family="Arial, sans-serif" font-size="11" fill="%23475569" text-anchor="middle">Paket Pro POS IKI KASIR (1 Bulan)</text><text x="180" y="445" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="%23dc2626" text-anchor="middle">STANDAR PEMBAYARAN NASIONAL</text></svg>'
+
 // STORAGE KEYS
-const STORAGE_KEY_LEADS = 'ikikasir_leads_v3'
-const STORAGE_KEY_CUSTOMERS = 'ikikasir_customers_v3'
-const STORAGE_KEY_INVOICES = 'ikikasir_invoices_v3'
+const STORAGE_KEY_LEADS = 'ikikasir_leads_v4'
+const STORAGE_KEY_CUSTOMERS = 'ikikasir_customers_v4'
+const STORAGE_KEY_INVOICES = 'ikikasir_invoices_v4'
 const STORAGE_KEY_PACKAGES = 'ikikasir_packages_v1'
+const STORAGE_KEY_ROLE = 'ikikasir_current_role_v1'
+const STORAGE_KEY_NOTIFICATIONS = 'ikikasir_notifications_v1'
 
 // INVOICE INTERFACE
 export interface SubscriptionInvoice {
@@ -113,6 +120,28 @@ const initialPackages: PricingPackage[] = [
   }
 ]
 
+const initialNotifications: import('../types/crm').SystemNotification[] = [
+  {
+    id: 'notif-1',
+    title: 'Pembayaran Dikonfirmasi Finance',
+    message: 'Pembayaran pendaftar Andi Wijaya (Andi Store) telah di-Acc oleh Finance. Tugas penyiapan aplikasi telah masuk ke antrean Teknisi.',
+    roleTarget: 'Teknisi',
+    type: 'technical_task',
+    timestamp: '15 menit yang lalu',
+    read: false,
+    link: '/semua-pelanggan'
+  },
+  {
+    id: 'notif-2',
+    title: 'Bukti Transfer Baru Masuk',
+    message: 'Pendaftar Budi Santoso (Toko ABC) telah mengunggah bukti transfer sebesar Rp 250.000.',
+    roleTarget: 'Finance',
+    type: 'payment_verified',
+    timestamp: '30 menit yang lalu',
+    read: false,
+    link: '/calon-client'
+  }
+]
 
 const initialLeads: ClientLead[] = [
   {
@@ -122,18 +151,26 @@ const initialLeads: ClientLead[] = [
     businessName: 'Toko ABC',
     businessCategory: 'Retail',
     phone: '081234567890',
-    email: 'budi@email.com',
+    email: 'budi.santoso@email.com',
     address: 'Jl. Merdeka No. 10, Jakarta Pusat',
     status: 'New',
     source: 'Website',
-    registrationDate: '26 Sep 2026',
-    lastFollowUp: '26 Sep 2026',
-    packageInterest: 'Custom / IT One',
-    estimatedDeal: 0,
-    notes: 'Pendaftaran baru melalui Form Website. Klien meminta info custom integrasi.',
+    registrationDate: '15 Sep 2026', // Data terlama (FIFO Queue)
+    lastFollowUp: '15 Sep 2026',
+    packageInterest: 'Basic',
+    harga_paket: 250000,
+    estimatedDeal: 250000,
+    notes: 'Pendaftaran mandiri via Website. Bukti transfer BCA telah diunggah oleh pendaftar.',
     followUpSchedule: 'Hari ini',
+    // Finance payment proof
+    paymentProofUrl: SAMPLE_RECEIPT_BCA,
+    paymentStatus: 'pending_verification',
+    paymentAmount: 250000,
+    paymentDate: '15 Sep 2026 14:22',
+    paymentMethod: 'BCA Transfer',
+    paymentNotes: 'Transfer atas nama Budi Santoso melalui BCA Mobile.',
     followUpHistory: [
-      { id: 'fh-1', date: '26 Sep 2026', time: '10:30', channel: 'Sistem', notes: 'Data pendaftaran masuk dari Website.' }
+      { id: 'fh-1', date: '15 Sep 2026', time: '14:25', channel: 'Sistem', notes: 'Bukti transfer diunggah oleh pendaftar (Menunggu konfirmasi Finance).' }
     ]
   },
   {
@@ -147,14 +184,21 @@ const initialLeads: ClientLead[] = [
     address: 'Jl. Raya Pajajaran No. 88, Bogor',
     status: 'New',
     source: 'Google Form',
-    registrationDate: '25 Sep 2026',
-    lastFollowUp: '25 Sep 2026',
-    packageInterest: 'Basic',
-    estimatedDeal: 250000,
-    notes: 'Pendaftaran via Google Form (Survei Minat Paket Basic POS).',
+    registrationDate: '18 Sep 2026', // Antrean terlama kedua
+    lastFollowUp: '18 Sep 2026',
+    packageInterest: 'Pro',
+    harga_paket: 500000,
+    estimatedDeal: 500000,
+    notes: 'Pendaftaran via Google Form paket Pro. Pembayaran via QRIS telah diterima payment gateway.',
     followUpSchedule: 'Hari ini',
+    paymentProofUrl: SAMPLE_RECEIPT_QRIS,
+    paymentStatus: 'pending_verification',
+    paymentAmount: 500000,
+    paymentDate: '18 Sep 2026 09:15',
+    paymentMethod: 'QRIS',
+    paymentNotes: 'Pembayaran QRIS atas nama Rahma Bakery.',
     followUpHistory: [
-      { id: 'fh-2', date: '25 Sep 2026', time: '14:15', channel: 'Sistem', notes: 'Data pendaftaran masuk dari Google Form.' }
+      { id: 'fh-2', date: '18 Sep 2026', time: '09:18', channel: 'Sistem', notes: 'Pembayaran QRIS masuk (Menunggu konfirmasi Finance).' }
     ]
   },
   {
@@ -164,60 +208,99 @@ const initialLeads: ClientLead[] = [
     businessName: 'Andi Store',
     businessCategory: 'Retail',
     phone: '081398765432',
-    email: 'andi@email.com',
+    email: 'andi.wijaya@store.com',
     address: 'Jl. Ahmad Yani No. 45, Bandung',
-    status: 'Contacted',
+    status: 'Converted',
     source: 'Website',
-    registrationDate: '24 Sep 2026',
-    lastFollowUp: '24 Sep 2026',
+    registrationDate: '20 Sep 2026',
+    lastFollowUp: '22 Sep 2026',
     packageInterest: 'Basic',
+    harga_paket: 250000,
     estimatedDeal: 250000,
-    notes: 'Sudah dihubungi via WA. Menunggu konfirmasi pembayaran.',
+    notes: 'Pembayaran telah dikonfirmasi Finance. Tugas dikirim ke teknisi untuk penyiapan aplikasi.',
     followUpSchedule: 'Hari ini',
+    paymentProofUrl: SAMPLE_RECEIPT_BCA,
+    paymentStatus: 'verified',
+    paymentAmount: 250000,
+    paymentDate: '20 Sep 2026 10:15',
+    paymentMethod: 'BCA Transfer',
+    paymentVerifiedAt: '22 Sep 2026 11:00',
+    paymentVerifiedBy: 'Rina Finance',
+    paymentNotes: 'Pembayaran valid & lunas. Diteruskan ke Teknisi.',
+    technicianStatus: 'pending_setup', // Siap dikerjakan Teknisi
+    technicianAssignedTo: 'Doni Teknisi',
     followUpHistory: [
-      { id: 'fh-3', date: '24 Sep 2026', time: '11:15', channel: 'WhatsApp', notes: 'Menjelaskan paket Basic dan sistem pencatatan stok.' }
+      { id: 'fh-3', date: '22 Sep 2026', time: '11:00', channel: 'Sistem', notes: 'Pembayaran di-acc oleh Finance (Rina Finance). Tugas diteruskan ke Teknisi.' }
     ]
   },
   {
     id: 'c-104',
     no: 4,
-    name: 'Siti Aisyah',
-    businessName: 'Siti Collection',
-    businessCategory: 'Fashion & Butik',
-    phone: '085711223344',
-    email: 'siti@email.com',
+    name: 'Donni Handoko',
+    businessName: 'Donni Cell & Pulsa',
+    businessCategory: 'Retail & Aksesoris',
+    phone: '085619283746',
+    email: 'donni@cell.notfound', // Simulating email issue
     address: 'Jl. Malioboro No. 12, Yogyakarta',
     status: 'Converted',
-    source: 'Google Form',
-    registrationDate: '10 Sep 2026',
-    lastFollowUp: '12 Sep 2026',
+    source: 'Website',
+    registrationDate: '22 Sep 2026',
+    lastFollowUp: '23 Sep 2026',
     packageInterest: 'Basic',
+    harga_paket: 250000,
     estimatedDeal: 250000,
-    notes: 'Pendaftaran disetujui. Telah dikonversi menjadi pelanggan aktif.',
+    notes: 'Sedang dikerjakan teknisi. Ditemukan kendala pada alamat email klien.',
     followUpSchedule: 'Hari ini',
+    paymentProofUrl: SAMPLE_RECEIPT_BCA,
+    paymentStatus: 'verified',
+    paymentAmount: 250000,
+    paymentMethod: 'BCA Transfer',
+    paymentVerifiedAt: '22 Sep 2026 14:00',
+    paymentVerifiedBy: 'Rina Finance',
+    technicianStatus: 'in_progress', // Sedang dalam pengerjaan
+    technicianAssignedTo: 'Doni Teknisi',
+    emailIssueReported: true, // Ada kendala email!
+    emailIssueNotes: 'Email donni@cell.notfound tidak dapat menerima aktivasi token (Domain bounce). Hubungi WA klien untuk konfirmasi.',
     followUpHistory: [
-      { id: 'fh-4', date: '12 Sep 2026', time: '10:00', channel: 'Sistem', notes: 'Status diubah menjadi Disetujui.' }
+      { id: 'fh-4', date: '23 Sep 2026', time: '10:30', channel: 'Sistem', notes: 'Teknisi mendapati kendala email: alamat bounce.' }
     ]
   },
   {
     id: 'c-105',
     no: 5,
-    name: 'Rudi Hermawan',
-    businessName: 'Rudi Mart',
-    businessCategory: 'Minimarket & Grosir',
+    name: 'Hendra Kusuma',
+    businessName: 'Hendra Coffee & Eatery',
+    businessCategory: 'Kuliner & F&B',
     phone: '082155667788',
-    email: 'rudi@email.com',
+    email: 'hendra@coffee.com',
     address: 'Jl. Pemuda No. 88, Semarang',
-    status: 'Lost',
+    status: 'Converted',
     source: 'Website',
-    registrationDate: '01 Sep 2026',
-    lastFollowUp: '02 Sep 2026',
-    packageInterest: 'Custom / IT One',
-    estimatedDeal: 0,
-    notes: 'Klien belum memiliki anggaran untuk integrasi cabang.',
+    registrationDate: '10 Sep 2026',
+    lastFollowUp: '12 Sep 2026',
+    packageInterest: 'Pro',
+    harga_paket: 500000,
+    estimatedDeal: 500000,
+    notes: 'Aplikasi selesai disiapkan & kredensial telah diserahkan ke klien via WA.',
     followUpSchedule: 'Terlambat',
+    paymentProofUrl: SAMPLE_RECEIPT_QRIS,
+    paymentStatus: 'verified',
+    paymentAmount: 500000,
+    paymentMethod: 'QRIS',
+    paymentVerifiedAt: '10 Sep 2026 15:00',
+    paymentVerifiedBy: 'Rina Finance',
+    technicianStatus: 'completed', // Selesai
+    technicianAssignedTo: 'Doni Teknisi',
+    appUsername: 'hendra.coffee',
+    appPassword: 'Ikikasir#2026',
+    appDownloadUrl: 'https://ikikasir.com/download/ikikasir-pos-v2.apk',
+    guideBookUrl: 'https://ikikasir.com/docs/buku-panduan-ikikasir.pdf',
+    rentalAgreementNumber: 'SPK/IKIKASIR/IX/2026/045',
+    rentalAgreementDate: '12 Sep 2026',
+    setupCompletedAt: '12 Sep 2026 16:45',
+    appExpiredDate: '2026-10-12',
     followUpHistory: [
-      { id: 'fh-5', date: '02 Sep 2026', time: '16:00', channel: 'Telepon', notes: 'Diskusi kebutuhan kustom ditolak.' }
+      { id: 'fh-5', date: '12 Sep 2026', time: '16:45', channel: 'WhatsApp', notes: 'Kredensial APK, Username, Password, Buku Panduan, & Surat Sewa dikirim via WA.' }
     ]
   }
 ]
@@ -351,14 +434,22 @@ const initialInvoices: SubscriptionInvoice[] = [
 ]
 // SINGLETON REACTIVE STATE
 const leads = ref<ClientLead[]>([])
-const customers = ref<
-  Customer[]>([])
+const customers = ref<Customer[]>([])
 const invoices = ref<SubscriptionInvoice[]>([])
 const packages = ref<PricingPackage[]>([])
+const currentRole = ref<'Super Admin' | 'Finance' | 'Teknisi' | 'Admin' | 'Staff' | 'Kasir'>('Super Admin')
+const notifications = ref<import('../types/crm').SystemNotification[]>([])
 
 function loadAllFromStorage() {
   if (typeof localStorage === 'undefined') return
   try {
+    const rawRole = localStorage.getItem(STORAGE_KEY_ROLE)
+    if (rawRole) currentRole.value = rawRole as any
+
+    const rawNotif = localStorage.getItem(STORAGE_KEY_NOTIFICATIONS)
+    if (rawNotif) notifications.value = JSON.parse(rawNotif)
+    else { notifications.value = [...initialNotifications]; saveStorage(STORAGE_KEY_NOTIFICATIONS, notifications.value) }
+
     const rawL = localStorage.getItem(STORAGE_KEY_LEADS)
     if (rawL) leads.value = JSON.parse(rawL)
     else { leads.value = [...initialLeads]; saveStorage(STORAGE_KEY_LEADS, leads.value) }
@@ -392,6 +483,7 @@ function loadAllFromStorage() {
     customers.value = [...initialCustomers]
     invoices.value = [...initialInvoices]
     packages.value = [...initialPackages]
+    notifications.value = [...initialNotifications]
   }
 }
 
@@ -891,13 +983,398 @@ export function useAppData() {
   })
 
   // ==========================================
-  // ACTIONS: PACKAGES (CRUD)
+  // WORKFLOW: ROLE & NOTIFICATIONS
+  // ==========================================
+  const setRole = (newRole: 'Super Admin' | 'Finance' | 'Teknisi' | 'Admin' | 'Staff' | 'Kasir') => {
+    currentRole.value = newRole
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(STORAGE_KEY_ROLE, newRole)
+    }
+  }
+
+  const addNotification = (item: Omit<import('../types/crm').SystemNotification, 'id' | 'timestamp' | 'read'>) => {
+    const newNotif: import('../types/crm').SystemNotification = {
+      ...item,
+      id: 'notif-' + Date.now(),
+      timestamp: 'Baru saja',
+      read: false
+    }
+    notifications.value.unshift(newNotif)
+    saveStorage(STORAGE_KEY_NOTIFICATIONS, notifications.value)
+    return newNotif
+  }
+
+  const markNotificationRead = (id: string) => {
+    const n = notifications.value.find(item => item.id === id)
+    if (n) {
+      n.read = true
+      saveStorage(STORAGE_KEY_NOTIFICATIONS, notifications.value)
+    }
+  }
+
+  const clearAllNotifications = () => {
+    notifications.value = []
+    saveStorage(STORAGE_KEY_NOTIFICATIONS, notifications.value)
+  }
+
+  const unreadNotificationCount = computed(() => {
+    return notifications.value.filter(n => !n.read).length
+  })
+
+  // ==========================================
+  // WORKFLOW: FINANCE (ACC KONFIRMASI) QUEUE
+  // Sesuai flowchart: Urutan default Data Terlama (FIFO)
+  // ==========================================
+  const financeQueue = computed(() => {
+    return [...leads.value]
+      .filter(l => l.status !== 'Lost')
+      .sort((a, b) => {
+        // Pending verification prioritized first
+        const aPending = a.paymentStatus === 'pending_verification' ? 0 : (a.paymentStatus === 'verified' ? 1 : 2)
+        const bPending = b.paymentStatus === 'pending_verification' ? 0 : (b.paymentStatus === 'verified' ? 1 : 2)
+        if (aPending !== bPending) return aPending - bPending
+
+        // Data terlama first (FIFO)
+        const idA = parseInt(a.id.replace(/[^0-9]/g, '')) || 0
+        const idB = parseInt(b.id.replace(/[^0-9]/g, '')) || 0
+        return idA - idB
+      })
+  })
+
+  // ==========================================
+  // WORKFLOW: TEKNISI QUEUE
+  // Sesuai flowchart: Lihat list data user yang siap dikerjakan
+  // ==========================================
+  const technicianQueue = computed(() => {
+    const list: Array<{
+      id: string
+      name: string
+      businessName: string
+      phone: string
+      email: string
+      packageType: string
+      technicianStatus: 'pending_setup' | 'in_progress' | 'completed'
+      technicianAssignedTo?: string
+      appUsername?: string
+      appPassword?: string
+      appDownloadUrl?: string
+      guideBookUrl?: string
+      rentalAgreementNumber?: string
+      rentalAgreementDate?: string
+      emailIssueReported?: boolean
+      emailIssueNotes?: string
+      setupCompletedAt?: string
+      appExpiredDate?: string
+      paymentVerifiedAt?: string
+      rawLead?: ClientLead
+      rawCustomer?: Customer
+    }> = []
+
+    // 1. Dari leads yang sudah di-acc pembayarannya atau berstatus Converted
+    leads.value.forEach(lead => {
+      if (lead.paymentStatus === 'verified' || lead.technicianStatus || lead.status === 'Converted') {
+        const cust = customers.value.find(c => c.id === 'cust-' + lead.id || c.phone === lead.phone || c.email === lead.email)
+        list.push({
+          id: lead.id,
+          name: lead.name,
+          businessName: lead.businessName,
+          phone: lead.phone,
+          email: lead.email,
+          packageType: (lead.packageInterest as string) || 'Basic',
+          technicianStatus: lead.technicianStatus || cust?.technicianStatus || 'pending_setup',
+          technicianAssignedTo: lead.technicianAssignedTo || cust?.technicianAssignedTo || 'Doni Teknisi',
+          appUsername: lead.appUsername || cust?.appUsername,
+          appPassword: lead.appPassword || cust?.appPassword,
+          appDownloadUrl: lead.appDownloadUrl || cust?.appDownloadUrl || 'https://ikikasir.com/download/ikikasir-pos-v2.apk',
+          guideBookUrl: lead.guideBookUrl || cust?.guideBookUrl || 'https://ikikasir.com/docs/buku-panduan-ikikasir.pdf',
+          rentalAgreementNumber: lead.rentalAgreementNumber || cust?.rentalAgreementNumber,
+          rentalAgreementDate: lead.rentalAgreementDate || cust?.rentalAgreementDate,
+          emailIssueReported: lead.emailIssueReported || cust?.emailIssueReported,
+          emailIssueNotes: lead.emailIssueNotes || cust?.emailIssueNotes,
+          setupCompletedAt: lead.setupCompletedAt || cust?.setupCompletedAt,
+          appExpiredDate: lead.appExpiredDate || cust?.expiredDate,
+          paymentVerifiedAt: lead.paymentVerifiedAt,
+          rawLead: lead,
+          rawCustomer: cust
+        })
+      }
+    })
+
+    // 2. Tambahkan pelanggan aktif yang belum ada di list
+    customers.value.forEach(c => {
+      if (!list.some(item => item.id === c.id || item.phone === c.phone || item.email === c.email)) {
+        list.push({
+          id: c.id,
+          name: c.name,
+          businessName: c.businessName || '',
+          phone: c.phone || '',
+          email: c.email || '',
+          packageType: c.packageType,
+          technicianStatus: c.technicianStatus || 'completed',
+          technicianAssignedTo: c.technicianAssignedTo || 'Doni Teknisi',
+          appUsername: c.appUsername,
+          appPassword: c.appPassword,
+          appDownloadUrl: c.appDownloadUrl || 'https://ikikasir.com/download/ikikasir-pos-v2.apk',
+          guideBookUrl: c.guideBookUrl || 'https://ikikasir.com/docs/buku-panduan-ikikasir.pdf',
+          rentalAgreementNumber: c.rentalAgreementNumber,
+          rentalAgreementDate: c.rentalAgreementDate,
+          emailIssueReported: c.emailIssueReported,
+          emailIssueNotes: c.emailIssueNotes,
+          setupCompletedAt: c.setupCompletedAt,
+          appExpiredDate: c.expiredDate,
+          rawCustomer: c
+        })
+      }
+    })
+
+    const priority: Record<string, number> = {
+      pending_setup: 1,
+      in_progress: 2,
+      completed: 3
+    }
+    return list.sort((a, b) => (priority[a.technicianStatus] || 99) - (priority[b.technicianStatus] || 99))
+  })
+
+  // ==========================================
+  // ACTIONS: WORKFLOW FINANCE
+  // ==========================================
+  const confirmPaymentByFinance = (
+    leadId: string, 
+    data: { paymentAmount?: number; paymentMethod?: string; notes?: string; verifiedBy?: string }
+  ) => {
+    const lead = leads.value.find(l => l.id === leadId)
+    if (!lead) return null
+
+    const today = getTodayFormatted()
+    const nowTime = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+    const verifiedBy = data.verifiedBy || 'Rina Finance'
+
+    lead.paymentStatus = 'verified'
+    lead.paymentAmount = data.paymentAmount || lead.paymentAmount || (lead.harga_paket || 250000)
+    lead.paymentMethod = data.paymentMethod || lead.paymentMethod || 'BCA Transfer'
+    lead.paymentVerifiedAt = `${today} ${nowTime}`
+    lead.paymentVerifiedBy = verifiedBy
+    lead.paymentNotes = data.notes || 'Data pembayaran dan bukti transfer telah diperiksa dan sesuai.'
+    lead.technicianStatus = 'pending_setup'
+    lead.technicianAssignedTo = 'Doni Teknisi'
+    lead.status = 'Converted'
+
+    lead.followUpHistory.unshift({
+      id: 'fh-' + Date.now(),
+      date: today,
+      time: nowTime,
+      channel: 'Sistem',
+      notes: `Pembayaran Rp ${Number(lead.paymentAmount).toLocaleString('id-ID')} di-Acc oleh Finance (${verifiedBy}). Tugas dikirim ke Teknisi.`
+    })
+    saveStorage(STORAGE_KEY_LEADS, leads.value)
+
+    // CRM dirubah menjadi data Client/User
+    const cust = approveLead(lead.id)
+    if (cust) {
+      cust.technicianStatus = 'pending_setup'
+      cust.technicianAssignedTo = 'Doni Teknisi'
+      cust.amount = lead.paymentAmount
+      cust.paymentMethod = lead.paymentMethod
+      saveStorage(STORAGE_KEY_CUSTOMERS, customers.value)
+    }
+
+    // Kirim notifikasi ke Teknisi
+    addNotification({
+      title: 'Tugas Penyiapan Baru (Teknisi)',
+      message: `Pembayaran pendaftar "${lead.name}" (${lead.businessName}) telah di-Acc oleh Finance (${verifiedBy}). Silakan siapkan aplikasi & kredensial akun kasir.`,
+      roleTarget: 'Teknisi',
+      type: 'technical_task',
+      link: '/semua-pelanggan'
+    })
+
+    // Template WA konfirmasi pembayaran
+    const clientWaMsg = `Halo Kak ${lead.name} (${lead.businessName}),\n\nTerima kasih atas pembayaran paket IKI KASIR (${lead.packageInterest || 'Basic'}) sebesar Rp ${Number(lead.paymentAmount).toLocaleString('id-ID')}.\n\nPembayaran Anda telah BERHASIL kami verifikasi & dikonfirmasi masuk ke sistem IKI KASIR.\n\nSaat ini data Anda telah diteruskan ke tim Teknisi kami untuk penyiapan aplikasi kasir dan kredensial akun. Mohon ditunggu ya kak, tim teknisi kami akan segera menghubungi Kakak via WhatsApp setelah aplikasi siap digunakan.\n\nSalam sukses selalu! 🙏\nTim Finance IKI KASIR`
+
+    return {
+      lead,
+      customer: cust,
+      whatsappText: clientWaMsg,
+      whatsappUrl: getCustomerWaUrl(lead.phone, clientWaMsg)
+    }
+  }
+
+  const rejectPaymentByFinance = (leadId: string, reason: string) => {
+    const lead = leads.value.find(l => l.id === leadId)
+    if (!lead) return
+    const today = getTodayFormatted()
+    lead.paymentStatus = 'rejected'
+    lead.paymentNotes = reason
+    lead.followUpHistory.unshift({
+      id: 'fh-' + Date.now(),
+      date: today,
+      time: '12:00',
+      channel: 'Sistem',
+      notes: `Pembayaran ditolak Finance: ${reason}`
+    })
+    saveStorage(STORAGE_KEY_LEADS, leads.value)
+  }
+
+  // ==========================================
+  // ACTIONS: WORKFLOW TEKNISI
+  // ==========================================
+  const startTechnicianSetup = (id: string, teknisiName = 'Doni Teknisi') => {
+    const lead = leads.value.find(l => l.id === id)
+    if (lead) {
+      lead.technicianStatus = 'in_progress'
+      lead.technicianAssignedTo = teknisiName
+      saveStorage(STORAGE_KEY_LEADS, leads.value)
+    }
+    const cust = customers.value.find(c => c.id === id || c.id === 'cust-' + id || (lead && (c.phone === lead.phone || c.email === lead.email)))
+    if (cust) {
+      cust.technicianStatus = 'in_progress'
+      cust.technicianAssignedTo = teknisiName
+      saveStorage(STORAGE_KEY_CUSTOMERS, customers.value)
+    }
+  }
+
+  const reportEmailIssue = (id: string, issueNotes: string) => {
+    const lead = leads.value.find(l => l.id === id)
+    const cust = customers.value.find(c => c.id === id || c.id === 'cust-' + id || (lead && (c.phone === lead.phone || c.email === lead.email)))
+    
+    if (lead) {
+      lead.emailIssueReported = true
+      lead.emailIssueNotes = issueNotes
+      saveStorage(STORAGE_KEY_LEADS, leads.value)
+    }
+    if (cust) {
+      cust.emailIssueReported = true
+      cust.emailIssueNotes = issueNotes
+      saveStorage(STORAGE_KEY_CUSTOMERS, customers.value)
+    }
+
+    const name = lead?.name || cust?.name || 'Pelanggan'
+    const biz = lead?.businessName || cust?.businessName || ''
+    const email = lead?.email || cust?.email || ''
+    const phone = lead?.phone || cust?.phone || ''
+
+    const waMsg = `Halo Kak ${name} (${biz}),\n\nKami dari tim Teknisi IKI KASIR ingin mengonfirmasi terkait alamat email akun kasir Anda (${email}).\n\nKendala yang kami temukan:\n"${issueNotes}"\n\nMohon konfirmasi apakah alamat email tersebut sudah benar atau ada email aktif alternatif yang ingin didaftarkan agar kami dapat segera menyelesaikan setup aplikasi kasir Anda.\n\nTerima kasih atas kerja samanya! 🙏`
+
+    return {
+      whatsappText: waMsg,
+      whatsappUrl: getCustomerWaUrl(phone, waMsg)
+    }
+  }
+
+  const resolveEmailIssue = (id: string, newEmail: string) => {
+    const lead = leads.value.find(l => l.id === id)
+    const cust = customers.value.find(c => c.id === id || c.id === 'cust-' + id || (lead && (c.phone === lead.phone || c.email === lead.email)))
+
+    if (lead) {
+      lead.email = newEmail
+      lead.emailIssueReported = false
+      lead.emailIssueNotes = undefined
+      lead.followUpHistory.unshift({
+        id: 'fh-' + Date.now(),
+        date: getTodayFormatted(),
+        time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+        channel: 'Sistem',
+        notes: `Alamat email klien berhasil diperbarui menjadi ${newEmail} (Kendala terselesaikan).`
+      })
+      saveStorage(STORAGE_KEY_LEADS, leads.value)
+    }
+
+    if (cust) {
+      cust.email = newEmail
+      cust.emailIssueReported = false
+      cust.emailIssueNotes = undefined
+      saveStorage(STORAGE_KEY_CUSTOMERS, customers.value)
+    }
+  }
+
+  const completeTechnicianSetup = (
+    id: string,
+    setupData: {
+      appUsername: string
+      appPassword: string
+      appDownloadUrl?: string
+      guideBookUrl?: string
+      rentalAgreementNumber?: string
+      rentalAgreementDate?: string
+      expiredDate: string
+      teknisiName?: string
+      notes?: string
+    }
+  ) => {
+    const lead = leads.value.find(l => l.id === id)
+    const cust = customers.value.find(c => c.id === id || c.id === 'cust-' + id || (lead && (c.phone === lead.phone || c.email === lead.email)))
+    const today = getTodayFormatted()
+    const nowTime = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+    const teknisi = setupData.teknisiName || 'Doni Teknisi'
+
+    const appDownloadUrl = setupData.appDownloadUrl || 'https://ikikasir.com/download/ikikasir-pos-v2.apk'
+    const guideBookUrl = setupData.guideBookUrl || 'https://ikikasir.com/docs/buku-panduan-ikikasir.pdf'
+    const rentalAgreementNumber = setupData.rentalAgreementNumber || `SPK/IKIKASIR/${new Date().getFullYear()}/${String(new Date().getMonth() + 1).padStart(2, '0')}/${Math.floor(100 + Math.random() * 900)}`
+
+    if (lead) {
+      lead.technicianStatus = 'completed'
+      lead.technicianAssignedTo = teknisi
+      lead.appUsername = setupData.appUsername
+      lead.appPassword = setupData.appPassword
+      lead.appDownloadUrl = appDownloadUrl
+      lead.guideBookUrl = guideBookUrl
+      lead.rentalAgreementNumber = rentalAgreementNumber
+      lead.rentalAgreementDate = setupData.rentalAgreementDate || today
+      lead.setupCompletedAt = `${today} ${nowTime}`
+      lead.appExpiredDate = setupData.expiredDate
+      lead.emailIssueReported = false
+
+      lead.followUpHistory.unshift({
+        id: 'fh-' + Date.now(),
+        date: today,
+        time: nowTime,
+        channel: 'WhatsApp',
+        notes: `Aplikasi selesai disiapkan oleh Teknisi (${teknisi}). Kredensial, panduan, dan surat sewa diserahkan ke klien.`
+      })
+      saveStorage(STORAGE_KEY_LEADS, leads.value)
+    }
+
+    if (cust) {
+      cust.technicianStatus = 'completed'
+      cust.technicianAssignedTo = teknisi
+      cust.appUsername = setupData.appUsername
+      cust.appPassword = setupData.appPassword
+      cust.appDownloadUrl = appDownloadUrl
+      cust.guideBookUrl = guideBookUrl
+      cust.rentalAgreementNumber = rentalAgreementNumber
+      cust.rentalAgreementDate = setupData.rentalAgreementDate || today
+      cust.setupCompletedAt = `${today} ${nowTime}`
+      cust.expiredDate = setupData.expiredDate
+      cust.status = 'active'
+      cust.emailIssueReported = false
+      saveStorage(STORAGE_KEY_CUSTOMERS, customers.value)
+    }
+
+    const clientName = lead?.name || cust?.name || 'Pelanggan'
+    const bizName = lead?.businessName || cust?.businessName || ''
+    const clientPhone = lead?.phone || cust?.phone || ''
+
+    addNotification({
+      title: 'Aplikasi Kasir Selesai Disiapkan',
+      message: `Aplikasi untuk "${clientName}" (${bizName}) telah selesai disiapkan oleh Teknisi (${teknisi}) dan kredensial diserahkan via WhatsApp.`,
+      roleTarget: 'All',
+      type: 'setup_completed',
+      link: '/semua-pelanggan'
+    })
+
+    const waDeliveryText = `Halo Kak ${clientName} (${bizName}),\n\nKabar gembira! Aplikasi IKI KASIR untuk usaha Anda telah siap digunakan 🚀\n\nBerikut detail akses akun dan berkas kelengkapan Anda:\n━━━━━━━━━━━━━━━━━━━━\n📱 *Download Aplikasi (APK)*:\n${appDownloadUrl}\n\n👤 *Username*: ${setupData.appUsername}\n🔑 *Password*: ${setupData.appPassword}\n\n📖 *Buku Panduan Penggunaan*:\n${guideBookUrl}\n\n📄 *Surat Perjanjian Sewa*:\nNo: ${rentalAgreementNumber}\n(Tercatat resmi dalam sistem IKI KASIR)\n\n📅 *Masa Aktif Berlangganan*:\nAktif hingga: ${setupData.expiredDate}\n━━━━━━━━━━━━━━━━━━━━\nSilakan unduh aplikasi dan login menggunakan username & password di atas.\n\nJika Kakak membutuhkan panduan awal atau pendampingan input menu & produk, tim Teknisi kami siap membantu!\n\nSelamat bertransaksi & semoga usaha Kakak semakin sukses! 🙏✨\nTim Teknisi IKI KASIR`
+
+    return {
+      whatsappText: waDeliveryText,
+      whatsappUrl: getCustomerWaUrl(clientPhone, waDeliveryText),
+      rentalAgreementNumber
+    }
+  }
+
+  // ==========================================
+  // PRICING PACKAGES CRUD
   // ==========================================
   const addPackage = (pkg: Omit<PricingPackage, 'id'>) => {
-    const newPackage: PricingPackage = {
-      ...pkg,
-      id: 'pkg-' + Date.now()
-    }
+    const newPackage: PricingPackage = { ...pkg, id: 'pkg-' + Date.now() }
     packages.value.push(newPackage)
     saveStorage(STORAGE_KEY_PACKAGES, packages.value)
     return newPackage
@@ -929,9 +1406,24 @@ export function useAppData() {
     customers,
     invoices,
     packages,
+    currentRole,
+    notifications,
+    unreadNotificationCount,
+    financeQueue,
+    technicianQueue,
     expiredCustomers,
     expiringCustomers,
     statistics,
+    setRole,
+    addNotification,
+    markNotificationRead,
+    clearAllNotifications,
+    confirmPaymentByFinance,
+    rejectPaymentByFinance,
+    startTechnicianSetup,
+    reportEmailIssue,
+    resolveEmailIssue,
+    completeTechnicianSetup,
     addPackage,
     updatePackage,
     deletePackage,
@@ -953,10 +1445,15 @@ export function useAppData() {
       customers.value = [...initialCustomers]
       invoices.value = [...initialInvoices]
       packages.value = [...initialPackages]
+      notifications.value = [...initialNotifications]
+      currentRole.value = 'Super Admin'
       saveStorage(STORAGE_KEY_LEADS, leads.value)
       saveStorage(STORAGE_KEY_CUSTOMERS, customers.value)
       saveStorage(STORAGE_KEY_INVOICES, invoices.value)
       saveStorage(STORAGE_KEY_PACKAGES, packages.value)
+      saveStorage(STORAGE_KEY_NOTIFICATIONS, notifications.value)
+      saveStorage(STORAGE_KEY_ROLE, currentRole.value)
     }
   }
 }
+

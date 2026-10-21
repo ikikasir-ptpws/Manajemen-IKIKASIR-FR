@@ -18,6 +18,18 @@ export interface Customer {
   category?: string
   amount?: number
   paymentMethod?: string
+  technicianStatus?: 'pending_setup' | 'in_progress' | 'completed'
+  technicianAssignedTo?: string
+  appUsername?: string
+  appPassword?: string
+  appDownloadUrl?: string
+  guideBookUrl?: string
+  rentalAgreementNumber?: string
+  rentalAgreementDate?: string
+  emailIssueReported?: boolean
+  emailIssueNotes?: string
+  setupCompletedAt?: string
+  leadId?: string
 }
 
 export interface ActivityItem {

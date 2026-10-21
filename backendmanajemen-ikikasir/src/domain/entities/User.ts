@@ -92,6 +92,30 @@ export class User {
   }
 
   /**
+   * Cek apakah user memiliki role Finance
+   */
+  public isFinance(): boolean {
+    const normalized = (this.role || '').toUpperCase().replace(/\s+/g, '');
+    return (
+      normalized === UserRole.FINANCE ||
+      normalized === 'FINANCE' ||
+      normalized === 'KEUANGAN'
+    );
+  }
+
+  /**
+   * Cek apakah user memiliki role Teknisi
+   */
+  public isTeknisi(): boolean {
+    const normalized = (this.role || '').toUpperCase().replace(/\s+/g, '');
+    return (
+      normalized === UserRole.TEKNISI ||
+      normalized === 'TEKNISI' ||
+      normalized === 'TECHNICIAN'
+    );
+  }
+
+  /**
    * Mengembalikan representasi user yang aman (tanpa password hash)
    * untuk dikirimkan kembali ke client response
    */

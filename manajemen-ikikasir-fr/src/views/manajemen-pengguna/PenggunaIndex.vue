@@ -20,15 +20,17 @@ export interface AppUser {
   id: string
   name: string
   email: string
-  role: 'Super Admin' | 'Admin' | 'Staff' | 'Kasir'
+  role: 'Super Admin' | 'Finance' | 'Teknisi' | 'Admin' | 'Staff' | 'Kasir'
   status: 'Active' | 'Inactive'
   lastLogin: string
 }
 
-const STORAGE_KEY_USERS = 'ikikasir_users_v1'
+const STORAGE_KEY_USERS = 'ikikasir_users_v2'
 
 const initialUsers: AppUser[] = [
   { id: 'usr-1', name: 'Budi Santoso', email: 'budi@ikikasir.com', role: 'Super Admin', status: 'Active', lastLogin: '2 jam yang lalu' },
+  { id: 'usr-fin', name: 'Rina Finance', email: 'finance@ikikasir.com', role: 'Finance', status: 'Active', lastLogin: 'Baru saja' },
+  { id: 'usr-tek', name: 'Doni Teknisi', email: 'teknisi@ikikasir.com', role: 'Teknisi', status: 'Active', lastLogin: '10 menit yang lalu' },
   { id: 'usr-2', name: 'Siti Aisyah', email: 'siti@ikikasir.com', role: 'Admin', status: 'Active', lastLogin: '1 hari yang lalu' },
   { id: 'usr-3', name: 'Andi Wijaya', email: 'andi@ikikasir.com', role: 'Staff', status: 'Inactive', lastLogin: '1 minggu yang lalu' },
   { id: 'usr-4', name: 'Dewi Lestari', email: 'dewi.kasir@ikikasir.com', role: 'Kasir', status: 'Active', lastLogin: '3 jam yang lalu' }
@@ -56,7 +58,7 @@ const form = ref({
   id: '',
   name: '',
   email: '',
-  role: 'Admin' as 'Super Admin' | 'Admin' | 'Staff' | 'Kasir',
+  role: 'Finance' as 'Super Admin' | 'Finance' | 'Teknisi' | 'Admin' | 'Staff' | 'Kasir',
   status: 'Active' as 'Active' | 'Inactive',
   password: ''
 })
@@ -243,6 +245,8 @@ const toggleStatus = (u: AppUser) => {
         >
           <option>Semua Role</option>
           <option>Super Admin</option>
+          <option>Finance</option>
+          <option>Teknisi</option>
           <option>Admin</option>
           <option>Staff</option>
           <option>Kasir</option>
@@ -303,6 +307,8 @@ const toggleStatus = (u: AppUser) => {
                   class="px-2.5 py-1 rounded-md text-xs font-semibold"
                   :class="{
                     'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-800': u.role === 'Super Admin',
+                    'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800': u.role === 'Finance',
+                    'bg-cyan-50 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800': u.role === 'Teknisi',
                     'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-100 dark:border-blue-800': u.role === 'Admin',
                     'bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-100 dark:border-purple-800': u.role === 'Staff',
                     'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border border-emerald-100 dark:border-emerald-800': u.role === 'Kasir'
@@ -436,6 +442,8 @@ const toggleStatus = (u: AppUser) => {
                   class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:border-indigo-500"
                 >
                   <option value="Super Admin">Super Admin</option>
+                  <option value="Finance">Finance (Acc Pembayaran)</option>
+                  <option value="Teknisi">Teknisi (Penyiapan Aplikasi)</option>
                   <option value="Admin">Admin</option>
                   <option value="Staff">Staff</option>
                   <option value="Kasir">Kasir</option>

@@ -238,6 +238,66 @@ async function seed() {
       },
     });
 
+    // F. Role Finance (Acc Konfirmasi Pembayaran & Laporan Keuangan)
+    const financeRole = await prisma.role.upsert({
+      where: { name: 'Finance' },
+      update: {
+        description: 'Pengelolaan konfirmasi pembayaran CRM, invoice langganan, dan laporan keuangan',
+      },
+      create: {
+        name: 'Finance',
+        description: 'Pengelolaan konfirmasi pembayaran CRM, invoice langganan, dan laporan keuangan',
+        menuAccess: {
+          create: {
+            dashboard: true,
+            manajemenPengguna: false,
+            manajemenRole: false,
+            manajemenPromo: false,
+            kelolaPaket: false,
+            calonClient: true,
+            semuaPelanggan: true,
+            langganan: true,
+            expired: false,
+            arusKas: true,
+            labaRugi: true,
+            neraca: true,
+            laporanPenjualan: true,
+            landingPage: false,
+          },
+        },
+      },
+    });
+
+    // G. Role Teknisi (Penyiapan Aplikasi, Kredensial, dan Expired Client)
+    const teknisiRole = await prisma.role.upsert({
+      where: { name: 'Teknisi' },
+      update: {
+        description: 'Penyiapan aplikasi kasir, kredensial user, buku panduan, dan surat kerja sama sewa',
+      },
+      create: {
+        name: 'Teknisi',
+        description: 'Penyiapan aplikasi kasir, kredensial user, buku panduan, dan surat kerja sama sewa',
+        menuAccess: {
+          create: {
+            dashboard: true,
+            manajemenPengguna: false,
+            manajemenRole: false,
+            manajemenPromo: false,
+            kelolaPaket: false,
+            calonClient: true,
+            semuaPelanggan: true,
+            langganan: true,
+            expired: true,
+            arusKas: false,
+            labaRugi: false,
+            neraca: false,
+            laporanPenjualan: false,
+            landingPage: false,
+          },
+        },
+      },
+    });
+
     // ==========================================
     // 2. SEED USERS SESUAI FORM FRONTEND
     // ==========================================
@@ -250,6 +310,22 @@ async function seed() {
         role: 'Super Admin',
         roleId: superAdminRole.id,
         phone: '081234567890',
+        isActive: true,
+      },
+      {
+        email: 'finance@ikikasir.com',
+        name: 'Rina Finance',
+        role: 'Finance',
+        roleId: financeRole.id,
+        phone: '085811223344',
+        isActive: true,
+      },
+      {
+        email: 'teknisi@ikikasir.com',
+        name: 'Doni Teknisi',
+        role: 'Teknisi',
+        roleId: teknisiRole.id,
+        phone: '087899887766',
         isActive: true,
       },
       {

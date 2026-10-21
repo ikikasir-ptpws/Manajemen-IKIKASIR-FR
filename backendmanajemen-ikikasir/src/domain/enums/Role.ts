@@ -8,6 +8,8 @@ export enum UserRole {
   ADMIN = 'ADMIN',
   STAFF = 'STAFF',
   KASIR = 'KASIR',
+  FINANCE = 'FINANCE',
+  TEKNISI = 'TEKNISI',
 }
 
 /**

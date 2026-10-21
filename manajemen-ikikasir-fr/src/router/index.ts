@@ -29,6 +29,14 @@ const router = createRouter({
       component: () => import('../views/crm-client/CalonClientIndex.vue')
     },
     {
+      path: '/finance-workspace',
+      redirect: '/calon-client'
+    },
+    {
+      path: '/teknisi-workspace',
+      redirect: '/semua-pelanggan'
+    },
+    {
       path: '/laporan-harian',
       name: 'laporan-harian',
       component: () => import('../views/laporan/LaporanHarianIndex.vue')
