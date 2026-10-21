@@ -71,6 +71,62 @@ export interface ClientLead {
   otherKnownFrom?: string
   /** Sudah menyetujui persetujuan data */
   consentAgreed?: boolean
+
+  // === WORKFLOW: FINANCE (ACC KONFIRMASI PEMBAYARAN) ===
+  /** URL / Data base64 bukti transfer bank / QRIS */
+  paymentProofUrl?: string
+  /** Status Verifikasi Pembayaran oleh Finance */
+  paymentStatus?: 'unpaid' | 'pending_verification' | 'verified' | 'rejected'
+  /** Nominal transfer yang dibayar */
+  paymentAmount?: number
+  /** Tanggal transfer pembayaran */
+  paymentDate?: string
+  /** Metode pembayaran: BCA, Mandiri, BRI, BNI, QRIS */
+  paymentMethod?: string
+  /** Waktu pembayaran di-acc oleh Finance */
+  paymentVerifiedAt?: string
+  /** Nama staf Finance yang melakukan acc konfirmasi */
+  paymentVerifiedBy?: string
+  /** Catatan finance mengenai bukti pembayaran */
+  paymentNotes?: string
+
+  // === WORKFLOW: TEKNISI (PENYIAPAN APLIKASI & DOKUMEN SEWA) ===
+  /** Status pengerjaan penyiapan aplikasi oleh Teknisi */
+  technicianStatus?: 'pending_setup' | 'in_progress' | 'completed'
+  /** Nama teknisi yang ditugaskan / mengerjakan */
+  technicianAssignedTo?: string
+  /** Username akun kasir yang dibuatkan teknisi */
+  appUsername?: string
+  /** Password akun kasir yang dibuatkan teknisi */
+  appPassword?: string
+  /** Link download aplikasi kasir (APK atau Web Portal) */
+  appDownloadUrl?: string
+  /** Link dokumen buku panduan penggunaan aplikasi */
+  guideBookUrl?: string
+  /** Nomor Surat Perjanjian Kerja Sama Sewa Aplikasi */
+  rentalAgreementNumber?: string
+  /** Tanggal surat perjanjian sewa diterbitkan */
+  rentalAgreementDate?: string
+  /** Indikator apakah teknisi mendapati kendala di email klien */
+  emailIssueReported?: boolean
+  /** Catatan kendala email yang dilaporkan teknisi */
+  emailIssueNotes?: string
+  /** Waktu teknisi menyelesaikan pengerjaan dan penyerahan kredensial */
+  setupCompletedAt?: string
+  /** Tanggal batas aktif / expired aplikasi yang diset teknisi */
+  appExpiredDate?: string
 }
+
+export interface SystemNotification {
+  id: string
+  title: string
+  message: string
+  roleTarget?: 'All' | 'Finance' | 'Teknisi' | 'Super Admin'
+  type: 'payment_verified' | 'technical_task' | 'setup_completed' | 'email_issue' | 'info'
+  timestamp: string
+  read: boolean
+  link?: string
+}
+
 
 

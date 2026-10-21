@@ -27,36 +27,20 @@ const currentPackage = ref<PricingPackage | null>(null);
 const form = ref<{
   id: string;
   name: string;
-  cardClass: string;
-  badge: string;
   cardSub: string;
-  icon: string;
   isConsultation: boolean;
   price: number;
-  priceTitle: string;
-  priceSubtext: string;
   period: string;
   featuresText: string;
-  btnText: string;
-  btnClass: string;
-  waText: string;
   isActive: boolean;
 }>({
   id: "",
   name: "",
-  cardClass: "price-card basic",
-  badge: "",
   cardSub: "",
-  icon: "Box",
   isConsultation: false,
   price: 0,
-  priceTitle: "",
-  priceSubtext: "",
   period: "/bulan",
   featuresText: "",
-  btnText: "Mulai Langganan",
-  btnClass: "btn-outline-blue",
-  waText: "",
   isActive: true,
 });
 
@@ -65,19 +49,11 @@ const openAddModal = () => {
   form.value = {
     id: "",
     name: "",
-    cardClass: "price-card basic",
-    badge: "",
     cardSub: "",
-    icon: "Box",
     isConsultation: false,
     price: 0,
-    priceTitle: "",
-    priceSubtext: "",
     period: "/bulan",
     featuresText: "",
-    btnText: "Mulai Langganan",
-    btnClass: "btn-outline-blue",
-    waText: "",
     isActive: true,
   };
   isModalOpen.value = true;
@@ -86,10 +62,14 @@ const openAddModal = () => {
 const openEditModal = (pkg: PricingPackage) => {
   isEditing.value = true;
   form.value = {
-    ...pkg,
-    priceTitle: pkg.priceTitle ?? "",
-    priceSubtext: pkg.priceSubtext ?? "",
-    featuresText: pkg.features.join("\n"),
+    id: pkg.id,
+    name: pkg.name,
+    cardSub: pkg.description || pkg.cardSub || "",
+    isConsultation: pkg.isConsultation ?? false,
+    price: pkg.price ?? 0,
+    period: pkg.period || "/bulan",
+    featuresText: (pkg.features || []).join("\n"),
+    isActive: pkg.isActive ?? true,
   };
   isModalOpen.value = true;
 };
@@ -102,19 +82,12 @@ const savePackage = () => {
 
   const packageData = {
     name: form.value.name,
-    cardClass: form.value.cardClass,
-    badge: form.value.badge,
     cardSub: form.value.cardSub,
-    icon: form.value.icon,
+    description: form.value.cardSub,
     isConsultation: form.value.isConsultation,
-    price: form.value.price,
-    priceTitle: form.value.priceTitle,
-    priceSubtext: form.value.priceSubtext,
-    period: form.value.period,
+    price: form.value.isConsultation ? 0 : form.value.price,
+    period: form.value.isConsultation ? "" : form.value.period,
     features: features,
-    btnText: form.value.btnText,
-    btnClass: form.value.btnClass,
-    waText: form.value.waText,
     isActive: form.value.isActive,
   };
 
@@ -171,7 +144,6 @@ const confirmDelete = (id: string) => {
             <tr>
               <th class="px-6 py-4 font-semibold">Nama Paket</th>
               <th class="px-6 py-4 font-semibold">Harga</th>
-              <th class="px-6 py-4 font-semibold">Badge</th>
               <th class="px-6 py-4 font-semibold">Fitur</th>
               <th class="px-6 py-4 font-semibold text-center">Status</th>
               <th class="px-6 py-4 font-semibold text-right">Aksi</th>
@@ -179,7 +151,7 @@ const confirmDelete = (id: string) => {
           </thead>
           <tbody class="divide-y divide-slate-100 dark:divide-slate-700/50">
             <tr v-if="packages.length === 0">
-              <td colspan="6" class="px-6 py-8 text-center text-slate-500">
+              <td colspan="5" class="px-6 py-8 text-center text-slate-500">
                 Belum ada paket.
               </td>
             </tr>
@@ -193,7 +165,7 @@ const confirmDelete = (id: string) => {
                   {{ pkg.name }}
                 </p>
                 <p class="text-xs text-slate-500 mt-0.5 truncate max-w-[200px]">
-                  {{ pkg.cardSub }}
+                  {{ pkg.cardSub || pkg.description }}
                 </p>
               </td>
               <td class="px-6 py-4">
@@ -210,16 +182,8 @@ const confirmDelete = (id: string) => {
                   >
                 </template>
               </td>
-              <td class="px-6 py-4">
-                <span
-                  v-if="pkg.badge"
-                  class="px-2 py-1 bg-amber-100 text-amber-700 rounded text-xs font-semibold"
-                  >{{ pkg.badge }}</span
-                >
-                <span v-else class="text-slate-400 text-xs">-</span>
-              </td>
               <td class="px-6 py-4 text-slate-600 dark:text-slate-300">
-                {{ pkg.features.length }} fitur
+                {{ pkg.features?.length || 0 }} fitur
               </td>
               <td class="px-6 py-4 text-center">
                 <button
@@ -271,7 +235,7 @@ const confirmDelete = (id: string) => {
       ></div>
 
       <div
-        class="relative bg-white dark:bg-slate-800 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl"
+        class="relative bg-white dark:bg-slate-800 rounded-2xl w-full max-w-xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl"
       >
         <!-- Modal Header -->
         <div
@@ -290,43 +254,32 @@ const confirmDelete = (id: string) => {
 
         <!-- Modal Body -->
         <div class="px-6 py-4 overflow-y-auto flex-1 custom-scrollbar">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div class="space-y-4 mb-4">
             <div>
-              <label class="block text-xs font-semibold text-slate-600 mb-1"
+              <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1"
                 >Nama Paket</label
               >
               <input
                 v-model="form.name"
                 type="text"
-                class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-lg text-sm text-slate-900 dark:text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
                 placeholder="e.g. Basic"
               />
             </div>
             <div>
-              <label class="block text-xs font-semibold text-slate-600 mb-1"
-                >Badge (Opsional)</label
-              >
-              <input
-                v-model="form.badge"
-                type="text"
-                class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-                placeholder="e.g. Terpopuler"
-              />
-            </div>
-            <div class="md:col-span-2">
-              <label class="block text-xs font-semibold text-slate-600 mb-1"
+              <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1"
                 >Subjudul / Deskripsi Singkat</label
               >
               <input
                 v-model="form.cardSub"
                 type="text"
-                class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-                placeholder="e.g. Cocok untuk usaha kecil..."
+                class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-lg text-sm text-slate-900 dark:text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                placeholder="e.g. Cocok untuk usaha kecil, menengah, dan pemula..."
               />
             </div>
           </div>
 
-          <div class="border-t border-slate-100 pt-4 mb-4">
+          <div class="border-t border-slate-100 dark:border-slate-700 pt-4 mb-4">
             <div class="flex items-center mb-3">
               <input
                 v-model="form.isConsultation"
@@ -336,133 +289,46 @@ const confirmDelete = (id: string) => {
               />
               <label
                 for="isConsultation"
-                class="ml-2 text-sm font-semibold text-slate-700 cursor-pointer"
+                class="ml-2 text-sm font-semibold text-slate-700 dark:text-slate-200 cursor-pointer"
                 >Mode Konsultasi (Harga disembunyikan)</label
               >
             </div>
 
             <div v-if="!form.isConsultation" class="grid grid-cols-2 gap-4">
               <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-1"
+                <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1"
                   >Harga (Rp)</label
                 >
                 <input
                   v-model.number="form.price"
                   type="number"
-                  class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:border-indigo-500"
+                  class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-lg text-sm text-slate-900 dark:text-white focus:border-indigo-500"
+                  placeholder="250000"
                 />
               </div>
               <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-1"
+                <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1"
                   >Satuan Harga</label
                 >
                 <input
                   v-model="form.period"
                   type="text"
-                  class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:border-indigo-500"
+                  class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-lg text-sm text-slate-900 dark:text-white focus:border-indigo-500"
                   placeholder="/bulan"
                 />
               </div>
             </div>
-
-            <div v-else class="grid grid-cols-2 gap-4">
-              <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-1"
-                  >Teks Harga Custom</label
-                >
-                <input
-                  v-model="form.priceTitle"
-                  type="text"
-                  class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:border-indigo-500"
-                  placeholder="Konsultasi Terlebih Dahulu"
-                />
-              </div>
-              <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-1"
-                  >Sub Teks Custom</label
-                >
-                <input
-                  v-model="form.priceSubtext"
-                  type="text"
-                  class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:border-indigo-500"
-                  placeholder="Tanya-tanya & penyesuaian..."
-                />
-              </div>
-            </div>
           </div>
 
-          <div
-            class="border-t border-slate-100 pt-4 mb-4 grid grid-cols-1 md:grid-cols-2 gap-4"
-          >
-            <div>
-              <label class="block text-xs font-semibold text-slate-600 mb-1"
-                >Ikon (Lucide)</label
-              >
-              <input
-                v-model="form.icon"
-                type="text"
-                class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:border-indigo-500"
-                placeholder="Box, Crown, dll"
-              />
-            </div>
-            <div>
-              <label class="block text-xs font-semibold text-slate-600 mb-1"
-                >Teks Tombol CTA</label
-              >
-              <input
-                v-model="form.btnText"
-                type="text"
-                class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:border-indigo-500"
-                placeholder="Mulai Langganan"
-              />
-            </div>
-            <div class="md:col-span-2">
-              <label class="block text-xs font-semibold text-slate-600 mb-1"
-                >Teks Template WhatsApp</label
-              >
-              <input
-                v-model="form.waText"
-                type="text"
-                class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:border-indigo-500"
-                placeholder="Halo tim IKI KASIR..."
-              />
-            </div>
-            <div>
-              <label class="block text-xs font-semibold text-slate-600 mb-1"
-                >Warna Kartu (Class CSS)</label
-              >
-              <select
-                v-model="form.cardClass"
-                class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:border-indigo-500"
-              >
-                <option value="price-card basic">Terang (Basic)</option>
-                <option value="price-card pro">Biru Gelap (Pro/Custom)</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-xs font-semibold text-slate-600 mb-1"
-                >Warna Tombol (Class CSS)</label
-              >
-              <select
-                v-model="form.btnClass"
-                class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:border-indigo-500"
-              >
-                <option value="btn-outline-blue">Garis Biru (Outline)</option>
-                <option value="btn-solid-white">Putih Solid</option>
-                <option value="btn-primary-lg">Biru Solid</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="border-t border-slate-100 pt-4">
-            <label class="block text-xs font-semibold text-slate-600 mb-1"
+          <div class="border-t border-slate-100 dark:border-slate-700 pt-4">
+            <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1"
               >Daftar Fitur (1 baris 1 fitur)</label
             >
             <textarea
               v-model="form.featuresText"
-              rows="4"
-              class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:border-indigo-500"
-              placeholder="- Fitur 1&#10;- Fitur 2"
+              rows="5"
+              class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-lg text-sm text-slate-900 dark:text-white focus:border-indigo-500"
+              placeholder="- Fitur 1&#10;- Fitur 2&#10;- Fitur 3"
             ></textarea>
           </div>
 
@@ -475,7 +341,7 @@ const confirmDelete = (id: string) => {
             />
             <label
               for="isActive"
-              class="ml-2 text-sm font-semibold text-slate-700 cursor-pointer"
+              class="ml-2 text-sm font-semibold text-slate-700 dark:text-slate-200 cursor-pointer"
               >Tampilkan paket ini di website</label
             >
           </div>
