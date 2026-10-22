@@ -3,7 +3,7 @@ import { ref, computed } from 'vue'
 export interface TransactionItem {
   id: string
   name: string
-  category: 'Lisensi POS' | 'Hardware' | 'Addon & Aksesoris'
+  category: 'Lisensi POS' | 'Hardware' | 'Addon & Aksesoris' | string
   qty: number
   price: number
 }
@@ -16,7 +16,7 @@ export interface SalesTransaction {
   time: string
   customer: string
   items: TransactionItem[]
-  paymentMethod: 'Tunai' | 'QRIS' | 'Transfer Bank' | 'Kartu Debit'
+  paymentMethod: 'Tunai' | 'QRIS' | 'Transfer Bank' | 'Kartu Debit' | string
   status: 'Selesai' | 'Pending' | 'Batal'
 }
 
@@ -25,7 +25,7 @@ export interface ExpenseItem {
   date: string // YYYY-MM-DD
   displayDate: string
   desc: string
-  category: 'Gaji Karyawan' | 'Server & Cloud' | 'Marketing & Iklan' | 'Sewa Kantor' | 'Maintenance'
+  category: 'Gaji Karyawan' | 'Server & Cloud' | 'Marketing & Iklan' | 'Sewa Kantor' | 'Maintenance' | string
   amount: number
 }
 
@@ -198,6 +198,69 @@ export function useReportData() {
     })
   }
 
+  // Add new Income Transaction
+  const addIncomeTransaction = (data: {
+    date: string
+    displayDate: string
+    time?: string
+    customer: string
+    desc: string
+    category: string
+    amount: number
+    paymentMethod?: string
+  }) => {
+    const newId = `trx-${Date.now()}`
+    const now = new Date()
+    const defaultTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')} WIB`
+    const dateFormatted = data.date.replace(/-/g, '')
+    const randomSuffix = Math.floor(100 + Math.random() * 900)
+    const invoiceNo = `TRX-${dateFormatted}-${randomSuffix}`
+
+    const newTrx: SalesTransaction = {
+      id: newId,
+      invoiceNo,
+      date: data.date,
+      displayDate: data.displayDate,
+      time: data.time || defaultTime,
+      customer: data.customer,
+      items: [
+        {
+          id: `i-${Date.now()}`,
+          name: data.desc || data.category,
+          category: data.category,
+          qty: 1,
+          price: data.amount
+        }
+      ],
+      paymentMethod: (data.paymentMethod as any) || 'Transfer Bank',
+      status: 'Selesai'
+    }
+
+    masterTransactions.value.unshift(newTrx)
+    return newTrx
+  }
+
+  // Add new Expense Item
+  const addExpenseTransaction = (data: {
+    date: string
+    displayDate: string
+    desc: string
+    category: string
+    amount: number
+  }) => {
+    const newExp: ExpenseItem = {
+      id: `exp-${Date.now()}`,
+      date: data.date,
+      displayDate: data.displayDate,
+      desc: data.desc,
+      category: data.category,
+      amount: data.amount
+    }
+
+    masterExpenses.value.unshift(newExp)
+    return newExp
+  }
+
   return {
     masterTransactions,
     masterExpenses,
@@ -205,6 +268,9 @@ export function useReportData() {
     getTrxTotalAmount,
     getTrxTotalQty,
     filterTransactionsByPeriod,
-    filterExpensesByPeriod
+    filterExpensesByPeriod,
+    addIncomeTransaction,
+    addExpenseTransaction
   }
 }
+

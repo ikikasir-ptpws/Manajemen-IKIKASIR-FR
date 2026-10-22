@@ -84,18 +84,15 @@ const showToast = (msg: string) => {
 // Search & Filter state
 const searchQuery = ref('')
 const selectedStatus = ref<string>('Semua Status')
-const selectedSource = ref<string>('Semua Sumber')
 const selectedPackage = ref<string>('Semua Paket')
 const startDate = ref('')
 const endDate = ref('')
 
 // Dropdown toggles
 const showStatusDropdown = ref(false)
-const showSourceDropdown = ref(false)
 const showPackageDropdown = ref(false)
 
 const statusOptions = ['Semua Status', 'Menunggu Acc Finance', 'New', 'Diproses', 'Converted', 'Lost']
-const sourceOptions = ['Semua Sumber', 'Website', 'Google Form', 'Instagram', 'WhatsApp']
 const packageOptions = ['Semua Paket', 'Basic', 'Add on', 'Custom', 'Pro', 'Custom / IT One']
 
 // Helper parse dates in data ('18 Sep 2026', '2026-09-18', ISO, etc.)
@@ -172,7 +169,6 @@ const filteredClients = computed(() => {
         matchStatus = c.status === 'Lost'
       }
 
-      const matchSource = selectedSource.value === 'Semua Sumber' || c.source === selectedSource.value
       const matchPackage = selectedPackage.value === 'Semua Paket' || c.packageInterest === selectedPackage.value
 
       // Date Range Match
@@ -188,7 +184,7 @@ const filteredClients = computed(() => {
         matchDate = matchDate && (clientMs <= endMs)
       }
 
-      return matchSearch && matchStatus && matchSource && matchPackage && matchDate
+      return matchSearch && matchStatus && matchPackage && matchDate
     })
     .sort((a, b) => {
       // Prioritas 1: Pending verifikasi pembayaran di atas (FIFO - Data Terlama lebih dulu)
@@ -205,7 +201,6 @@ const filteredClients = computed(() => {
 const resetFilter = () => {
   searchQuery.value = ''
   selectedStatus.value = 'Semua Status'
-  selectedSource.value = 'Semua Sumber'
   selectedPackage.value = 'Semua Paket'
   startDate.value = ''
   endDate.value = ''
@@ -235,7 +230,7 @@ const paginatedClients = computed(() => {
 })
 
 // Auto reset page if totalPages changes or filter updates
-watch([searchQuery, selectedStatus, selectedSource, selectedPackage, startDate, endDate, pageSize], () => {
+watch([searchQuery, selectedStatus, selectedPackage, startDate, endDate, pageSize], () => {
   currentPage.value = 1
 })
 
@@ -604,33 +599,6 @@ const sendWhatsAppDirect = (client: ClientLead) => {
           </div>
         </div>
 
-        <!-- Dropdown Sumber -->
-        <div class="relative flex-1 sm:flex-none">
-          <button 
-            @click="showSourceDropdown = !showSourceDropdown"
-            class="w-full sm:w-auto flex items-center justify-between gap-2 px-3 py-2 rounded-xl border border-slate-200 bg-white font-medium text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer shadow-2xs"
-          >
-            <span class="truncate max-w-[110px] sm:max-w-none">Sumber: {{ selectedSource }}</span>
-            <ChevronDown class="w-3.5 h-3.5 text-slate-400 shrink-0" />
-          </button>
-
-          <div 
-            v-if="showSourceDropdown"
-            class="absolute left-0 sm:left-auto sm:right-0 mt-1.5 w-48 bg-white rounded-xl shadow-lg border border-slate-100 py-1 z-30 animate-in fade-in zoom-in-95 duration-100"
-          >
-            <button 
-              v-for="src in sourceOptions" 
-              :key="src"
-              @click="selectedSource = src; showSourceDropdown = false"
-              class="w-full text-left px-3.5 py-1.5 hover:bg-indigo-50 hover:text-indigo-600 font-medium text-slate-700 flex items-center justify-between text-xs"
-              :class="selectedSource === src ? 'text-indigo-600 font-bold bg-indigo-50/50' : ''"
-            >
-              <span>{{ src }}</span>
-              <span v-if="selectedSource === src" class="w-1.5 h-1.5 rounded-full bg-indigo-600"></span>
-            </button>
-          </div>
-        </div>
-
         <!-- Dropdown Paket -->
         <div class="relative flex-1 sm:flex-none">
           <button 
@@ -681,10 +649,9 @@ const sendWhatsAppDirect = (client: ClientLead) => {
               <th class="py-3 px-3.5 whitespace-nowrap">WhatsApp / Email</th>
               <th class="py-3 px-3.5 whitespace-nowrap">Paket & Nominal</th>
               <th class="py-3 px-3.5 text-center whitespace-nowrap">Bukti Bayar</th>
-              <th class="py-3 px-3.5 whitespace-nowrap">Sumber</th>
               <th class="py-3 px-3.5 whitespace-nowrap">Tgl Daftar</th>
-              <th class="py-3 px-3.5 whitespace-nowrap">Status CRM</th>
-              <th class="py-3 px-3.5 text-center whitespace-nowrap w-44">Aksi</th>
+              <th class="py-3 px-3.5 whitespace-nowrap">Status Pembayaran</th>
+              <th class="py-3 px-3.5 text-center whitespace-nowrap w-48">Aksi</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100">
@@ -752,27 +719,6 @@ const sendWhatsAppDirect = (client: ClientLead) => {
                 <span v-else class="text-slate-400 text-xs italic">-</span>
               </td>
 
-              <!-- Sumber Pendaftaran -->
-              <td class="py-3.5 px-3.5 font-bold whitespace-nowrap">
-                <span 
-                  v-if="client.source === 'Google Form'"
-                  class="px-2 py-0.5 rounded-full text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 inline-flex items-center gap-1"
-                >
-                  <FileSpreadsheet class="w-3 h-3 text-emerald-600 shrink-0" />
-                  <span>Google Form</span>
-                </span>
-                <span 
-                  v-else-if="client.source === 'Website'"
-                  class="px-2 py-0.5 rounded-full text-[10px] bg-indigo-50 text-indigo-700 border border-indigo-200 inline-flex items-center gap-1"
-                >
-                  <Sparkles class="w-3 h-3 text-indigo-600 shrink-0" />
-                  <span>Website</span>
-                </span>
-                <span v-else class="px-2 py-0.5 rounded-full text-[10px] bg-slate-100 text-slate-600">
-                  {{ client.source }}
-                </span>
-              </td>
-
               <!-- Tgl Daftar -->
               <td class="py-3.5 px-3.5 text-slate-500 font-medium whitespace-nowrap">
                 {{ client.registrationDate || client.lastFollowUp }}
@@ -807,7 +753,7 @@ const sendWhatsAppDirect = (client: ClientLead) => {
                     <span>Acc Bayar</span>
                   </button>
 
-                  <!-- Segmented Toolbar: Rapi, Terstruktur & Sejajar -->
+                  <!-- Segmented Toolbar: Rapi, Terstruktur & Sejajar (Detail, Edit, WA, Hapus) -->
                   <div class="inline-flex items-center rounded-xl border border-slate-200 bg-white shadow-2xs divide-x divide-slate-100 overflow-hidden">
                     <button 
                       @click="openDetailModal(client)"
@@ -816,6 +762,15 @@ const sendWhatsAppDirect = (client: ClientLead) => {
                     >
                       <Eye class="w-3.5 h-3.5 text-slate-500" />
                       <span class="text-[11px] font-bold">Detail</span>
+                    </button>
+
+                    <button 
+                      @click="openEditModal(client)"
+                      title="Edit Data Pendaftar"
+                      class="px-2.5 py-1.5 text-slate-600 hover:text-amber-600 hover:bg-amber-50/70 transition-all cursor-pointer flex items-center gap-1 text-xs font-semibold"
+                    >
+                      <Edit3 class="w-3.5 h-3.5 text-slate-500" />
+                      <span class="text-[11px] font-bold">Edit</span>
                     </button>
 
                     <button 
@@ -839,7 +794,7 @@ const sendWhatsAppDirect = (client: ClientLead) => {
             </tr>
 
             <tr v-if="filteredClients.length === 0">
-              <td colspan="9" class="py-8 text-center text-slate-400 text-xs">
+              <td colspan="8" class="py-8 text-center text-slate-400 text-xs">
                 Tidak ada data pendaftar yang cocok dengan filter / pencarian.
               </td>
             </tr>
@@ -967,7 +922,7 @@ const sendWhatsAppDirect = (client: ClientLead) => {
           </div>
         </div>
 
-        <div class="flex items-center gap-2 pt-1" @click.stop>
+        <div class="flex items-center gap-2 pt-1 flex-wrap" @click.stop>
           <button 
             v-if="client.paymentStatus === 'pending_verification'"
             @click="openFinanceVerifyModal(client)" 
@@ -977,13 +932,19 @@ const sendWhatsAppDirect = (client: ClientLead) => {
           </button>
           <button 
             @click="openDetailModal(client)" 
-            class="flex-1 py-2 px-3 rounded-xl bg-slate-100 text-slate-700 font-bold text-xs flex items-center justify-center gap-1"
+            class="flex-1 py-2 px-3 rounded-xl bg-slate-100 text-slate-700 font-bold text-xs flex items-center justify-center gap-1 hover:bg-slate-200 cursor-pointer"
           >
             <Eye class="w-3.5 h-3.5" /> Detail
           </button>
           <button 
+            @click="openEditModal(client)" 
+            class="flex-1 py-2 px-3 rounded-xl bg-amber-50 text-amber-700 border border-amber-200 font-bold text-xs flex items-center justify-center gap-1 hover:bg-amber-100 cursor-pointer"
+          >
+            <Edit3 class="w-3.5 h-3.5" /> Edit
+          </button>
+          <button 
             @click="sendWhatsAppDirect(client)" 
-            class="py-2 px-3 rounded-xl bg-emerald-600 text-white font-bold text-xs flex items-center justify-center gap-1"
+            class="py-2 px-3 rounded-xl bg-emerald-600 text-white font-bold text-xs flex items-center justify-center gap-1 hover:bg-emerald-700 cursor-pointer"
           >
             <MessageSquare class="w-3.5 h-3.5" /> WA
           </button>
