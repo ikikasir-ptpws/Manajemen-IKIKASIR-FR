@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import {
   TrendingUp,
   TrendingDown,
@@ -14,9 +14,12 @@ import {
   MinusCircle,
   PlusCircle,
   CheckCircle2,
-  Sparkles
+  Sparkles,
+  Search
 } from 'lucide-vue-next'
 import { useReportData } from '../../composables/useReportData'
+import { usePagination } from '../../composables/usePagination'
+import GlobalPagination from '../../components/common/GlobalPagination.vue'
 import CatatKasModal from './components/CatatKasModal.vue'
 import DateRangePicker from '../../components/common/DateRangePicker.vue'
 
@@ -130,10 +133,40 @@ const summary = computed(() => {
   }
 })
 
+// Search query for cash flow transactions
+const searchQuery = ref('')
+
 // Final list for table
 const filteredTransactions = computed(() => {
-  if (filterType.value === 'semua') return periodFilteredCashflow.value
-  return periodFilteredCashflow.value.filter(t => t.type === filterType.value)
+  let list = periodFilteredCashflow.value
+  if (filterType.value !== 'semua') {
+    list = list.filter(t => t.type === filterType.value)
+  }
+  if (searchQuery.value.trim()) {
+    const q = searchQuery.value.toLowerCase().trim()
+    list = list.filter(t => 
+      t.desc.toLowerCase().includes(q) || 
+      t.category.toLowerCase().includes(q) ||
+      t.date.toLowerCase().includes(q)
+    )
+  }
+  return list
+})
+
+// Pagination
+const {
+  currentPage,
+  pageSize,
+  totalItems,
+  totalPages,
+  startIndex,
+  endIndex,
+  paginatedItems: paginatedCashflow,
+  resetPage
+} = usePagination(filteredTransactions, 10)
+
+watch([startDate, endDate, filterType, searchQuery], () => {
+  resetPage()
 })
 
 const formatCurrency = (val: number) => {
@@ -333,54 +366,74 @@ const handleSaveExpense = (payload: {
       </div>
     </section>
 
-    <!-- Transactions Table -->
+    <!-- Transactions Table (Standardized Global Table with Pagination) -->
     <section class="bg-white rounded-2xl shadow-xs border border-slate-100 overflow-hidden">
-      <!-- Filter Tabs -->
-      <div class="px-4 sm:px-6 pt-4 sm:pt-5 pb-3 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <!-- Table Header & Toolbar -->
+      <div class="px-4 sm:px-6 py-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div class="flex items-center gap-2">
-          <h2 class="text-sm font-bold text-slate-800">Riwayat Transaksi</h2>
-          <span class="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-semibold">
+          <h2 class="text-sm font-bold text-slate-800">Riwayat Transaksi Arus Kas</h2>
+          <span class="text-xs bg-slate-100 text-slate-600 px-2.5 py-0.5 rounded-full font-bold">
             {{ filteredTransactions.length }} transaksi
           </span>
         </div>
 
-        <div class="flex items-center gap-1 bg-slate-100 rounded-xl p-1">
-          <button 
-            @click="filterType = 'semua'"
-            class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer"
-            :class="filterType === 'semua' ? 'bg-white text-slate-800 shadow-xs' : 'text-slate-500 hover:text-slate-700'"
-          >Semua</button>
-          <button 
-            @click="filterType = 'masuk'"
-            class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer"
-            :class="filterType === 'masuk' ? 'bg-white text-emerald-600 shadow-xs' : 'text-slate-500 hover:text-slate-700'"
-          >Masuk</button>
-          <button 
-            @click="filterType = 'keluar'"
-            class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer"
-            :class="filterType === 'keluar' ? 'bg-white text-rose-600 shadow-xs' : 'text-slate-500 hover:text-slate-700'"
-          >Keluar</button>
+        <div class="flex items-center gap-2.5 flex-wrap">
+          <!-- Search input -->
+          <div class="relative flex-1 sm:w-56">
+            <Search class="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input 
+              v-model="searchQuery" 
+              type="text" 
+              placeholder="Cari transaksi / kategori..."
+              class="w-full pl-8.5 pr-3 py-1.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 bg-slate-50/50 text-slate-800 placeholder-slate-400"
+            />
+          </div>
+
+          <!-- Type Filter Tabs -->
+          <div class="flex items-center gap-1 bg-slate-100 rounded-xl p-1 shrink-0">
+            <button 
+              @click="filterType = 'semua'"
+              class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer"
+              :class="filterType === 'semua' ? 'bg-white text-slate-800 shadow-xs' : 'text-slate-500 hover:text-slate-700'"
+            >Semua</button>
+            <button 
+              @click="filterType = 'masuk'"
+              class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer"
+              :class="filterType === 'masuk' ? 'bg-white text-emerald-600 shadow-xs' : 'text-slate-500 hover:text-slate-700'"
+            >Masuk</button>
+            <button 
+              @click="filterType = 'keluar'"
+              class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer"
+              :class="filterType === 'keluar' ? 'bg-white text-rose-600 shadow-xs' : 'text-slate-500 hover:text-slate-700'"
+            >Keluar</button>
+          </div>
         </div>
       </div>
 
-      <div class="overflow-x-auto">
-        <table class="w-full text-left text-sm min-w-[700px]">
-          <thead class="bg-slate-50/50">
+      <!-- Desktop Table View (md+) -->
+      <div class="hidden md:block overflow-x-auto">
+        <table class="w-full text-left text-sm min-w-[750px]">
+          <thead class="bg-slate-50/75 border-b border-slate-100 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
             <tr>
-              <th class="px-6 py-3 font-semibold text-slate-500 text-xs">Tanggal</th>
-              <th class="px-6 py-3 font-semibold text-slate-500 text-xs">Deskripsi</th>
-              <th class="px-6 py-3 font-semibold text-slate-500 text-xs">Kategori</th>
-              <th class="px-6 py-3 font-semibold text-slate-500 text-xs text-right">Nominal</th>
+              <th class="px-6 py-4 w-16">No</th>
+              <th class="px-6 py-4">Tanggal</th>
+              <th class="px-6 py-4">Deskripsi</th>
+              <th class="px-6 py-4">Kategori</th>
+              <th class="px-6 py-4 text-center">Tipe Kas</th>
+              <th class="px-6 py-4 text-right">Nominal</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-slate-50">
+          <tbody class="divide-y divide-slate-100">
             <tr 
-              v-for="t in filteredTransactions" 
+              v-for="(t, index) in paginatedCashflow" 
               :key="t.id" 
-              class="transition-colors"
-              :class="lastAddedId === t.id ? 'bg-indigo-50/80 animate-pulse duration-700' : 'hover:bg-slate-50/50'"
+              class="transition-colors hover:bg-slate-50/70"
+              :class="lastAddedId === t.id ? 'bg-indigo-50/80 animate-pulse duration-700' : ''"
             >
-              <td class="px-6 py-3.5 text-slate-500 text-xs font-medium whitespace-nowrap">
+              <td class="px-6 py-4 text-slate-500 font-medium">
+                {{ startIndex + index + 1 }}
+              </td>
+              <td class="px-6 py-4 text-slate-600 font-medium whitespace-nowrap text-xs">
                 <div class="flex items-center gap-1.5">
                   <span>{{ t.date }}</span>
                   <span v-if="lastAddedId === t.id" class="px-1.5 py-0.5 bg-indigo-600 text-white text-[10px] font-bold rounded-md">
@@ -388,7 +441,7 @@ const handleSaveExpense = (payload: {
                   </span>
                 </div>
               </td>
-              <td class="px-6 py-3.5">
+              <td class="px-6 py-4">
                 <div class="flex items-center gap-2.5">
                   <div 
                     class="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
@@ -397,17 +450,27 @@ const handleSaveExpense = (payload: {
                     <ArrowUpRight v-if="t.type === 'masuk'" class="w-3.5 h-3.5" />
                     <ArrowDownRight v-else class="w-3.5 h-3.5" />
                   </div>
-                  <span class="font-medium text-slate-700 text-sm">{{ t.desc }}</span>
+                  <span class="font-bold text-slate-800 text-xs sm:text-sm">{{ t.desc }}</span>
                 </div>
               </td>
-              <td class="px-6 py-3.5">
-                <span class="px-2 py-0.5 rounded-md text-[11px] font-medium bg-slate-100 text-slate-600">
+              <td class="px-6 py-4">
+                <span class="px-2.5 py-1 rounded-md text-[11px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
                   {{ t.category }}
                 </span>
               </td>
-              <td class="px-6 py-3.5 text-right">
+              <td class="px-6 py-4 text-center">
                 <span 
-                  class="font-bold text-sm"
+                  class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold"
+                  :class="t.type === 'masuk' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'"
+                >
+                  <ArrowUpRight v-if="t.type === 'masuk'" class="w-3 h-3" />
+                  <ArrowDownRight v-else class="w-3 h-3" />
+                  {{ t.type === 'masuk' ? 'Uang Masuk' : 'Uang Keluar' }}
+                </span>
+              </td>
+              <td class="px-6 py-4 text-right whitespace-nowrap">
+                <span 
+                  class="font-extrabold text-sm"
                   :class="t.type === 'masuk' ? 'text-emerald-600' : 'text-rose-600'"
                 >
                   {{ t.type === 'masuk' ? '+' : '-' }} {{ formatCurrency(t.amount) }}
@@ -415,13 +478,69 @@ const handleSaveExpense = (payload: {
               </td>
             </tr>
             <tr v-if="filteredTransactions.length === 0">
-              <td colspan="4" class="px-6 py-8 text-center text-slate-400 text-sm">
-                Tidak ada transaksi untuk filter ini.
+              <td colspan="6" class="px-6 py-10 text-center text-slate-400 text-sm">
+                Tidak ada data transaksi arus kas yang cocok dengan pencarian / filter ini.
               </td>
             </tr>
           </tbody>
         </table>
       </div>
+
+      <!-- Mobile List View (< md) -->
+      <div class="block md:hidden divide-y divide-slate-100">
+        <div 
+          v-for="(t, index) in paginatedCashflow" 
+          :key="t.id"
+          class="p-4 space-y-2.5"
+          :class="lastAddedId === t.id ? 'bg-indigo-50/80 animate-pulse' : ''"
+        >
+          <div class="flex items-start justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-bold text-slate-400">#{{ startIndex + index + 1 }}</span>
+              <span class="text-xs text-slate-500 font-medium">{{ t.date }}</span>
+              <span v-if="lastAddedId === t.id" class="px-1.5 py-0.5 bg-indigo-600 text-white text-[9px] font-bold rounded-md">
+                Baru
+              </span>
+            </div>
+            <span 
+              class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold"
+              :class="t.type === 'masuk' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'"
+            >
+              {{ t.type === 'masuk' ? 'Uang Masuk' : 'Uang Keluar' }}
+            </span>
+          </div>
+
+          <div class="font-bold text-slate-800 text-xs sm:text-sm">
+            {{ t.desc }}
+          </div>
+
+          <div class="flex items-center justify-between pt-1 border-t border-slate-50">
+            <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
+              {{ t.category }}
+            </span>
+            <span 
+              class="font-extrabold text-sm"
+              :class="t.type === 'masuk' ? 'text-emerald-600' : 'text-rose-600'"
+            >
+              {{ t.type === 'masuk' ? '+' : '-' }} {{ formatCurrency(t.amount) }}
+            </span>
+          </div>
+        </div>
+
+        <div v-if="filteredTransactions.length === 0" class="p-8 text-center text-slate-400 text-xs">
+          Tidak ada data transaksi yang cocok dengan filter.
+        </div>
+      </div>
+
+      <!-- PAGINATION FOOTER -->
+      <GlobalPagination
+        v-if="filteredTransactions.length > 0"
+        :current-page="currentPage"
+        :total-items="totalItems"
+        :page-size="pageSize"
+        @update:current-page="currentPage = $event"
+        @update:page-size="pageSize = $event"
+      />
     </section>
 
     <!-- Modal Catat Pemasukan / Pengeluaran -->

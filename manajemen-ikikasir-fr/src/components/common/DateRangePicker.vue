@@ -250,6 +250,9 @@ const setPreset = (type: string) => {
     tempStart.value = toIso(first)
     tempEnd.value = toIso(last)
   }
+
+  // Auto-apply preset selection immediately for fast, seamless UX
+  applySelection()
 }
 
 // Apply & Clear
@@ -287,7 +290,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div ref="containerRef" class="relative inline-block text-left select-none" :class="isOpen ? 'z-50' : 'z-20'">
+  <div ref="containerRef" class="relative inline-block text-left select-none" :class="isOpen ? 'z-[9999]' : 'z-20'">
     
     <!-- TRIGGER BUTTON -->
     <button 

@@ -1,26 +1,27 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { 
   Search, 
   Calendar, 
   RotateCcw, 
   Download, 
-  Printer,
+  Printer, 
   FileText, 
   TrendingUp, 
-  ShoppingBag,
+  ShoppingBag, 
   CheckCircle2, 
   Clock, 
   XCircle, 
   Eye, 
   X, 
-  Receipt,
-  ArrowRight,
-  Filter,
-  Info
+  Receipt, 
+  Filter, 
+  Info 
 } from 'lucide-vue-next'
 
 import { useReportData, type SalesTransaction as Transaction } from '../../composables/useReportData'
+import { usePagination } from '../../composables/usePagination'
+import GlobalPagination from '../../components/common/GlobalPagination.vue'
 import DateRangePicker from '../../components/common/DateRangePicker.vue'
 
 const { masterTransactions } = useReportData()
@@ -142,12 +143,29 @@ const summaryKpi = computed(() => {
   }
 })
 
+// Pagination Integration
+const {
+  currentPage,
+  pageSize,
+  totalItems,
+  totalPages,
+  startIndex,
+  endIndex,
+  paginatedItems: paginatedTransactions,
+  resetPage
+} = usePagination(filteredTransactions, 10)
+
+watch([searchQuery, startDate, endDate, filterStatus], () => {
+  resetPage()
+})
+
 // Reset Filters
 const resetFilters = () => {
   searchQuery.value = ''
   startDate.value = ''
   endDate.value = ''
   filterStatus.value = 'Semua'
+  resetPage()
 }
 
 // Actions
@@ -175,49 +193,6 @@ const handlePrint = () => {
         <span>{{ toastMessage }}</span>
       </div>
     </Transition>
-
-    <!-- ========== ALUR KERJA BANNER (TRANSAKSI PENJUALAN -> LAPORAN) ========== -->
-    <section class="bg-gradient-to-r from-indigo-900 via-indigo-850 to-slate-900 text-white rounded-2xl p-5 sm:p-6 shadow-md border border-indigo-700/30 print:hidden relative overflow-hidden">
-      <!-- Decorative background accent -->
-      <div class="absolute -right-10 -bottom-10 w-48 h-48 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none"></div>
-      
-      <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <div class="flex items-center gap-2">
-            <span class="px-2.5 py-0.5 rounded-md bg-indigo-500/30 text-indigo-200 text-[11px] font-bold tracking-wider uppercase border border-indigo-400/20">
-              Otomatis & Terintegrasi
-            </span>
-          </div>
-          <h2 class="text-lg sm:text-xl font-bold mt-2 tracking-tight text-white">Alur Data Laporan Penjualan</h2>
-          <p class="text-xs text-indigo-200/90 mt-1 max-w-xl">
-            Laporan ini dibuat berdasarkan transaksi penjualan yang tercatat di sistem secara otomatis.
-          </p>
-        </div>
-
-        <!-- Workflow Visual Diagram -->
-        <div class="flex items-center gap-1.5 sm:gap-2 overflow-x-auto py-1 scrollbar-none">
-          <div class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/10 border border-white/10 shrink-0 text-xs font-medium text-white">
-            <ShoppingBag class="w-4 h-4 text-indigo-300" />
-            <span>1. Transaksi Penjualan</span>
-          </div>
-          <ArrowRight class="w-3.5 h-3.5 text-indigo-300 shrink-0" />
-          <div class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/10 border border-white/10 shrink-0 text-xs font-medium text-white">
-            <Receipt class="w-4 h-4 text-emerald-300" />
-            <span>2. Data Tersimpan</span>
-          </div>
-          <ArrowRight class="w-3.5 h-3.5 text-indigo-300 shrink-0" />
-          <div class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-indigo-500/40 border border-indigo-300/40 shrink-0 text-xs font-bold text-white shadow-xs">
-            <FileText class="w-4 h-4 text-amber-300" />
-            <span>3. Laporan Penjualan</span>
-          </div>
-          <ArrowRight class="w-3.5 h-3.5 text-indigo-300 shrink-0" />
-          <div class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/10 border border-white/10 shrink-0 text-xs font-medium text-white">
-            <Eye class="w-4 h-4 text-cyan-300" />
-            <span>4. Detail Transaksi</span>
-          </div>
-        </div>
-      </div>
-    </section>
 
     <!-- ========== HEADER LAPORAN PENJUALAN ========== -->
     <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -253,71 +228,6 @@ const handlePrint = () => {
         </button>
       </div>
     </header>
-
-    <!-- ========== FILTER TANGGAL & PENCARIAN ========== -->
-    <section class="bg-white dark:bg-slate-800 rounded-2xl p-4 sm:p-5 shadow-xs border border-slate-100 dark:border-slate-700/50 space-y-4 print:hidden">
-      <div class="flex items-center justify-between">
-        <div class="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider">
-          <Filter class="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-          Filter & Pencarian Laporan
-        </div>
-        <button 
-          v-if="searchQuery || startDate || endDate || filterStatus !== 'Semua'"
-          @click="resetFilters"
-          class="flex items-center gap-1 text-[11px] font-bold text-rose-600 dark:text-rose-400 hover:underline cursor-pointer"
-        >
-          <RotateCcw class="w-3 h-3" />
-          Reset Filter
-        </button>
-      </div>
-
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3.5">
-        <!-- Search Input -->
-        <div class="lg:col-span-4 relative">
-          <Search class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-          <input 
-            v-model="searchQuery"
-            type="text" 
-            placeholder="Cari no. transaksi, pelanggan, produk..."
-            class="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50 text-slate-800 dark:text-slate-100 text-xs focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-900/30 transition-all"
-          />
-        </div>
-
-        <!-- Date Range Filter: Range Date Picker -->
-        <div class="lg:col-span-5 flex items-center">
-          <DateRangePicker 
-            v-model:startDate="startDate" 
-            v-model:endDate="endDate" 
-            placeholder="Filter Rentang Tanggal Penjualan"
-          />
-        </div>
-
-        <!-- Status Filter Tabs -->
-        <div class="lg:col-span-3 flex items-center gap-1 bg-slate-100 dark:bg-slate-900/60 rounded-xl p-1 shrink-0">
-          <button 
-            v-for="s in (['Semua', 'Selesai', 'Pending', 'Batal'] as const)" :key="s"
-            @click="filterStatus = s"
-            class="flex-1 py-2 rounded-lg text-[11px] font-bold transition-all cursor-pointer text-center"
-            :class="{
-              'bg-white dark:bg-slate-800 text-slate-800 dark:text-white shadow-xs': filterStatus === s && s === 'Semua',
-              'bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-xs': filterStatus === s && s === 'Selesai',
-              'bg-white dark:bg-slate-800 text-amber-600 dark:text-amber-400 shadow-xs': filterStatus === s && s === 'Pending',
-              'bg-white dark:bg-slate-800 text-rose-600 dark:text-rose-400 shadow-xs': filterStatus === s && s === 'Batal',
-              'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200': filterStatus !== s,
-            }"
-          >{{ s }}</button>
-        </div>
-      </div>
-
-      <!-- Quick Date Presets -->
-      <div class="flex items-center gap-2 pt-1 border-t border-slate-100 dark:border-slate-700/50 overflow-x-auto scrollbar-none">
-        <span class="text-[11px] font-medium text-slate-400 shrink-0">Preset Tanggal:</span>
-        <button @click="setDatePreset('all')" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 hover:bg-indigo-50 hover:text-indigo-600 transition-colors cursor-pointer shrink-0">Semua</button>
-        <button @click="setDatePreset('today')" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 hover:bg-indigo-50 hover:text-indigo-600 transition-colors cursor-pointer shrink-0">Hari Ini (12 Sep)</button>
-        <button @click="setDatePreset('7days')" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 hover:bg-indigo-50 hover:text-indigo-600 transition-colors cursor-pointer shrink-0">7 Hari Terakhir</button>
-        <button @click="setDatePreset('thisMonth')" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 hover:bg-indigo-50 hover:text-indigo-600 transition-colors cursor-pointer shrink-0">Bulan Ini</button>
-      </div>
-    </section>
 
     <!-- ========== RINGKASAN LAPORAN (KPI CARDS) ========== -->
     <section class="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -364,8 +274,73 @@ const handlePrint = () => {
       </div>
     </section>
 
+    <!-- ========== FILTER TANGGAL & PENCARIAN ========== -->
+    <section class="relative z-30 bg-white dark:bg-slate-800 rounded-2xl p-4 sm:p-5 shadow-xs border border-slate-100 dark:border-slate-700/50 space-y-4 print:hidden">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider">
+          <Filter class="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+          Filter & Pencarian Laporan
+        </div>
+        <button 
+          v-if="searchQuery || startDate || endDate || filterStatus !== 'Semua'"
+          @click="resetFilters"
+          class="flex items-center gap-1 text-[11px] font-bold text-rose-600 dark:text-rose-400 hover:underline cursor-pointer"
+        >
+          <RotateCcw class="w-3 h-3" />
+          Reset Filter
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3.5 relative z-30">
+        <!-- Search Input -->
+        <div class="lg:col-span-4 relative">
+          <Search class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <input 
+            v-model="searchQuery"
+            type="text" 
+            placeholder="Cari no. transaksi, pelanggan, produk..."
+            class="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50 text-slate-800 dark:text-slate-100 text-xs focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-900/30 transition-all"
+          />
+        </div>
+
+        <!-- Date Range Filter: Range Date Picker -->
+        <div class="lg:col-span-5 flex items-center relative z-40">
+          <DateRangePicker 
+            v-model:startDate="startDate" 
+            v-model:endDate="endDate" 
+            placeholder="Filter Rentang Tanggal Penjualan"
+          />
+        </div>
+
+        <!-- Status Filter Tabs -->
+        <div class="lg:col-span-3 flex items-center gap-1 bg-slate-100 dark:bg-slate-900/60 rounded-xl p-1 shrink-0">
+          <button 
+            v-for="s in (['Semua', 'Selesai', 'Pending', 'Batal'] as const)" :key="s"
+            @click="filterStatus = s"
+            class="flex-1 py-2 rounded-lg text-[11px] font-bold transition-all cursor-pointer text-center"
+            :class="{
+              'bg-white dark:bg-slate-800 text-slate-800 dark:text-white shadow-xs': filterStatus === s && s === 'Semua',
+              'bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-xs': filterStatus === s && s === 'Selesai',
+              'bg-white dark:bg-slate-800 text-amber-600 dark:text-amber-400 shadow-xs': filterStatus === s && s === 'Pending',
+              'bg-white dark:bg-slate-800 text-rose-600 dark:text-rose-400 shadow-xs': filterStatus === s && s === 'Batal',
+              'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200': filterStatus !== s,
+            }"
+          >{{ s }}</button>
+        </div>
+      </div>
+
+      <!-- Quick Date Presets -->
+      <div class="flex items-center gap-2 pt-1 border-t border-slate-100 dark:border-slate-700/50 overflow-x-auto scrollbar-none">
+        <span class="text-[11px] font-medium text-slate-400 shrink-0">Preset Tanggal:</span>
+        <button @click="setDatePreset('all')" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 hover:bg-indigo-50 hover:text-indigo-600 transition-colors cursor-pointer shrink-0">Semua</button>
+        <button @click="setDatePreset('today')" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 hover:bg-indigo-50 hover:text-indigo-600 transition-colors cursor-pointer shrink-0">Hari Ini (12 Sep)</button>
+        <button @click="setDatePreset('7days')" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 hover:bg-indigo-50 hover:text-indigo-600 transition-colors cursor-pointer shrink-0">7 Hari Terakhir</button>
+        <button @click="setDatePreset('thisMonth')" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 hover:bg-indigo-50 hover:text-indigo-600 transition-colors cursor-pointer shrink-0">Bulan Ini</button>
+      </div>
+    </section>
+
     <!-- ========== TABEL LAPORAN PENJUALAN ========== -->
-    <section class="bg-white dark:bg-slate-800 rounded-2xl shadow-xs border border-slate-100 dark:border-slate-700/50 overflow-hidden">
+    <section class="relative z-10 bg-white dark:bg-slate-800 rounded-2xl shadow-xs border border-slate-100 dark:border-slate-700/50 overflow-hidden">
       <!-- Table Header -->
       <div class="px-5 py-4 border-b border-slate-100 dark:border-slate-700/50 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div>
@@ -401,12 +376,12 @@ const handlePrint = () => {
           </thead>
           <tbody class="divide-y divide-slate-100 dark:divide-slate-700/50">
             <tr 
-              v-for="(trx, idx) in filteredTransactions" :key="trx.id"
+              v-for="(trx, idx) in paginatedTransactions" :key="trx.id"
               class="hover:bg-slate-50/60 dark:hover:bg-slate-700/30 transition-colors"
             >
               <!-- No -->
               <td class="px-5 py-4 text-center text-slate-400 dark:text-slate-500 text-xs font-medium">
-                {{ idx + 1 }}
+                {{ startIndex + idx + 1 }}
               </td>
 
               <!-- Tanggal -->
@@ -492,13 +467,13 @@ const handlePrint = () => {
       <!-- Mobile List View (Visible on < md) -->
       <div class="md:hidden divide-y divide-slate-100 dark:divide-slate-700/50">
         <div 
-          v-for="(trx, idx) in filteredTransactions" :key="trx.id"
+          v-for="(trx, idx) in paginatedTransactions" :key="trx.id"
           class="p-4 space-y-3 hover:bg-slate-50/50 dark:hover:bg-slate-700/20 transition-colors"
         >
           <!-- Top Row: Invoice & Status -->
           <div class="flex items-start justify-between gap-2">
             <div>
-              <span class="text-[10px] text-slate-400 font-bold mr-1.5">#{{ idx + 1 }}</span>
+              <span class="text-[10px] text-slate-400 font-bold mr-1.5">#{{ startIndex + idx + 1 }}</span>
               <span class="font-mono font-bold text-indigo-600 dark:text-indigo-400 text-xs bg-indigo-50 dark:bg-indigo-900/30 px-2 py-0.5 rounded">
                 {{ trx.invoiceNo }}
               </span>
@@ -551,20 +526,15 @@ const handlePrint = () => {
         </div>
       </div>
 
-      <!-- Footer Recap -->
-      <div class="px-5 py-4 border-t border-slate-100 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-900/30 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
-        <div class="text-slate-500 dark:text-slate-400 font-medium text-center sm:text-left">
-          Menampilkan <strong class="text-slate-800 dark:text-slate-200">{{ filteredTransactions.length }}</strong> dari <strong class="text-slate-800 dark:text-slate-200">{{ transactions.length }}</strong> total transaksi terdaftar.
-        </div>
-        <div class="flex items-center gap-4">
-          <div class="text-right">
-            <span class="text-slate-500 dark:text-slate-400">Total Pendapatan Terfilter (Selesai):</span>
-            <span class="ml-2 font-extrabold text-emerald-600 dark:text-emerald-400 text-sm sm:text-base">
-              {{ formatCurrency(summaryKpi.totalPenjualan) }}
-            </span>
-          </div>
-        </div>
-      </div>
+      <!-- PAGINATION FOOTER -->
+      <GlobalPagination
+        v-if="filteredTransactions.length > 0"
+        :current-page="currentPage"
+        :total-items="totalItems"
+        :page-size="pageSize"
+        @update:current-page="currentPage = $event"
+        @update:page-size="pageSize = $event"
+      />
     </section>
 
     <!-- ========== MODAL DETAIL TRANSAKSI ========== -->
