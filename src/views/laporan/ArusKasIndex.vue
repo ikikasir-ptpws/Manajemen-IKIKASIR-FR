@@ -1,13 +1,36 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { TrendingUp, TrendingDown, Download, ArrowUpRight, ArrowDownRight, Calendar, ChevronDown, Filter, Wallet, DollarSign, MinusCircle, PlusCircle } from 'lucide-vue-next'
+import {
+  TrendingUp,
+  TrendingDown,
+  Download,
+  ArrowUpRight,
+  ArrowDownRight,
+  Calendar,
+  ChevronDown,
+  Filter,
+  Wallet,
+  DollarSign,
+  MinusCircle,
+  PlusCircle,
+  CheckCircle2,
+  Sparkles
+} from 'lucide-vue-next'
 import { useReportData } from '../../composables/useReportData'
+import CatatKasModal from './components/CatatKasModal.vue'
 
-const { masterTransactions, masterExpenses, getTrxTotalAmount } = useReportData()
+const {
+  masterTransactions,
+  masterExpenses,
+  getTrxTotalAmount,
+  addIncomeTransaction,
+  addExpenseTransaction
+} = useReportData()
 
+// Period selection
 const selectedPeriod = ref('Bulan Ini')
 const showPeriodDropdown = ref(false)
-const periods = ['Hari Ini', 'Minggu Ini', 'Bulan Ini', '3 Bulan Terakhir', 'Tahun Ini']
+const periods = ['Semua Periode', 'Hari Ini', 'Minggu Ini', 'Bulan Ini', '3 Bulan Terakhir', 'Tahun Ini']
 
 const selectPeriod = (p: string) => {
   selectedPeriod.value = p
@@ -16,27 +39,59 @@ const selectPeriod = (p: string) => {
 
 const filterType = ref<'semua' | 'masuk' | 'keluar'>('semua')
 
+// Modal state
+const isModalOpen = ref(false)
+const modalDefaultType = ref<'masuk' | 'keluar'>('masuk')
+const lastAddedId = ref<string | null>(null)
+
+// Toast notification
+const toastMessage = ref<string | null>(null)
+let toastTimer: any = null
+
+const showToast = (msg: string) => {
+  if (toastTimer) clearTimeout(toastTimer)
+  toastMessage.value = msg
+  toastTimer = setTimeout(() => {
+    toastMessage.value = null
+  }, 4000)
+}
+
+const openModal = (type: 'masuk' | 'keluar') => {
+  modalDefaultType.value = type
+  isModalOpen.value = true
+}
+
+const closeModal = () => {
+  isModalOpen.value = false
+}
+
 // Master cashflow generated dynamically from single source of truth
 const cashflowTransactions = computed(() => {
   const list: { id: string | number, date: string, rawDate: string, desc: string, category: string, type: 'masuk' | 'keluar', amount: number }[] = []
   
-  // 1. Pemasukan (Penyelesaian transaksi penjualan)
+  // 1. Pemasukan (Penyelesaian transaksi penjualan & penerimaan kas)
   masterTransactions.value.forEach((trx) => {
     if (trx.status === 'Selesai') {
       const total = getTrxTotalAmount(trx)
+      const firstItem = trx.items[0]
+      const hasCustomDesc = firstItem && firstItem.name && firstItem.name !== firstItem.category
+      const descText = hasCustomDesc
+        ? `Pembayaran Transaksi (${trx.invoiceNo}) - ${trx.customer} (${firstItem.name})`
+        : `Pembayaran Transaksi (${trx.invoiceNo}) - ${trx.customer}`
+
       list.push({
         id: `in-${trx.id}`,
         date: trx.displayDate,
         rawDate: trx.date,
-        desc: `Pembayaran Transaksi (${trx.invoiceNo}) - ${trx.customer}`,
-        category: trx.items[0]?.category || 'Penjualan',
+        desc: descText,
+        category: firstItem?.category || 'Penjualan',
         type: 'masuk',
         amount: total
       })
     }
   })
 
-  // 2. Pengeluaran (Biaya operasional)
+  // 2. Pengeluaran (Biaya operasional & beban kas)
   masterExpenses.value.forEach((exp) => {
     list.push({
       id: `out-${exp.id}`,
@@ -55,11 +110,16 @@ const cashflowTransactions = computed(() => {
 // Filtered by selected period
 const periodFilteredCashflow = computed(() => {
   const p = selectedPeriod.value
+  const todayStr = new Date().toISOString().slice(0, 10)
+  const currentMonthStr = new Date().toISOString().slice(0, 7)
+
   return cashflowTransactions.value.filter(t => {
-    if (p === 'Hari Ini') return t.rawDate === '2026-09-12'
-    if (p === 'Minggu Ini') return t.rawDate >= '2026-09-06' && t.rawDate <= '2026-09-12'
-    if (p === 'Bulan Ini') return t.rawDate.startsWith('2026-09')
+    if (p === 'Semua Periode') return true
+    if (p === 'Hari Ini') return t.rawDate === '2026-09-12' || t.rawDate === todayStr
+    if (p === 'Minggu Ini') return (t.rawDate >= '2026-09-06' && t.rawDate <= '2026-09-12') || t.rawDate >= todayStr
+    if (p === 'Bulan Ini') return t.rawDate.startsWith('2026-09') || t.rawDate.startsWith(currentMonthStr)
     if (p === '3 Bulan Terakhir') return t.rawDate >= '2026-07-01'
+    if (p === 'Tahun Ini') return t.rawDate.startsWith('2026') || t.rawDate.startsWith(new Date().getFullYear().toString())
     return true
   })
 })
@@ -96,11 +156,90 @@ const formatCurrency = (val: number) => {
 const handleExport = () => {
   alert('Data Arus Kas berhasil diekspor! (Demo)')
 }
+
+// Handlers for modal submissions
+const handleSaveIncome = (payload: {
+  date: string
+  displayDate: string
+  customer: string
+  desc: string
+  category: string
+  amount: number
+  paymentMethod: string
+}) => {
+  const createdTrx = addIncomeTransaction({
+    date: payload.date,
+    displayDate: payload.displayDate,
+    customer: payload.customer,
+    desc: payload.desc,
+    category: payload.category,
+    amount: payload.amount,
+    paymentMethod: payload.paymentMethod
+  })
+
+  lastAddedId.value = `in-${createdTrx.id}`
+  isModalOpen.value = false
+  showToast(`Pemasukan sebesar ${formatCurrency(payload.amount)} dari "${payload.customer}" berhasil dicatat ke Arus Kas!`)
+
+  // Clear highlight after 5 seconds
+  setTimeout(() => {
+    if (lastAddedId.value === `in-${createdTrx.id}`) {
+      lastAddedId.value = null
+    }
+  }, 5000)
+}
+
+const handleSaveExpense = (payload: {
+  date: string
+  displayDate: string
+  desc: string
+  category: string
+  amount: number
+  paymentMethod: string
+}) => {
+  const createdExp = addExpenseTransaction({
+    date: payload.date,
+    displayDate: payload.displayDate,
+    desc: payload.desc,
+    category: payload.category,
+    amount: payload.amount
+  })
+
+  lastAddedId.value = `out-${createdExp.id}`
+  isModalOpen.value = false
+  showToast(`Pengeluaran sebesar ${formatCurrency(payload.amount)} untuk "${payload.desc}" berhasil dicatat ke Arus Kas!`)
+
+  // Clear highlight after 5 seconds
+  setTimeout(() => {
+    if (lastAddedId.value === `out-${createdExp.id}`) {
+      lastAddedId.value = null
+    }
+  }, 5000)
+}
 </script>
 
-
 <template>
-  <div class="p-4 sm:p-6 md:p-8 space-y-5 sm:space-y-6 max-w-[1400px] mx-auto select-none">
+  <div class="p-4 sm:p-6 md:p-8 space-y-5 sm:space-y-6 max-w-[1400px] mx-auto select-none relative">
+
+    <!-- Toast Notification -->
+    <Transition
+      enter-active-class="transform transition ease-out duration-300"
+      enter-from-class="translate-y-2 opacity-0 sm:translate-y-0 sm:translate-x-4"
+      enter-to-class="translate-y-0 opacity-100 sm:translate-x-0"
+      leave-active-class="transition ease-in duration-200"
+      leave-from-class="opacity-100"
+      leave-to-class="opacity-0"
+    >
+      <div 
+        v-if="toastMessage" 
+        class="fixed top-5 right-5 z-50 bg-slate-900 text-white px-5 py-3.5 rounded-2xl shadow-2xl border border-slate-700 text-xs font-semibold flex items-center gap-3 max-w-md pointer-events-auto"
+      >
+        <div class="w-7 h-7 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+          <CheckCircle2 class="w-4 h-4" />
+        </div>
+        <span class="leading-relaxed">{{ toastMessage }}</span>
+      </div>
+    </Transition>
 
     <!-- Header -->
     <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
@@ -109,7 +248,7 @@ const handleExport = () => {
           <TrendingUp class="w-6 h-6 text-blue-600" />
           Laporan Arus Kas
         </h1>
-        <p class="text-xs text-slate-500 mt-1 font-medium">Pantau arus uang masuk dan keluar pada bisnis Anda.</p>
+        <p class="text-xs text-slate-500 mt-1 font-medium">Pantau arus uang masuk dan keluar pada bisnis Anda secara real-time.</p>
       </div>
 
       <div class="flex items-center gap-2 flex-wrap">
@@ -138,12 +277,31 @@ const handleExport = () => {
           </div>
         </div>
 
+        <!-- Export Excel Button -->
         <button 
           @click="handleExport"
-          class="flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 active:scale-95 text-slate-700 text-xs font-bold transition-all cursor-pointer shadow-2xs"
+          class="flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 active:scale-95 text-slate-700 text-xs font-bold transition-all cursor-pointer shadow-2xs"
         >
-          <Download class="w-4 h-4" />
+          <Download class="w-4 h-4 text-slate-500" />
           <span>Export Excel</span>
+        </button>
+
+        <!-- Tombol Catat Pemasukan -->
+        <button 
+          @click="openModal('masuk')"
+          class="flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold transition-all cursor-pointer shadow-xs hover:shadow-md"
+        >
+          <PlusCircle class="w-4 h-4" />
+          <span>Catat Pemasukan</span>
+        </button>
+
+        <!-- Tombol Catat Pengeluaran -->
+        <button 
+          @click="openModal('keluar')"
+          class="flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 active:scale-95 text-white text-xs font-bold transition-all cursor-pointer shadow-xs hover:shadow-md"
+        >
+          <MinusCircle class="w-4 h-4" />
+          <span>Catat Pengeluaran</span>
         </button>
       </div>
     </header>
@@ -151,12 +309,17 @@ const handleExport = () => {
     <!-- KPI Summary Cards -->
     <section class="grid grid-cols-1 sm:grid-cols-3 gap-4">
       <!-- Pemasukan -->
-      <div class="kpi-card bg-white rounded-2xl p-5 shadow-xs border border-slate-100 hover:shadow-md transition-all">
+      <div class="kpi-card bg-white rounded-2xl p-5 shadow-xs border border-slate-100 hover:shadow-md transition-all relative group">
         <div class="flex items-center justify-between mb-3">
           <span class="text-xs font-semibold text-slate-500">Total Pemasukan</span>
-          <div class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-            <PlusCircle class="w-5 h-5" />
-          </div>
+          <button
+            @click="openModal('masuk')"
+            title="Klik untuk mencatat pemasukan baru"
+            class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white text-xs font-bold transition-all cursor-pointer shadow-2xs"
+          >
+            <PlusCircle class="w-4 h-4" />
+            <span class="text-[11px] font-bold hidden sm:inline">+ Catat</span>
+          </button>
         </div>
         <h3 class="text-xl sm:text-2xl font-extrabold text-slate-800 tracking-tight">{{ formatCurrency(summary.totalMasuk) }}</h3>
         <div class="flex items-center gap-1 text-[11px] font-semibold text-emerald-600 mt-1">
@@ -166,12 +329,17 @@ const handleExport = () => {
       </div>
 
       <!-- Pengeluaran -->
-      <div class="kpi-card bg-white rounded-2xl p-5 shadow-xs border border-slate-100 hover:shadow-md transition-all">
+      <div class="kpi-card bg-white rounded-2xl p-5 shadow-xs border border-slate-100 hover:shadow-md transition-all relative group">
         <div class="flex items-center justify-between mb-3">
           <span class="text-xs font-semibold text-slate-500">Total Pengeluaran</span>
-          <div class="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center">
-            <MinusCircle class="w-5 h-5" />
-          </div>
+          <button
+            @click="openModal('keluar')"
+            title="Klik untuk mencatat pengeluaran baru"
+            class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white text-xs font-bold transition-all cursor-pointer shadow-2xs"
+          >
+            <MinusCircle class="w-4 h-4" />
+            <span class="text-[11px] font-bold hidden sm:inline">- Catat</span>
+          </button>
         </div>
         <h3 class="text-xl sm:text-2xl font-extrabold text-slate-800 tracking-tight">{{ formatCurrency(summary.totalKeluar) }}</h3>
         <div class="flex items-center gap-1 text-[11px] font-semibold text-rose-600 mt-1">
@@ -200,7 +368,13 @@ const handleExport = () => {
     <section class="bg-white rounded-2xl shadow-xs border border-slate-100 overflow-hidden">
       <!-- Filter Tabs -->
       <div class="px-4 sm:px-6 pt-4 sm:pt-5 pb-3 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h2 class="text-sm font-bold text-slate-800">Riwayat Transaksi</h2>
+        <div class="flex items-center gap-2">
+          <h2 class="text-sm font-bold text-slate-800">Riwayat Transaksi</h2>
+          <span class="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-semibold">
+            {{ filteredTransactions.length }} transaksi
+          </span>
+        </div>
+
         <div class="flex items-center gap-1 bg-slate-100 rounded-xl p-1">
           <button 
             @click="filterType = 'semua'"
@@ -231,8 +405,20 @@ const handleExport = () => {
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-50">
-            <tr v-for="t in filteredTransactions" :key="t.id" class="hover:bg-slate-50/50 transition-colors">
-              <td class="px-6 py-3.5 text-slate-500 text-xs font-medium whitespace-nowrap">{{ t.date }}</td>
+            <tr 
+              v-for="t in filteredTransactions" 
+              :key="t.id" 
+              class="transition-colors"
+              :class="lastAddedId === t.id ? 'bg-indigo-50/80 animate-pulse duration-700' : 'hover:bg-slate-50/50'"
+            >
+              <td class="px-6 py-3.5 text-slate-500 text-xs font-medium whitespace-nowrap">
+                <div class="flex items-center gap-1.5">
+                  <span>{{ t.date }}</span>
+                  <span v-if="lastAddedId === t.id" class="px-1.5 py-0.5 bg-indigo-600 text-white text-[10px] font-bold rounded-md">
+                    Baru
+                  </span>
+                </div>
+              </td>
               <td class="px-6 py-3.5">
                 <div class="flex items-center gap-2.5">
                   <div 
@@ -268,5 +454,14 @@ const handleExport = () => {
         </table>
       </div>
     </section>
+
+    <!-- Modal Catat Pemasukan / Pengeluaran -->
+    <CatatKasModal
+      :is-open="isModalOpen"
+      :default-type="modalDefaultType"
+      @close="closeModal"
+      @submit-income="handleSaveIncome"
+      @submit-expense="handleSaveExpense"
+    />
   </div>
 </template>

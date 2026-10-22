@@ -650,7 +650,7 @@ const sendWhatsAppDirect = (client: ClientLead) => {
               <th class="py-3 px-3.5 whitespace-nowrap">Paket & Nominal</th>
               <th class="py-3 px-3.5 text-center whitespace-nowrap">Bukti Bayar</th>
               <th class="py-3 px-3.5 whitespace-nowrap">Tgl Daftar</th>
-              <th class="py-3 px-3.5 whitespace-nowrap">Status CRM</th>
+              <th class="py-3 px-3.5 whitespace-nowrap">Status Pembayaran</th>
               <th class="py-3 px-3.5 text-center whitespace-nowrap w-48">Aksi</th>
             </tr>
           </thead>
