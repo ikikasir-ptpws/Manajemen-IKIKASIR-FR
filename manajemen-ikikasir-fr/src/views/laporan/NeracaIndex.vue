@@ -3,17 +3,12 @@
 import { ref, computed } from 'vue'
 import { Calculator, Download, Calendar, ChevronDown, Scale, Building, Landmark, Wallet, ArrowRight } from 'lucide-vue-next'
 import { useReportData } from '../../composables/useReportData'
+import DateRangePicker from '../../components/common/DateRangePicker.vue'
 
 const { masterTransactions, masterExpenses, getTrxTotalAmount } = useReportData()
 
-const selectedPeriod = ref('September 2026')
-const showPeriodDropdown = ref(false)
-const periods = ['Agustus 2026', 'September 2026', 'Q3 2026', 'Tahun 2026']
-
-const selectPeriod = (p: string) => {
-  selectedPeriod.value = p
-  showPeriodDropdown.value = false
-}
+const startDate = ref('2026-09-01')
+const endDate = ref('2026-09-30')
 
 const formatCurrency = (val: number) => {
   return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val)
@@ -21,22 +16,18 @@ const formatCurrency = (val: number) => {
 
 // Sales transactions filtered by period
 const filteredSales = computed(() => {
-  const p = selectedPeriod.value
   return masterTransactions.value.filter(trx => {
-    if (p === 'September 2026') return trx.date.startsWith('2026-09')
-    if (p === 'Agustus 2026') return trx.date.startsWith('2026-08')
-    if (p === 'Q3 2026') return trx.date >= '2026-07-01' && trx.date <= '2026-09-30'
+    if (startDate.value && trx.date < startDate.value) return false
+    if (endDate.value && trx.date > endDate.value) return false
     return true
   })
 })
 
 // Expense items filtered by period
 const filteredExpenses = computed(() => {
-  const p = selectedPeriod.value
   return masterExpenses.value.filter(exp => {
-    if (p === 'September 2026') return exp.date.startsWith('2026-09')
-    if (p === 'Agustus 2026') return exp.date.startsWith('2026-08')
-    if (p === 'Q3 2026') return exp.date >= '2026-07-01' && exp.date <= '2026-09-30'
+    if (startDate.value && exp.date < startDate.value) return false
+    if (endDate.value && exp.date > endDate.value) return false
     return true
   })
 })
@@ -126,29 +117,11 @@ const handleExport = () => {
       </div>
 
       <div class="flex items-center gap-2 flex-wrap">
-        <div class="relative">
-          <button 
-            @click="showPeriodDropdown = !showPeriodDropdown"
-            class="flex items-center gap-2 px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer shadow-2xs"
-          >
-            <Calendar class="w-3.5 h-3.5 text-slate-500" />
-            <span>{{ selectedPeriod }}</span>
-            <ChevronDown class="w-3 h-3 text-slate-400" />
-          </button>
-          <div 
-            v-if="showPeriodDropdown"
-            class="absolute right-0 mt-1.5 w-48 bg-white rounded-2xl shadow-xl border border-slate-100 py-1.5 z-30 text-xs"
-          >
-            <button 
-              v-for="p in periods" :key="p"
-              @click="selectPeriod(p)"
-              class="w-full text-left px-3.5 py-2 hover:bg-indigo-50 hover:text-indigo-600 font-medium text-slate-700 cursor-pointer"
-              :class="selectedPeriod === p ? 'bg-indigo-50 text-indigo-600' : ''"
-            >
-              {{ p }}
-            </button>
-          </div>
-        </div>
+        <DateRangePicker 
+          v-model:startDate="startDate" 
+          v-model:endDate="endDate" 
+          placeholder="Filter Rentang Tanggal"
+        />
         
         <button 
           @click="handleExport"

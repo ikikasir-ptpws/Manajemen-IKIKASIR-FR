@@ -12,11 +12,14 @@ import { computed, ref, watch } from "vue";
 import { getCustomerWaUrl, useAppData } from "../../composables/useAppData";
 import { usePagination } from "../../composables/usePagination";
 import GlobalPagination from "../../components/common/GlobalPagination.vue";
+import DateRangePicker from "../../components/common/DateRangePicker.vue";
 import type { PackageType } from "../../types/dashboard";
 
 const { expiredCustomers, renewCustomerSubscription } = useAppData();
 
 const searchQuery = ref("");
+const startDate = ref("");
+const endDate = ref("");
 const showRenewModal = ref(false);
 const selectedCustomer = ref<any>(null);
 const selectedMonths = ref(1); // 1, 3, 6, 12 months
@@ -32,7 +35,7 @@ const showToast = (msg: string) => {
 };
 
 const filteredCustomers = computed(() => {
-  const list = expiredCustomers.value.map((c) => ({
+  let list = expiredCustomers.value.map((c) => ({
     id: c.id,
     name: c.name,
     business: c.businessName || "Toko",
@@ -42,6 +45,13 @@ const filteredCustomers = computed(() => {
     daysExpired: c.daysExpired || 1,
     rawCustomer: c,
   }));
+
+  if (startDate.value) {
+    list = list.filter((c) => c.expiredDate >= startDate.value);
+  }
+  if (endDate.value) {
+    list = list.filter((c) => c.expiredDate <= endDate.value);
+  }
 
   if (!searchQuery.value) return list;
   const q = searchQuery.value.toLowerCase();
@@ -65,7 +75,7 @@ const {
   resetPage
 } = usePagination(filteredCustomers, 10);
 
-watch([searchQuery], () => {
+watch([searchQuery, startDate, endDate], () => {
   resetPage();
 });
 
@@ -133,8 +143,13 @@ const confirmRenew = () => {
         </p>
       </div>
 
-      <div class="flex items-center gap-2 w-full sm:w-auto">
-        <div class="relative flex-1 sm:w-64">
+      <div class="flex items-center gap-2 w-full sm:w-auto flex-wrap">
+        <DateRangePicker
+          v-model:startDate="startDate"
+          v-model:endDate="endDate"
+          placeholder="Filter Rentang Tanggal"
+        />
+        <div class="relative flex-1 sm:w-56">
           <Search
             class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"
           />

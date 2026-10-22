@@ -4,11 +4,14 @@ import { Receipt, Search, Download, CheckCircle2, XCircle, Clock, Eye, X, Chevro
 import { useAppData } from '../../composables/useAppData'
 import { usePagination } from '../../composables/usePagination'
 import GlobalPagination from '../../components/common/GlobalPagination.vue'
+import DateRangePicker from '../../components/common/DateRangePicker.vue'
 
 const { invoices, markInvoicePaid } = useAppData()
 
 const searchQuery = ref('')
 const filterStatus = ref('Semua')
+const startDate = ref('')
+const endDate = ref('')
 const showFilterDropdown = ref(false)
 const showInvoiceModal = ref(false)
 const selectedInvoice = ref<any>(null)
@@ -37,6 +40,12 @@ const filteredSubs = computed(() => {
   if (filterStatus.value !== 'Semua') {
     list = list.filter(s => s.status === filterStatus.value)
   }
+  if (startDate.value) {
+    list = list.filter(s => s.date >= startDate.value)
+  }
+  if (endDate.value) {
+    list = list.filter(s => s.date <= endDate.value)
+  }
   if (searchQuery.value) {
     const q = searchQuery.value.toLowerCase()
     list = list.filter(s => s.customer.toLowerCase().includes(q) || s.business.toLowerCase().includes(q) || s.id.toLowerCase().includes(q))
@@ -56,7 +65,7 @@ const {
   resetPage
 } = usePagination(filteredSubs, 10)
 
-watch([searchQuery, filterStatus], () => {
+watch([searchQuery, filterStatus, startDate, endDate], () => {
   resetPage()
 })
 
@@ -98,8 +107,13 @@ const handleExport = () => {
         <p class="text-xs text-slate-500 mt-1">Riwayat pembayaran dan tagihan langganan kasir.</p>
       </div>
 
-      <div class="flex items-center gap-2 w-full sm:w-auto">
-        <div class="relative flex-1 sm:w-64">
+      <div class="flex items-center gap-2 w-full sm:w-auto flex-wrap">
+        <DateRangePicker 
+          v-model:startDate="startDate" 
+          v-model:endDate="endDate" 
+          placeholder="Filter Rentang Tanggal"
+        />
+        <div class="relative flex-1 sm:w-56">
           <Search class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input 
             v-model="searchQuery"

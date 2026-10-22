@@ -18,6 +18,7 @@ import {
 } from 'lucide-vue-next'
 import { useReportData } from '../../composables/useReportData'
 import CatatKasModal from './components/CatatKasModal.vue'
+import DateRangePicker from '../../components/common/DateRangePicker.vue'
 
 const {
   masterTransactions,
@@ -27,15 +28,9 @@ const {
   addExpenseTransaction
 } = useReportData()
 
-// Period selection
-const selectedPeriod = ref('Bulan Ini')
-const showPeriodDropdown = ref(false)
-const periods = ['Semua Periode', 'Hari Ini', 'Minggu Ini', 'Bulan Ini', '3 Bulan Terakhir', 'Tahun Ini']
-
-const selectPeriod = (p: string) => {
-  selectedPeriod.value = p
-  showPeriodDropdown.value = false
-}
+// Date range filter
+const startDate = ref('2026-09-01')
+const endDate = ref('2026-09-30')
 
 const filterType = ref<'semua' | 'masuk' | 'keluar'>('semua')
 
@@ -107,19 +102,11 @@ const cashflowTransactions = computed(() => {
   return list.sort((a, b) => b.rawDate.localeCompare(a.rawDate))
 })
 
-// Filtered by selected period
+// Filtered by selected date range
 const periodFilteredCashflow = computed(() => {
-  const p = selectedPeriod.value
-  const todayStr = new Date().toISOString().slice(0, 10)
-  const currentMonthStr = new Date().toISOString().slice(0, 7)
-
   return cashflowTransactions.value.filter(t => {
-    if (p === 'Semua Periode') return true
-    if (p === 'Hari Ini') return t.rawDate === '2026-09-12' || t.rawDate === todayStr
-    if (p === 'Minggu Ini') return (t.rawDate >= '2026-09-06' && t.rawDate <= '2026-09-12') || t.rawDate >= todayStr
-    if (p === 'Bulan Ini') return t.rawDate.startsWith('2026-09') || t.rawDate.startsWith(currentMonthStr)
-    if (p === '3 Bulan Terakhir') return t.rawDate >= '2026-07-01'
-    if (p === 'Tahun Ini') return t.rawDate.startsWith('2026') || t.rawDate.startsWith(new Date().getFullYear().toString())
+    if (startDate.value && t.rawDate < startDate.value) return false
+    if (endDate.value && t.rawDate > endDate.value) return false
     return true
   })
 })
@@ -252,30 +239,12 @@ const handleSaveExpense = (payload: {
       </div>
 
       <div class="flex items-center gap-2 flex-wrap">
-        <!-- Period Selector -->
-        <div class="relative">
-          <button 
-            @click="showPeriodDropdown = !showPeriodDropdown"
-            class="flex items-center gap-2 px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer shadow-2xs"
-          >
-            <Calendar class="w-3.5 h-3.5 text-slate-500" />
-            <span>{{ selectedPeriod }}</span>
-            <ChevronDown class="w-3 h-3 text-slate-400" />
-          </button>
-          <div 
-            v-if="showPeriodDropdown"
-            class="absolute right-0 mt-1.5 w-48 bg-white rounded-2xl shadow-xl border border-slate-100 py-1.5 z-30 text-xs"
-          >
-            <button 
-              v-for="p in periods" :key="p"
-              @click="selectPeriod(p)"
-              class="w-full text-left px-3.5 py-2 hover:bg-indigo-50 hover:text-indigo-600 font-medium text-slate-700 cursor-pointer"
-              :class="selectedPeriod === p ? 'bg-indigo-50 text-indigo-600' : ''"
-            >
-              {{ p }}
-            </button>
-          </div>
-        </div>
+        <!-- Date Range Filter: Range Date Picker -->
+        <DateRangePicker 
+          v-model:startDate="startDate" 
+          v-model:endDate="endDate" 
+          placeholder="Filter Rentang Tanggal"
+        />
 
         <!-- Export Excel Button -->
         <button 

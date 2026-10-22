@@ -21,6 +21,7 @@ import {
 } from 'lucide-vue-next'
 
 import { useReportData, type SalesTransaction as Transaction } from '../../composables/useReportData'
+import DateRangePicker from '../../components/common/DateRangePicker.vue'
 
 const { masterTransactions } = useReportData()
 const transactions = masterTransactions
@@ -282,25 +283,13 @@ const handlePrint = () => {
           />
         </div>
 
-        <!-- Date Range Pickers -->
-        <div class="lg:col-span-5 flex items-center gap-2">
-          <div class="relative flex-1">
-            <span class="text-[10px] font-bold text-slate-400 uppercase absolute left-3 top-1 pointer-events-none">Mulai</span>
-            <input 
-              v-model="startDate"
-              type="date"
-              class="w-full pl-3 pr-2 pt-4 pb-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50 text-slate-800 dark:text-slate-100 text-xs focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-900/30 transition-all"
-            />
-          </div>
-          <span class="text-slate-400 text-xs font-bold">s/d</span>
-          <div class="relative flex-1">
-            <span class="text-[10px] font-bold text-slate-400 uppercase absolute left-3 top-1 pointer-events-none">Sampai</span>
-            <input 
-              v-model="endDate"
-              type="date"
-              class="w-full pl-3 pr-2 pt-4 pb-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50 text-slate-800 dark:text-slate-100 text-xs focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-900/30 transition-all"
-            />
-          </div>
+        <!-- Date Range Filter: Range Date Picker -->
+        <div class="lg:col-span-5 flex items-center">
+          <DateRangePicker 
+            v-model:startDate="startDate" 
+            v-model:endDate="endDate" 
+            placeholder="Filter Rentang Tanggal Penjualan"
+          />
         </div>
 
         <!-- Status Filter Tabs -->
