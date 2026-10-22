@@ -179,9 +179,6 @@ const validate = () => {
   if (!form.value.category) {
     errs.category = 'Kategori transaksi wajib dipilih'
   }
-  if (!form.value.customerOrVendor?.trim()) {
-    errs.customerOrVendor = activeType.value === 'masuk' ? 'Nama pelanggan / entitas wajib diisi' : 'Nama penerima / vendor wajib diisi'
-  }
   if (!form.value.desc?.trim()) {
     errs.desc = 'Keterangan transaksi wajib diisi'
   }
@@ -199,7 +196,7 @@ const handleSubmit = () => {
     emit('submit-income', {
       date: form.value.date,
       displayDate,
-      customer: form.value.customerOrVendor.trim(),
+      customer: form.value.customerOrVendor?.trim() || 'Pelanggan Umum',
       desc: form.value.desc.trim(),
       category: form.value.category,
       amount: amt,

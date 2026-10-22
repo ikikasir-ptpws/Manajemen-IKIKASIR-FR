@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { Receipt, Search, Download, CheckCircle2, XCircle, Clock, Eye, X, ChevronDown, Filter, Check } from 'lucide-vue-next'
 import { useAppData } from '../../composables/useAppData'
+import { usePagination } from '../../composables/usePagination'
+import GlobalPagination from '../../components/common/GlobalPagination.vue'
 
 const { invoices, markInvoicePaid } = useAppData()
 
@@ -40,6 +42,22 @@ const filteredSubs = computed(() => {
     list = list.filter(s => s.customer.toLowerCase().includes(q) || s.business.toLowerCase().includes(q) || s.id.toLowerCase().includes(q))
   }
   return list
+})
+
+// Pagination
+const {
+  currentPage,
+  pageSize,
+  totalItems,
+  totalPages,
+  startIndex,
+  endIndex,
+  paginatedItems: paginatedSubs,
+  resetPage
+} = usePagination(filteredSubs, 10)
+
+watch([searchQuery, filterStatus], () => {
+  resetPage()
 })
 
 const openInvoice = (sub: any) => {
@@ -118,32 +136,41 @@ const handleExport = () => {
       </div>
     </header>
 
-    <!-- Table Container -->
-    <div class="bg-white rounded-2xl shadow-xs border border-slate-100 overflow-hidden">
+    <!-- Table Container (Desktop) -->
+    <div class="hidden md:block bg-white rounded-2xl shadow-xs border border-slate-100 overflow-hidden">
       <div class="overflow-x-auto">
         <table class="w-full text-left text-sm min-w-[800px]">
-          <thead class="bg-slate-50 border-b border-slate-100">
+          <thead class="bg-slate-50/75 border-b border-slate-100 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
             <tr>
-              <th class="px-6 py-4 font-semibold text-slate-600">No. Invoice</th>
-              <th class="px-6 py-4 font-semibold text-slate-600">Pelanggan</th>
-              <th class="px-6 py-4 font-semibold text-slate-600">Paket</th>
-              <th class="px-6 py-4 font-semibold text-slate-600">Total Tagihan</th>
-              <th class="px-6 py-4 font-semibold text-slate-600">Tanggal</th>
-              <th class="px-6 py-4 font-semibold text-slate-600">Status Pembayaran</th>
-              <th class="px-6 py-4 font-semibold text-slate-600 text-right">Aksi</th>
+              <th class="px-6 py-4">No. Invoice</th>
+              <th class="px-6 py-4">Pelanggan</th>
+              <th class="px-6 py-4">Paket</th>
+              <th class="px-6 py-4">Total Tagihan</th>
+              <th class="px-6 py-4">Tanggal</th>
+              <th class="px-6 py-4">Status Pembayaran</th>
+              <th class="px-6 py-4 text-right">Aksi</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-slate-50">
-            <tr v-for="sub in filteredSubs" :key="sub.id" class="hover:bg-slate-50/50 transition-colors">
+          <tbody class="divide-y divide-slate-100">
+            <tr 
+              v-for="sub in paginatedSubs" 
+              :key="sub.id" 
+              class="hover:bg-slate-50/80 transition-colors group cursor-pointer"
+              @click="openInvoice(sub)"
+            >
               <td class="px-6 py-4 font-mono font-bold text-indigo-700 text-xs">{{ sub.id }}</td>
               <td class="px-6 py-4">
-                <div class="font-bold text-slate-800">{{ sub.customer }}</div>
+                <div class="font-bold text-slate-800 group-hover:text-indigo-600 transition-colors">{{ sub.customer }}</div>
                 <div class="text-xs text-slate-500">{{ sub.business }}</div>
               </td>
-              <td class="px-6 py-4 text-slate-700 font-medium">{{ sub.package }}</td>
+              <td class="px-6 py-4 text-slate-700 font-medium">
+                <span class="px-2.5 py-1 rounded-md text-[11px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                  {{ sub.package }}
+                </span>
+              </td>
               <td class="px-6 py-4 font-extrabold text-slate-800">{{ formatCurrency(sub.amount) }}</td>
               <td class="px-6 py-4 text-slate-500 text-xs font-medium">{{ sub.date }}</td>
-              <td class="px-6 py-4">
+              <td class="px-6 py-4" @click.stop>
                 <span 
                   class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold"
                   :class="{
@@ -158,7 +185,7 @@ const handleExport = () => {
                   {{ sub.status === 'Paid' ? 'Lunas' : sub.status === 'Pending' ? 'Menunggu' : 'Gagal' }}
                 </span>
               </td>
-              <td class="px-6 py-4 text-right">
+              <td class="px-6 py-4 text-right" @click.stop>
                 <button @click="openInvoice(sub)" class="text-xs font-semibold text-indigo-600 hover:text-indigo-800 hover:underline cursor-pointer">
                   Lihat Invoice
                 </button>
@@ -166,11 +193,105 @@ const handleExport = () => {
             </tr>
             <tr v-if="filteredSubs.length === 0">
               <td colspan="7" class="px-6 py-8 text-center text-slate-400 text-sm">
-                Belum ada data langganan.
+                Belum ada data langganan yang cocok dengan pencarian/filter.
               </td>
             </tr>
           </tbody>
         </table>
+      </div>
+
+      <!-- PAGINATION FOOTER -->
+      <GlobalPagination
+        v-if="filteredSubs.length > 0"
+        :current-page="currentPage"
+        :total-items="totalItems"
+        :page-size="pageSize"
+        @update:current-page="currentPage = $event"
+        @update:page-size="pageSize = $event"
+      />
+    </div>
+
+    <!-- MOBILE CARDS VIEW -->
+    <div class="block md:hidden space-y-3">
+      <div 
+        v-for="sub in paginatedSubs" 
+        :key="sub.id"
+        class="bg-white rounded-2xl p-4 border border-slate-100 shadow-xs space-y-3 cursor-pointer"
+        @click="openInvoice(sub)"
+      >
+        <div class="flex items-start justify-between gap-2">
+          <div>
+            <span class="text-[10px] font-mono font-bold text-indigo-700">{{ sub.id }}</span>
+            <h4 class="font-extrabold text-sm text-slate-900 mt-0.5">{{ sub.customer }}</h4>
+            <p class="text-xs text-slate-500">{{ sub.business }} &bull; {{ sub.date }}</p>
+          </div>
+          <span 
+            class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold"
+            :class="{
+              'bg-emerald-50 text-emerald-600': sub.status === 'Paid',
+              'bg-amber-50 text-amber-600': sub.status === 'Pending',
+              'bg-rose-50 text-rose-600': sub.status === 'Failed'
+            }"
+          >
+            {{ sub.status === 'Paid' ? 'Lunas' : sub.status === 'Pending' ? 'Menunggu' : 'Gagal' }}
+          </span>
+        </div>
+
+        <div class="bg-slate-50 p-2.5 rounded-xl text-xs space-y-1">
+          <div class="flex justify-between">
+            <span class="text-slate-400">Paket:</span>
+            <span class="font-bold text-slate-700">{{ sub.package }}</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-400">Total Tagihan:</span>
+            <span class="font-extrabold text-indigo-700">{{ formatCurrency(sub.amount) }}</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-400">Metode:</span>
+            <span class="font-medium text-slate-600">{{ sub.method }}</span>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2 pt-1" @click.stop>
+          <button 
+            @click="openInvoice(sub)"
+            class="flex-1 py-2 px-3 rounded-xl bg-indigo-50 text-indigo-700 hover:bg-indigo-100 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+          >
+            <Eye class="w-3.5 h-3.5" />
+            <span>Lihat Invoice</span>
+          </button>
+          <button 
+            v-if="sub.status === 'Pending'"
+            @click="handleMarkAsPaid(sub)"
+            class="flex-1 py-2 px-3 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-sm shadow-emerald-200"
+          >
+            <Check class="w-3.5 h-3.5" />
+            <span>Tandai Lunas</span>
+          </button>
+        </div>
+      </div>
+
+      <div v-if="filteredSubs.length === 0" class="bg-white rounded-2xl p-6 text-center text-slate-400 text-xs border border-slate-100">
+        Belum ada data langganan yang cocok dengan pencarian/filter.
+      </div>
+
+      <!-- Mobile Pagination Control -->
+      <div v-if="totalPages > 1" class="flex items-center justify-between bg-white rounded-2xl p-3 border border-slate-100 shadow-xs text-xs">
+        <button 
+          @click="currentPage--"
+          :disabled="currentPage <= 1"
+          class="px-3 py-1.5 rounded-xl border border-slate-200 text-slate-600 font-bold disabled:opacity-40 cursor-pointer"
+        >
+          Sebelumnya
+        </button>
+        <span class="font-bold text-slate-700">Hal {{ currentPage }} / {{ totalPages }}</span>
+        <button 
+          @click="currentPage++"
+          :disabled="currentPage >= totalPages"
+          class="px-3 py-1.5 rounded-xl border border-slate-200 text-slate-600 font-bold disabled:opacity-40 cursor-pointer"
+        >
+          Selanjutnya
+        </button>
       </div>
     </div>
 

@@ -8,8 +8,10 @@ import {
   ShieldCheck,
   X,
 } from "lucide-vue-next";
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import { getCustomerWaUrl, useAppData } from "../../composables/useAppData";
+import { usePagination } from "../../composables/usePagination";
+import GlobalPagination from "../../components/common/GlobalPagination.vue";
 import type { PackageType } from "../../types/dashboard";
 
 const { expiredCustomers, renewCustomerSubscription } = useAppData();
@@ -49,6 +51,22 @@ const filteredCustomers = computed(() => {
       c.business.toLowerCase().includes(q) ||
       c.phone.includes(q),
   );
+});
+
+// Pagination
+const {
+  currentPage,
+  pageSize,
+  totalItems,
+  totalPages,
+  startIndex,
+  endIndex,
+  paginatedItems: paginatedCustomers,
+  resetPage
+} = usePagination(filteredCustomers, 10);
+
+watch([searchQuery], () => {
+  resetPage();
 });
 
 // Rule 12 & 15: WhatsApp Follow Up opens CUSTOMER'S WhatsApp number
@@ -149,41 +167,42 @@ const confirmRenew = () => {
       </div>
     </div>
 
-    <!-- Table Container -->
+    <!-- Table Container (Desktop) -->
     <div
-      class="bg-white rounded-2xl shadow-xs border border-slate-100 overflow-hidden"
+      class="hidden md:block bg-white rounded-2xl shadow-xs border border-slate-100 overflow-hidden"
     >
       <div class="overflow-x-auto">
         <table class="w-full text-left text-sm min-w-[800px]">
-          <thead class="bg-slate-50 border-b border-slate-100">
+          <thead class="bg-slate-50/75 border-b border-slate-100 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
             <tr>
-              <th class="px-6 py-4 font-semibold text-slate-600 w-16">No</th>
-              <th class="px-6 py-4 font-semibold text-slate-600">Pelanggan</th>
-              <th class="px-6 py-4 font-semibold text-slate-600">
+              <th class="px-6 py-4 w-16">No</th>
+              <th class="px-6 py-4">Pelanggan</th>
+              <th class="px-6 py-4">
                 Paket Terakhir
               </th>
-              <th class="px-6 py-4 font-semibold text-slate-600">
+              <th class="px-6 py-4">
                 Tanggal Expired
               </th>
-              <th class="px-6 py-4 font-semibold text-slate-600">
+              <th class="px-6 py-4">
                 Lama Expired
               </th>
-              <th class="px-6 py-4 font-semibold text-slate-600 text-right">
+              <th class="px-6 py-4 text-right">
                 Aksi Follow Up
               </th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-slate-50">
+          <tbody class="divide-y divide-slate-100">
             <tr
-              v-for="(cust, index) in filteredCustomers"
+              v-for="(cust, index) in paginatedCustomers"
               :key="cust.id"
-              class="hover:bg-slate-50/50 transition-colors group"
+              class="hover:bg-slate-50/80 transition-colors group cursor-pointer"
+              @click="openRenew(cust)"
             >
               <td class="px-6 py-4 text-slate-500 font-medium">
-                {{ index + 1 }}
+                {{ startIndex + index + 1 }}
               </td>
               <td class="px-6 py-4">
-                <div class="font-bold text-slate-800">{{ cust.name }}</div>
+                <div class="font-bold text-slate-800 group-hover:text-indigo-600 transition-colors">{{ cust.name }}</div>
                 <div
                   class="text-xs text-slate-500 flex items-center gap-1 mt-0.5"
                 >
@@ -193,12 +212,12 @@ const confirmRenew = () => {
               </td>
               <td class="px-6 py-4">
                 <span
-                  class="px-2.5 py-1 rounded-md text-[11px] font-bold bg-slate-100 text-slate-600 border border-slate-200"
+                  class="px-2.5 py-1 rounded-md text-[11px] font-bold bg-slate-100 text-slate-700 border border-slate-200"
                 >
                   {{ cust.type }}
                 </span>
               </td>
-              <td class="px-6 py-4 text-slate-600 font-medium">
+              <td class="px-6 py-4 text-slate-600 font-medium font-mono text-xs">
                 {{ cust.expiredDate }}
               </td>
               <td class="px-6 py-4">
@@ -209,22 +228,22 @@ const confirmRenew = () => {
                   {{ cust.daysExpired }} Hari
                 </div>
               </td>
-              <td class="px-6 py-4">
+              <td class="px-6 py-4" @click.stop>
                 <div class="flex items-center justify-end gap-2">
                   <button
                     @click="sendWhatsAppFollowUp(cust)"
                     title="Follow Up Ke WhatsApp Pelanggan"
-                    class="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                    class="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 rounded-xl text-xs font-bold transition-colors cursor-pointer"
                   >
                     <MessageCircle class="w-3.5 h-3.5" />
-                    WhatsApp Klien
+                    <span>WhatsApp Klien</span>
                   </button>
                   <button
                     @click="openRenew(cust)"
                     class="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-xl text-xs font-bold transition-colors cursor-pointer"
                   >
                     <RefreshCw class="w-3.5 h-3.5" />
-                    Perpanjang
+                    <span>Perpanjang</span>
                   </button>
                 </div>
               </td>
@@ -234,11 +253,95 @@ const confirmRenew = () => {
                 colspan="6"
                 class="px-6 py-8 text-center text-slate-400 text-sm"
               >
-                Tidak ada pelanggan expired.
+                Tidak ada pelanggan expired yang cocok dengan pencarian.
               </td>
             </tr>
           </tbody>
         </table>
+      </div>
+
+      <!-- PAGINATION FOOTER -->
+      <GlobalPagination
+        v-if="filteredCustomers.length > 0"
+        :current-page="currentPage"
+        :total-items="totalItems"
+        :page-size="pageSize"
+        @update:current-page="currentPage = $event"
+        @update:page-size="pageSize = $event"
+      />
+    </div>
+
+    <!-- MOBILE CARDS VIEW -->
+    <div class="block md:hidden space-y-3">
+      <div 
+        v-for="cust in paginatedCustomers" 
+        :key="cust.id"
+        class="bg-white rounded-2xl p-4 border border-slate-100 shadow-xs space-y-3 cursor-pointer"
+        @click="openRenew(cust)"
+      >
+        <div class="flex items-start justify-between gap-2">
+          <div>
+            <h4 class="font-extrabold text-sm text-slate-900">{{ cust.name }}</h4>
+            <p class="text-xs text-slate-500">{{ cust.business }} &bull; {{ cust.phone }}</p>
+          </div>
+          <div
+            class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-rose-50 text-rose-600 border border-rose-100"
+          >
+            <AlertCircle class="w-3 h-3" />
+            <span>{{ cust.daysExpired }} Hari</span>
+          </div>
+        </div>
+
+        <div class="bg-slate-50 p-2.5 rounded-xl text-xs space-y-1">
+          <div class="flex justify-between">
+            <span class="text-slate-400">Paket:</span>
+            <span class="font-bold text-slate-700">{{ cust.type }}</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-400">Tanggal Expired:</span>
+            <span class="font-bold text-rose-600 font-mono">{{ cust.expiredDate }}</span>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2 pt-1" @click.stop>
+          <button
+            @click="sendWhatsAppFollowUp(cust)"
+            class="flex-1 py-2 px-3 rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+          >
+            <MessageCircle class="w-3.5 h-3.5" />
+            <span>WhatsApp</span>
+          </button>
+          <button
+            @click="openRenew(cust)"
+            class="flex-1 py-2 px-3 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-sm shadow-indigo-200"
+          >
+            <RefreshCw class="w-3.5 h-3.5" />
+            <span>Perpanjang</span>
+          </button>
+        </div>
+      </div>
+
+      <div v-if="filteredCustomers.length === 0" class="bg-white rounded-2xl p-6 text-center text-slate-400 text-xs border border-slate-100">
+        Tidak ada pelanggan expired yang cocok dengan pencarian.
+      </div>
+
+      <!-- Mobile Pagination Control -->
+      <div v-if="totalPages > 1" class="flex items-center justify-between bg-white rounded-2xl p-3 border border-slate-100 shadow-xs text-xs">
+        <button 
+          @click="currentPage--"
+          :disabled="currentPage <= 1"
+          class="px-3 py-1.5 rounded-xl border border-slate-200 text-slate-600 font-bold disabled:opacity-40 cursor-pointer"
+        >
+          Sebelumnya
+        </button>
+        <span class="font-bold text-slate-700">Hal {{ currentPage }} / {{ totalPages }}</span>
+        <button 
+          @click="currentPage++"
+          :disabled="currentPage >= totalPages"
+          class="px-3 py-1.5 rounded-xl border border-slate-200 text-slate-600 font-bold disabled:opacity-40 cursor-pointer"
+        >
+          Selanjutnya
+        </button>
       </div>
     </div>
 
