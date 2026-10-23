@@ -29,22 +29,38 @@ import {
   Clock,
   ArrowRight,
   MessageSquare,
-  RotateCcw
+  RotateCcw,
+  Store,
+  CreditCard,
+  Calendar,
+  Check,
+  EyeOff,
+  ZoomIn,
+  Receipt,
+  User,
+  AlertCircle,
+  Building2,
+  ChevronRight
 } from 'lucide-vue-next'
 import RentalAgreementModal from '../../components/RentalAgreementModal.vue'
 import GlobalPagination from '../../components/common/GlobalPagination.vue'
-import { useAppData } from '../../composables/useAppData'
+import { 
+  useAppData, 
+  SAMPLE_RECEIPT_BCA, 
+  SAMPLE_RECEIPT_QRIS, 
+  getCustomerWaUrl 
+} from '../../composables/useAppData'
 
 const { 
   customers, 
   leads,
+  invoices,
   technicianQueue, 
   getComputedCustomerStatus,
   startTechnicianSetup,
   reportEmailIssue,
   resolveEmailIssue,
-  completeTechnicianSetup,
-  getCustomerWaUrl
+  completeTechnicianSetup
 } = useAppData()
 
 // Toast state
@@ -173,9 +189,92 @@ watch([searchQuery, filterType, filterTeknisiStatus, pageSize], () => {
   currentPage.value = 1
 })
 
+// Detail Modal State & Helpers
+const activeDetailTab = ref<'profil' | 'langganan' | 'teknisi'>('profil')
+const isPasswordVisible = ref(false)
+const copiedField = ref<string | null>(null)
+const isReceiptZoomOpen = ref(false)
+const zoomedReceiptUrl = ref<string | null>(null)
+
+const openReceiptZoom = (url: string) => {
+  zoomedReceiptUrl.value = url
+  isReceiptZoomOpen.value = true
+}
+
+const copyToClipboard = (text: string, fieldName: string) => {
+  if (!text) return
+  if (navigator?.clipboard) {
+    navigator.clipboard.writeText(text)
+  }
+  copiedField.value = fieldName
+  showToast(`📋 ${fieldName} berhasil disalin!`)
+  setTimeout(() => {
+    if (copiedField.value === fieldName) copiedField.value = null
+  }, 2000)
+}
+
+const getAssociatedLead = (cust: any) => {
+  if (!cust || !leads.value) return null
+  return leads.value.find((l: any) => 
+    (cust.leadId && l.id === cust.leadId) || 
+    (l.phone && cust.phone && l.phone.replace(/\D/g, '') === cust.phone.replace(/\D/g, '')) ||
+    (l.email && cust.email && l.email.toLowerCase() === cust.email.toLowerCase()) ||
+    (l.name && cust.name && l.name.toLowerCase() === cust.name.toLowerCase())
+  ) || null
+}
+
+const getAssociatedInvoices = (cust: any) => {
+  if (!cust || !invoices.value) return []
+  return invoices.value.filter((inv: any) => 
+    inv.customerId === cust.id || 
+    (cust.phone && inv.phone && inv.phone.replace(/\D/g, '') === cust.phone.replace(/\D/g, '')) ||
+    (cust.name && inv.customerName && inv.customerName.toLowerCase() === cust.name.toLowerCase())
+  )
+}
+
+const getCustomerPaymentProof = (cust: any) => {
+  if (!cust) return SAMPLE_RECEIPT_BCA
+  if (cust.paymentProofUrl) return cust.paymentProofUrl
+  const lead = getAssociatedLead(cust)
+  if (lead && lead.paymentProofUrl) return lead.paymentProofUrl
+  const invs = getAssociatedInvoices(cust)
+  const invWithProof = invs.find((i: any) => i.paymentProofUrl)
+  if (invWithProof) return invWithProof.paymentProofUrl
+  if (cust.paymentMethod?.toLowerCase().includes('qris')) return SAMPLE_RECEIPT_QRIS
+  return SAMPLE_RECEIPT_BCA
+}
+
+const getCustomerCredentials = (cust: any) => {
+  if (!cust) return { username: '', password: '', apkUrl: '', guideUrl: '', spkNumber: '' }
+  const cleanName = (cust.business || cust.name || 'kasir').toLowerCase().replace(/[^a-z0-9]/g, '')
+  const username = cust.appUsername || `${cleanName}.pos`
+  const password = cust.appPassword || 'Ikikasir#2026'
+  const apkUrl = cust.appDownloadUrl || 'https://ikikasir.com/download/ikikasir-pos-v2.apk'
+  const guideUrl = cust.guideBookUrl || 'https://ikikasir.com/docs/buku-panduan-ikikasir.pdf'
+  const spkNumber = cust.rentalAgreementNumber || ('SPK/IKIKASIR/' + new Date().getFullYear() + '/' + (cust.id ? cust.id.replace(/\D/g, '').slice(-3) || '101' : '101'))
+  return { username, password, apkUrl, guideUrl, spkNumber }
+}
+
 const openDetail = (cust: any) => {
   selectedCustomer.value = cust
+  activeDetailTab.value = 'profil'
+  isPasswordVisible.value = false
   showDetailModal.value = true
+}
+
+const openEditFromDetail = () => {
+  const cust = selectedCustomer.value
+  showDetailModal.value = false
+  openEdit(cust)
+}
+
+const openSetupFromDetail = () => {
+  const cust = selectedCustomer.value
+  openSetupModal(cust)
+}
+
+const openAgreementFromDetail = () => {
+  openAgreementPreview(selectedCustomer.value)
 }
 
 const openEdit = (cust: any) => {
@@ -1051,31 +1150,866 @@ const openAgreementPreview = (user?: any) => {
       @close="isRentalAgreementOpen = false"
     />
 
-    <!-- EXISTING DETAIL MODAL -->
-    <div v-if="showDetailModal && selectedCustomer" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center z-50 p-4" @click.self="showDetailModal = false">
-      <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl border border-slate-100">
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="text-lg font-bold text-slate-800">Detail Pelanggan</h3>
-          <button @click="showDetailModal = false" class="p-1.5 hover:bg-slate-100 rounded-lg cursor-pointer"><X class="w-4 h-4 text-slate-400" /></button>
-        </div>
-        <div class="flex items-center gap-3 mb-5">
-          <div class="w-14 h-14 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-xl">{{ selectedCustomer.name.charAt(0) }}</div>
-          <div>
-            <div class="font-bold text-slate-800">{{ selectedCustomer.name }}</div>
-            <div class="text-xs text-slate-500">{{ selectedCustomer.business }}</div>
+    <!-- COMPREHENSIVE DETAIL MODAL (3 TABS: PROFIL, LANGGANAN, TEKNISI) -->
+    <Teleport to="body">
+      <div 
+        v-if="showDetailModal && selectedCustomer" 
+        class="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-2.5 sm:p-5"
+      >
+        <!-- Backdrop -->
+        <div 
+          class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity duration-200" 
+          @click="showDetailModal = false"
+        ></div>
+
+        <!-- Modal Box -->
+        <div class="relative bg-white w-full max-w-4xl rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-100 overflow-hidden z-10 flex flex-col my-auto max-h-[94vh] animate-in fade-in zoom-in-95 duration-200">
+          
+          <!-- Top Header with Breadcrumbs & Actions -->
+          <div class="px-4 py-3.5 sm:px-6 sm:py-4 border-b border-slate-100 flex flex-col gap-3 bg-slate-50/80">
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="flex items-center gap-1.5 text-xs text-slate-400 font-medium mb-0.5">
+                  <span class="hover:text-slate-600 cursor-pointer" @click="showDetailModal = false">Semua Pelanggan</span>
+                  <ChevronRight class="w-3.5 h-3.5" />
+                  <span class="text-slate-700 font-semibold">Detail Akun</span>
+                  <span class="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-slate-200/80 text-slate-600 ml-1">#{{ selectedCustomer.id }}</span>
+                </div>
+                <h2 class="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight">Detail Lengkap Pelanggan & Akun Kasir</h2>
+              </div>
+
+              <button 
+                @click="showDetailModal = false"
+                class="w-8 h-8 rounded-full bg-slate-200/80 text-slate-500 hover:text-slate-800 hover:bg-slate-200 flex items-center justify-center transition-colors cursor-pointer"
+              >
+                <X class="w-4 h-4" />
+              </button>
+            </div>
+
+            <!-- Action Buttons Row (Responsive) -->
+            <div class="flex items-center flex-wrap gap-2 pt-0.5">
+              <!-- Hubungi WhatsApp -->
+              <button 
+                @click="redirectToWa(selectedCustomer, selectedCustomer.emailIssueReported ? 'issue' : (selectedCustomer.technicianStatus === 'completed' ? 'completed' : 'custom'))"
+                class="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95"
+              >
+                <MessageSquare class="w-3.5 h-3.5" />
+                <span>Hubungi WhatsApp</span>
+              </button>
+
+              <!-- Setup Status Teknisi -->
+              <button 
+                @click="openSetupFromDetail"
+                class="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95"
+              >
+                <Wrench class="w-3.5 h-3.5" />
+                <span>Ubah Status Setup</span>
+              </button>
+
+              <!-- Surat Perjanjian Sewa (SPK) -->
+              <button 
+                @click="openAgreementFromDetail"
+                class="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-slate-900 hover:bg-black text-white text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95"
+              >
+                <FileText class="w-3.5 h-3.5 text-indigo-300" />
+                <span>Surat Sewa (SPK)</span>
+              </button>
+
+              <!-- Edit Data Pelanggan -->
+              <button 
+                @click="openEditFromDetail"
+                class="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95"
+              >
+                <Edit2 class="w-3.5 h-3.5" />
+                <span>Edit Data</span>
+              </button>
+            </div>
           </div>
+
+          <!-- Main Modal Content (2 Columns: Left Profile Sidebar, Right Multi-Tab Content) -->
+          <div class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 sm:space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-4 sm:gap-6 items-start">
+              
+              <!-- Left Column (4 cols): Profile Card -->
+              <div class="md:col-span-4 bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-xs flex flex-col items-center text-center">
+                <!-- Avatar -->
+                <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 text-white flex items-center justify-center text-xl sm:text-2xl font-extrabold shadow-md mb-2 sm:mb-3">
+                  {{ selectedCustomer.name.charAt(0) }}
+                </div>
+
+                <h3 class="text-base font-extrabold text-slate-800">{{ selectedCustomer.name }}</h3>
+                <p class="text-xs text-slate-500 font-medium flex items-center gap-1 mt-0.5">
+                  <ShieldCheck class="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                  <span>{{ selectedCustomer.business }}</span>
+                </p>
+                
+                <!-- Status Badges Stack -->
+                <div class="mt-2.5 mb-3 sm:mb-4 flex flex-wrap items-center justify-center gap-1.5">
+                  <!-- Paket Badge -->
+                  <span 
+                    class="px-2.5 py-0.5 rounded-md text-[10px] font-bold border"
+                    :class="{
+                      'bg-purple-50 text-purple-700 border-purple-200': selectedCustomer.type === 'Custom / IT One',
+                      'bg-indigo-50 text-indigo-700 border-indigo-200': selectedCustomer.type === 'Pro',
+                      'bg-slate-100 text-slate-700 border-slate-200': selectedCustomer.type === 'Basic'
+                    }"
+                  >
+                    Paket {{ selectedCustomer.type }}
+                  </span>
+
+                  <!-- Status Masa Aktif -->
+                  <span 
+                    class="px-2.5 py-0.5 rounded-full text-[10px] font-bold border"
+                    :class="{
+                      'bg-emerald-50 text-emerald-700 border-emerald-200': selectedCustomer.computedStatus === 'active',
+                      'bg-amber-50 text-amber-700 border-amber-200': selectedCustomer.computedStatus === 'expiring',
+                      'bg-rose-50 text-rose-700 border-rose-200': selectedCustomer.computedStatus === 'expired'
+                    }"
+                  >
+                    {{ selectedCustomer.computedStatus === 'active' ? 'Aktif' : (selectedCustomer.computedStatus === 'expiring' ? 'Segera Expired' : 'Expired') }}
+                  </span>
+
+                  <!-- Status Teknisi Badge -->
+                  <span 
+                    v-if="selectedCustomer.emailIssueReported"
+                    class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200 inline-flex items-center gap-1"
+                  >
+                    <AlertTriangle class="w-3 h-3 text-rose-600" />
+                    <span>Ada Kendala</span>
+                  </span>
+                  <span 
+                    v-else-if="selectedCustomer.technicianStatus === 'completed'"
+                    class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 inline-flex items-center gap-1"
+                  >
+                    <CheckCircle2 class="w-3 h-3 text-emerald-600" />
+                    <span>Aplikasi Selesai</span>
+                  </span>
+                  <span 
+                    v-else-if="selectedCustomer.technicianStatus === 'in_progress'"
+                    class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 inline-flex items-center gap-1"
+                  >
+                    <Wrench class="w-3 h-3 text-indigo-600" />
+                    <span>Sedang Setup</span>
+                  </span>
+                  <span 
+                    v-else
+                    class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-50 text-cyan-700 border border-cyan-200 inline-flex items-center gap-1"
+                  >
+                    <Clock class="w-3 h-3 text-cyan-600" />
+                    <span>Siap Dikerjakan</span>
+                  </span>
+                </div>
+
+                <!-- Contact & Store Info Box -->
+                <div class="w-full border-t border-slate-100 pt-3 sm:pt-4 space-y-2.5 sm:space-y-3 text-left text-xs">
+                  <div>
+                    <span class="text-slate-400 block text-[11px] font-semibold">No. WhatsApp / Telepon:</span>
+                    <div class="flex items-center justify-between mt-0.5">
+                      <p class="font-bold text-slate-800 font-mono">{{ selectedCustomer.phone }}</p>
+                      <button 
+                        @click="copyToClipboard(selectedCustomer.phone, 'Nomor Telepon')"
+                        class="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-700 transition-colors"
+                        title="Salin Nomor Telepon"
+                      >
+                        <Copy class="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <span class="text-slate-400 block text-[11px] font-semibold">Email:</span>
+                    <div class="flex items-center justify-between mt-0.5">
+                      <p class="font-medium text-slate-700 truncate text-[11px]">{{ selectedCustomer.email || '-' }}</p>
+                      <button 
+                        v-if="selectedCustomer.email"
+                        @click="copyToClipboard(selectedCustomer.email, 'Email')"
+                        class="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-700 transition-colors"
+                        title="Salin Email"
+                      >
+                        <Copy class="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <span class="text-slate-400 block text-[11px] font-semibold">Kategori Usaha:</span>
+                    <p class="font-bold text-slate-700 mt-0.5">{{ selectedCustomer.category || 'Retail & Usaha Mikro' }}</p>
+                  </div>
+
+                  <div>
+                    <span class="text-slate-400 block text-[11px] font-semibold">Alamat Toko:</span>
+                    <p class="font-medium text-slate-700 mt-0.5 leading-relaxed">{{ selectedCustomer.address || 'Indonesia' }}</p>
+                  </div>
+
+                  <div class="pt-1">
+                    <span class="text-slate-400 block text-[11px] font-semibold">Tanggal Terdaftar:</span>
+                    <p class="font-mono text-slate-700 mt-0.5">{{ selectedCustomer.joinDate || '2026-09-01' }}</p>
+                  </div>
+                </div>
+
+                <!-- Direct WA button in card -->
+                <button 
+                  @click="redirectToWa(selectedCustomer, 'custom')"
+                  class="w-full mt-4 py-2 px-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <MessageSquare class="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Kirim Pesan WhatsApp</span>
+                </button>
+              </div>
+
+              <!-- Right Column (8 cols): Tabbed Sections -->
+              <div class="md:col-span-8 space-y-4">
+                
+                <!-- Tab Navigation Buttons -->
+                <div class="flex items-center gap-1 p-1 bg-slate-100/80 rounded-2xl border border-slate-200/60 text-xs font-bold">
+                  <!-- Tab 1: Ringkasan & Profil -->
+                  <button 
+                    @click="activeDetailTab = 'profil'"
+                    class="flex-1 py-2 px-3 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                    :class="activeDetailTab === 'profil' 
+                      ? 'bg-white text-indigo-700 shadow-xs' 
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'"
+                  >
+                    <User class="w-3.5 h-3.5" />
+                    <span>Ringkasan & Profil</span>
+                  </button>
+
+                  <!-- Tab 2: Paket & Langganan -->
+                  <button 
+                    @click="activeDetailTab = 'langganan'"
+                    class="flex-1 py-2 px-3 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                    :class="activeDetailTab === 'langganan' 
+                      ? 'bg-white text-indigo-700 shadow-xs' 
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'"
+                  >
+                    <CreditCard class="w-3.5 h-3.5" />
+                    <span>Paket & Langganan</span>
+                  </button>
+
+                  <!-- Tab 3: Akun Kasir & Teknisi -->
+                  <button 
+                    @click="activeDetailTab = 'teknisi'"
+                    class="flex-1 py-2 px-3 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 relative"
+                    :class="activeDetailTab === 'teknisi' 
+                      ? 'bg-white text-indigo-700 shadow-xs' 
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'"
+                  >
+                    <Wrench class="w-3.5 h-3.5" />
+                    <span>Akun Kasir & Teknisi</span>
+                    <!-- Dot indicator if issue -->
+                    <span 
+                      v-if="selectedCustomer.emailIssueReported" 
+                      class="w-2 h-2 rounded-full bg-rose-500 absolute top-2 right-2 ring-2 ring-white animate-pulse"
+                    ></span>
+                  </button>
+                </div>
+
+                <!-- ========================================== -->
+                <!-- TAB 1: RINGKASAN & PROFIL BISNIS -->
+                <!-- ========================================== -->
+                <div v-if="activeDetailTab === 'profil'" class="space-y-4 animate-in fade-in duration-150">
+                  
+                  <!-- Alert Status Penyiapan Kasir -->
+                  <div 
+                    v-if="selectedCustomer.emailIssueReported"
+                    class="bg-rose-50/80 border border-rose-200 rounded-2xl p-4 flex items-start gap-3"
+                  >
+                    <AlertTriangle class="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+                    <div class="flex-1">
+                      <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-rose-800">Perhatian: Ada Kendala Penyiapan Akun!</span>
+                        <span class="text-[10px] font-bold uppercase bg-rose-200/80 text-rose-800 px-1.5 py-0.5 rounded">Action Needed</span>
+                      </div>
+                      <p class="text-xs text-rose-700 mt-1 leading-relaxed">
+                        Catatan Teknisi: "{{ selectedCustomer.emailIssueNotes || 'Kendala verifikasi nomor telepon / email kasir.' }}"
+                      </p>
+                      <div class="mt-2.5 flex items-center gap-2">
+                        <button 
+                          @click="redirectToWa(selectedCustomer, 'issue')"
+                          class="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs cursor-pointer"
+                        >
+                          <MessageSquare class="w-3.5 h-3.5" />
+                          <span>Hubungi Pelanggan via WhatsApp</span>
+                        </button>
+                        <button 
+                          @click="openSetupFromDetail"
+                          class="px-3 py-1.5 rounded-xl bg-white border border-rose-200 text-rose-800 font-bold text-xs hover:bg-rose-50 cursor-pointer"
+                        >
+                          Ubah Status Setup
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div 
+                    v-else-if="selectedCustomer.technicianStatus === 'completed'"
+                    class="bg-emerald-50/80 border border-emerald-200 rounded-2xl p-4 flex items-center justify-between gap-3"
+                  >
+                    <div class="flex items-center gap-3">
+                      <div class="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                        <CheckCircle2 class="w-5 h-5" />
+                      </div>
+                      <div>
+                        <span class="text-xs font-extrabold text-emerald-900 block">Penyiapan Aplikasi Telah Selesai</span>
+                        <p class="text-[11px] text-emerald-700 mt-0.5">Sistem kasir sudah aktif, kredensial akun dan tautan aplikasi telah diserahkan ke pelanggan.</p>
+                      </div>
+                    </div>
+                    <button 
+                      @click="redirectToWa(selectedCustomer, 'completed')"
+                      class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shrink-0 flex items-center gap-1 shadow-xs cursor-pointer"
+                    >
+                      <MessageSquare class="w-3.5 h-3.5" />
+                      <span>Kirim WA Sukses</span>
+                    </button>
+                  </div>
+
+                  <div 
+                    v-else
+                    class="bg-cyan-50/80 border border-cyan-200 rounded-2xl p-4 flex items-center justify-between gap-3"
+                  >
+                    <div class="flex items-center gap-3">
+                      <div class="w-9 h-9 rounded-xl bg-cyan-100 text-cyan-700 flex items-center justify-center shrink-0">
+                        <Wrench class="w-5 h-5" />
+                      </div>
+                      <div>
+                        <span class="text-xs font-extrabold text-cyan-900 block">
+                          {{ selectedCustomer.technicianStatus === 'in_progress' ? 'Sedang Dikerjakan oleh Teknisi' : 'Menunggu Penyiapan Akun Kasir' }}
+                        </span>
+                        <p class="text-[11px] text-cyan-700 mt-0.5">
+                          Teknisi ditugaskan untuk mengonfigurasi aplikasi kasir, APK, serta surat sewa pelanggan.
+                        </p>
+                      </div>
+                    </div>
+                    <button 
+                      @click="openSetupFromDetail"
+                      class="px-3 py-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white font-bold text-xs shrink-0 cursor-pointer"
+                    >
+                      Update Status
+                    </button>
+                  </div>
+
+                  <!-- Card Profil Bisnis & Pemilik -->
+                  <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-xs space-y-3.5">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-2.5">
+                      <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                        <Store class="w-4 h-4 text-indigo-600" />
+                        <span>Informasi Profil Bisnis & Toko</span>
+                      </h4>
+                      <button 
+                        @click="openEditFromDetail"
+                        class="text-[11px] font-bold text-indigo-600 hover:underline flex items-center gap-1 cursor-pointer"
+                      >
+                        <Edit2 class="w-3 h-3" />
+                        <span>Edit Profil</span>
+                      </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
+                      <div class="p-3 bg-slate-50/80 rounded-xl border border-slate-100">
+                        <span class="text-slate-400 block text-[11px]">Nama Pemilik / PIC:</span>
+                        <p class="font-bold text-slate-800 text-sm mt-0.5">{{ selectedCustomer.name }}</p>
+                      </div>
+
+                      <div class="p-3 bg-slate-50/80 rounded-xl border border-slate-100">
+                        <span class="text-slate-400 block text-[11px]">Nama Usaha / Toko:</span>
+                        <p class="font-bold text-slate-800 text-sm mt-0.5">{{ selectedCustomer.business }}</p>
+                      </div>
+
+                      <div class="p-3 bg-slate-50/80 rounded-xl border border-slate-100">
+                        <span class="text-slate-400 block text-[11px]">Kategori Bisnis:</span>
+                        <p class="font-bold text-slate-800 mt-0.5">{{ selectedCustomer.category || 'Retail & Toko' }}</p>
+                      </div>
+
+                      <div class="p-3 bg-slate-50/80 rounded-xl border border-slate-100">
+                        <span class="text-slate-400 block text-[11px]">No. Handphone:</span>
+                        <p class="font-mono font-bold text-slate-800 mt-0.5">{{ selectedCustomer.phone }}</p>
+                      </div>
+
+                      <div class="sm:col-span-2 p-3 bg-slate-50/80 rounded-xl border border-slate-100">
+                        <span class="text-slate-400 block text-[11px]">Alamat Lengkap Operasional:</span>
+                        <p class="font-medium text-slate-800 mt-0.5 leading-relaxed">{{ selectedCustomer.address || 'Alamat belum diisi lengkap.' }}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Card Referensi Pendaftaran & Lead -->
+                  <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-xs space-y-3">
+                    <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5 border-b border-slate-100 pb-2">
+                      <Sparkles class="w-4 h-4 text-indigo-600" />
+                      <span>Data Referensi & Pendaftaran</span>
+                    </h4>
+
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
+                      <div>
+                        <span class="text-slate-400 block text-[11px]">ID Pelanggan:</span>
+                        <span class="font-mono font-bold text-slate-800">#{{ selectedCustomer.id }}</span>
+                      </div>
+                      <div>
+                        <span class="text-slate-400 block text-[11px]">Tanggal Bergabung:</span>
+                        <span class="font-mono font-semibold text-slate-800">{{ selectedCustomer.joinDate || '2026-09-01' }}</span>
+                      </div>
+                      <div>
+                        <span class="text-slate-400 block text-[11px]">Sumber Pendaftaran:</span>
+                        <span class="font-semibold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md inline-block">Website / Online</span>
+                      </div>
+                    </div>
+
+                    <div v-if="getAssociatedLead(selectedCustomer)?.notes" class="mt-2 p-3 rounded-xl bg-slate-50 border border-slate-100 text-xs">
+                      <span class="text-slate-400 block text-[11px] font-semibold">Catatan Pendaftaran Awal:</span>
+                      <p class="text-slate-600 mt-0.5 italic">"{{ getAssociatedLead(selectedCustomer)?.notes }}"</p>
+                    </div>
+                  </div>
+
+                </div>
+
+                <!-- ========================================== -->
+                <!-- TAB 2: PAKET, MASA AKTIF & PEMBAYARAN -->
+                <!-- ========================================== -->
+                <div v-if="activeDetailTab === 'langganan'" class="space-y-4 animate-in fade-in duration-150">
+                  
+                  <!-- Card Detail Paket & Billing -->
+                  <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-xs space-y-3.5">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-2.5">
+                      <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                        <CreditCard class="w-4 h-4 text-indigo-600" />
+                        <span>Rincian Langganan & Tagihan</span>
+                      </h4>
+                      <span 
+                        class="px-2.5 py-0.5 rounded-md text-[11px] font-bold border"
+                        :class="{
+                          'bg-purple-50 text-purple-700 border-purple-200': selectedCustomer.type === 'Custom / IT One',
+                          'bg-indigo-50 text-indigo-700 border-indigo-200': selectedCustomer.type === 'Pro',
+                          'bg-slate-100 text-slate-700 border-slate-200': selectedCustomer.type === 'Basic'
+                        }"
+                      >
+                        Paket {{ selectedCustomer.type }}
+                      </span>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
+                      <!-- Nominal Langganan -->
+                      <div class="p-3.5 bg-gradient-to-br from-indigo-50/50 to-purple-50/30 rounded-2xl border border-indigo-100/70">
+                        <span class="text-slate-500 block text-[11px] font-medium">Biaya Berlangganan:</span>
+                        <div class="text-lg font-black text-slate-900 mt-0.5">
+                          Rp {{ Number(selectedCustomer.amount || (selectedCustomer.type === 'Pro' ? 500000 : (selectedCustomer.type === 'Custom / IT One' ? 1500000 : 250000))).toLocaleString('id-ID') }}
+                          <span class="text-xs font-normal text-slate-400">/ bulan</span>
+                        </div>
+                        <span class="text-[10px] text-indigo-600 font-bold mt-1 block">Termasuk modul POS & Cloud Sync</span>
+                      </div>
+
+                      <!-- Masa Aktif & Expired -->
+                      <div class="p-3.5 bg-slate-50/80 rounded-2xl border border-slate-100">
+                        <span class="text-slate-500 block text-[11px] font-medium">Masa Berlaku Aktif:</span>
+                        <div class="font-mono text-base font-bold text-slate-800 mt-0.5">
+                          {{ selectedCustomer.expiredDate || '-' }}
+                        </div>
+                        <div class="mt-1 flex items-center gap-1.5">
+                          <span 
+                            class="px-2 py-0.5 rounded-full text-[10px] font-bold"
+                            :class="{
+                              'bg-emerald-100 text-emerald-800': selectedCustomer.computedStatus === 'active',
+                              'bg-amber-100 text-amber-800': selectedCustomer.computedStatus === 'expiring',
+                              'bg-rose-100 text-rose-800': selectedCustomer.computedStatus === 'expired'
+                            }"
+                          >
+                            {{ selectedCustomer.computedStatus === 'active' ? `Tersisa ${selectedCustomer.daysLeft || 30} Hari` : (selectedCustomer.computedStatus === 'expiring' ? `Hampir Habis (${selectedCustomer.daysLeft} Hari)` : `Lewat ${selectedCustomer.daysExpired || 1} Hari`) }}
+                          </span>
+                        </div>
+                      </div>
+
+                      <!-- Metode Pembayaran -->
+                      <div class="p-3 bg-slate-50/80 rounded-xl border border-slate-100">
+                        <span class="text-slate-400 block text-[11px]">Metode Pembayaran:</span>
+                        <p class="font-bold text-slate-800 mt-0.5">{{ selectedCustomer.paymentMethod || 'Transfer BCA (PT PUNDI MAS BERKAH)' }}</p>
+                      </div>
+
+                      <!-- Status Pelanggan -->
+                      <div class="p-3 bg-slate-50/80 rounded-xl border border-slate-100">
+                        <span class="text-slate-400 block text-[11px]">Status Akun:</span>
+                        <div class="flex items-center gap-1.5 mt-0.5">
+                          <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                          <span class="font-bold text-slate-800 capitalize">{{ selectedCustomer.status || 'Active' }}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Card Bukti Pembayaran / Struk Transfer -->
+                  <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-xs space-y-3">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                      <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                        <Receipt class="w-4 h-4 text-indigo-600" />
+                        <span>Bukti Pembayaran / Struk Transfer</span>
+                      </h4>
+                      <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 flex items-center gap-1">
+                        <CheckCircle2 class="w-3 h-3" />
+                        <span>Terverifikasi Finance</span>
+                      </span>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row items-center gap-4 bg-slate-50/60 p-3.5 rounded-2xl border border-slate-100">
+                      <!-- Struk Thumbnail -->
+                      <div 
+                        class="relative w-36 h-48 bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs cursor-pointer group shrink-0"
+                        @click="openReceiptZoom(getCustomerPaymentProof(selectedCustomer))"
+                      >
+                        <img 
+                          :src="getCustomerPaymentProof(selectedCustomer)" 
+                          alt="Bukti Transfer" 
+                          class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                        />
+                        <div class="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
+                          <ZoomIn class="w-6 h-6" />
+                        </div>
+                      </div>
+
+                      <!-- Struk Details -->
+                      <div class="flex-1 space-y-2 text-xs">
+                        <div>
+                          <span class="text-slate-400 block text-[11px]">Rekening / Channel Tujuan:</span>
+                          <p class="font-bold text-slate-800">PT PUNDI MAS BERKAH (BCA 8735019283)</p>
+                        </div>
+                        <div>
+                          <span class="text-slate-400 block text-[11px]">Nominal Transfer:</span>
+                          <p class="font-extrabold text-slate-900 text-sm">
+                            Rp {{ Number(selectedCustomer.amount || 250000).toLocaleString('id-ID') }}
+                          </p>
+                        </div>
+                        <div>
+                          <span class="text-slate-400 block text-[11px]">Status Struk:</span>
+                          <p class="text-emerald-700 font-bold flex items-center gap-1">
+                            <CheckCircle2 class="w-3.5 h-3.5 text-emerald-600" />
+                            <span>Telah diverifikasi sesuai tagihan paket kasir.</span>
+                          </p>
+                        </div>
+                        <div class="pt-1">
+                          <button 
+                            @click="openReceiptZoom(getCustomerPaymentProof(selectedCustomer))"
+                            class="px-3 py-1.5 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs flex items-center gap-1.5 shadow-2xs cursor-pointer"
+                          >
+                            <ZoomIn class="w-3.5 h-3.5 text-slate-500" />
+                            <span>Perbesar & Lihat Bukti Bayar</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Card Riwayat Invoices (Jika Ada) -->
+                  <div v-if="getAssociatedInvoices(selectedCustomer).length > 0" class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-xs space-y-3">
+                    <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5 border-b border-slate-100 pb-2">
+                      <FileText class="w-4 h-4 text-indigo-600" />
+                      <span>Riwayat Tagihan / Invoices</span>
+                    </h4>
+
+                    <div class="divide-y divide-slate-100 text-xs">
+                      <div 
+                        v-for="inv in getAssociatedInvoices(selectedCustomer)" 
+                        :key="inv.id" 
+                        class="py-2.5 flex items-center justify-between"
+                      >
+                        <div>
+                          <span class="font-mono font-bold text-slate-800 block">{{ inv.id }}</span>
+                          <span class="text-[11px] text-slate-400">{{ inv.date }} &bull; {{ inv.paymentMethod }}</span>
+                        </div>
+                        <div class="text-right">
+                          <span class="font-bold text-slate-900 block">Rp {{ Number(inv.amount || 0).toLocaleString('id-ID') }}</span>
+                          <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            {{ inv.status }}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+
+                <!-- ========================================== -->
+                <!-- TAB 3: AKUN KASIR & PENYIAPAN TEKNISI -->
+                <!-- ========================================== -->
+                <div v-if="activeDetailTab === 'teknisi'" class="space-y-4 animate-in fade-in duration-150">
+                  
+                  <!-- Card Status Pengerjaan Teknisi -->
+                  <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-xs space-y-3.5">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-2.5">
+                      <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                        <Wrench class="w-4 h-4 text-cyan-600" />
+                        <span>Status Pengerjaan Teknisi</span>
+                      </h4>
+                      <button 
+                        @click="openSetupFromDetail"
+                        class="px-2.5 py-1 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white font-bold text-xs flex items-center gap-1 shadow-2xs cursor-pointer"
+                      >
+                        <Wrench class="w-3 h-3" />
+                        <span>Ubah Status</span>
+                      </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                      <div class="p-3 bg-slate-50/80 rounded-xl border border-slate-100">
+                        <span class="text-slate-400 block text-[11px]">Status Saat Ini:</span>
+                        <div class="mt-1">
+                          <span 
+                            v-if="selectedCustomer.emailIssueReported"
+                            class="px-2.5 py-1 rounded-xl text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200 inline-flex items-center gap-1"
+                          >
+                            <AlertTriangle class="w-3.5 h-3.5 text-rose-600" />
+                            <span>Ada Kendala Penyiapan</span>
+                          </span>
+                          <span 
+                            v-else-if="selectedCustomer.technicianStatus === 'completed'"
+                            class="px-2.5 py-1 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 inline-flex items-center gap-1"
+                          >
+                            <CheckCircle2 class="w-3.5 h-3.5 text-emerald-600" />
+                            <span>Selesai (Aplikasi Diberikan)</span>
+                          </span>
+                          <span 
+                            v-else-if="selectedCustomer.technicianStatus === 'in_progress'"
+                            class="px-2.5 py-1 rounded-xl text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 inline-flex items-center gap-1"
+                          >
+                            <Wrench class="w-3.5 h-3.5 text-indigo-600" />
+                            <span>Sedang Pengerjaan</span>
+                          </span>
+                          <span 
+                            v-else
+                            class="px-2.5 py-1 rounded-xl text-xs font-bold bg-cyan-50 text-cyan-700 border border-cyan-200 inline-flex items-center gap-1"
+                          >
+                            <Clock class="w-3.5 h-3.5 text-cyan-600" />
+                            <span>Siap Dikerjakan</span>
+                          </span>
+                        </div>
+                      </div>
+
+                      <div class="p-3 bg-slate-50/80 rounded-xl border border-slate-100">
+                        <span class="text-slate-400 block text-[11px]">Teknisi PIC / Penanggung Jawab:</span>
+                        <p class="font-bold text-slate-800 mt-1">
+                          {{ selectedCustomer.technicianAssignedTo || 'Doni Teknisi (Tim Teknisi IKI KASIR)' }}
+                        </p>
+                      </div>
+                    </div>
+
+                    <!-- Catatan Kendala jika ada -->
+                    <div v-if="selectedCustomer.emailIssueReported" class="p-3 bg-rose-50/80 rounded-xl border border-rose-200 text-xs">
+                      <div class="flex items-center justify-between">
+                        <span class="font-bold text-rose-800">Catatan Kendala Teknisi:</span>
+                        <button 
+                          @click="redirectToWa(selectedCustomer, 'issue')"
+                          class="text-rose-700 hover:underline font-bold flex items-center gap-1"
+                        >
+                          <MessageSquare class="w-3 h-3" /> Hubungi via WA
+                        </button>
+                      </div>
+                      <p class="text-rose-700 mt-1 italic">"{{ selectedCustomer.emailIssueNotes || 'Kendala data nomor telepon / email kasir.' }}"</p>
+                    </div>
+                  </div>
+
+                  <!-- Card Kredensial Akun Login Kasir -->
+                  <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-xs space-y-3.5">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-2.5">
+                      <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                        <Key class="w-4 h-4 text-indigo-600" />
+                        <span>Kredensial Akun Aplikasi Kasir (Login Device)</span>
+                      </h4>
+                      <span class="text-[11px] text-slate-400">Digunakan kasir di tablet / HP</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
+                      <!-- Username -->
+                      <div class="p-3 bg-slate-50/80 rounded-xl border border-slate-100 flex items-center justify-between">
+                        <div>
+                          <span class="text-slate-400 block text-[11px] font-semibold">Username Login Kasir:</span>
+                          <span class="font-mono font-bold text-slate-800 text-sm mt-0.5 block">
+                            {{ getCustomerCredentials(selectedCustomer).username }}
+                          </span>
+                        </div>
+                        <button 
+                          @click="copyToClipboard(getCustomerCredentials(selectedCustomer).username, 'Username Kasir')"
+                          class="p-2 hover:bg-slate-200 rounded-lg text-slate-500 transition-colors cursor-pointer"
+                          title="Salin Username"
+                        >
+                          <Copy class="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      <!-- Password -->
+                      <div class="p-3 bg-slate-50/80 rounded-xl border border-slate-100 flex items-center justify-between">
+                        <div>
+                          <span class="text-slate-400 block text-[11px] font-semibold">Password Akun:</span>
+                          <span class="font-mono font-bold text-slate-800 text-sm mt-0.5 block">
+                            {{ isPasswordVisible ? getCustomerCredentials(selectedCustomer).password : '••••••••••••' }}
+                          </span>
+                        </div>
+                        <div class="flex items-center gap-1">
+                          <button 
+                            @click="isPasswordVisible = !isPasswordVisible"
+                            class="p-2 hover:bg-slate-200 rounded-lg text-slate-500 transition-colors cursor-pointer"
+                            :title="isPasswordVisible ? 'Sembunyikan Password' : 'Lihat Password'"
+                          >
+                            <EyeOff v-if="isPasswordVisible" class="w-4 h-4" />
+                            <Eye v-else class="w-4 h-4" />
+                          </button>
+                          <button 
+                            @click="copyToClipboard(getCustomerCredentials(selectedCustomer).password, 'Password Kasir')"
+                            class="p-2 hover:bg-slate-200 rounded-lg text-slate-500 transition-colors cursor-pointer"
+                            title="Salin Password"
+                          >
+                            <Copy class="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <p class="text-[11px] text-slate-500 leading-relaxed bg-indigo-50/50 p-2.5 rounded-xl border border-indigo-100/60">
+                      💡 <strong>Catatan Keamanan:</strong> Kredensial ini diserahkan kepada pemilik usaha saat serah terima aplikasi kasir. Pemilik dapat mengganti password melalui menu pengaturan akun di aplikasi kasir.
+                    </p>
+                  </div>
+
+                  <!-- Card File APK, Buku Panduan & Surat Sewa -->
+                  <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-xs space-y-3.5">
+                    <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5 border-b border-slate-100 pb-2">
+                      <Download class="w-4 h-4 text-indigo-600" />
+                      <span>Berkas APK & Surat Perjanjian Sewa</span>
+                    </h4>
+
+                    <div class="space-y-2.5 text-xs">
+                      <!-- 1. APK Download -->
+                      <div class="p-3 bg-slate-50/80 rounded-xl border border-slate-100 flex items-center justify-between gap-3">
+                        <div class="flex items-center gap-2.5">
+                          <div class="w-9 h-9 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center shrink-0">
+                            <Download class="w-4 h-4" />
+                          </div>
+                          <div>
+                            <span class="font-bold text-slate-800 block">APK Aplikasi Kasir Android (v2.4)</span>
+                            <span class="text-[11px] text-slate-400 font-mono">ikikasir-pos-v2.apk (42 MB)</span>
+                          </div>
+                        </div>
+
+                        <div class="flex items-center gap-1.5">
+                          <button 
+                            @click="copyToClipboard(getCustomerCredentials(selectedCustomer).apkUrl, 'Link APK')"
+                            class="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs flex items-center gap-1 cursor-pointer"
+                            title="Salin Link Download APK"
+                          >
+                            <Copy class="w-3.5 h-3.5" />
+                            <span class="hidden sm:inline">Salin Link</span>
+                          </button>
+                          <a 
+                            :href="getCustomerCredentials(selectedCustomer).apkUrl" 
+                            target="_blank"
+                            class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs flex items-center gap-1 shadow-2xs cursor-pointer"
+                          >
+                            <Download class="w-3.5 h-3.5" />
+                            <span>Unduh APK</span>
+                          </a>
+                        </div>
+                      </div>
+
+                      <!-- 2. Buku Panduan PDF -->
+                      <div class="p-3 bg-slate-50/80 rounded-xl border border-slate-100 flex items-center justify-between gap-3">
+                        <div class="flex items-center gap-2.5">
+                          <div class="w-9 h-9 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                            <BookOpen class="w-4 h-4" />
+                          </div>
+                          <div>
+                            <span class="font-bold text-slate-800 block">Buku Panduan & SOP Kasir (PDF)</span>
+                            <span class="text-[11px] text-slate-400 font-mono">panduan-penggunaan-ikikasir.pdf (3.8 MB)</span>
+                          </div>
+                        </div>
+
+                        <a 
+                          :href="getCustomerCredentials(selectedCustomer).guideUrl" 
+                          target="_blank"
+                          class="px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs flex items-center gap-1 cursor-pointer"
+                        >
+                          <ExternalLink class="w-3.5 h-3.5" />
+                          <span>Buka Panduan</span>
+                        </a>
+                      </div>
+
+                      <!-- 3. Surat Perjanjian Sewa SPK -->
+                      <div class="p-3 bg-slate-50/80 rounded-xl border border-slate-100 flex items-center justify-between gap-3">
+                        <div class="flex items-center gap-2.5">
+                          <div class="w-9 h-9 rounded-xl bg-slate-900 text-white flex items-center justify-center shrink-0">
+                            <FileText class="w-4 h-4" />
+                          </div>
+                          <div>
+                            <span class="font-bold text-slate-800 block">Surat Perjanjian Sewa (SPK Resmi)</span>
+                            <span class="text-[11px] text-slate-500 font-mono">No. {{ getCustomerCredentials(selectedCustomer).spkNumber }}</span>
+                          </div>
+                        </div>
+
+                        <button 
+                          @click="openAgreementFromDetail"
+                          class="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-black text-white font-bold text-xs flex items-center gap-1 shadow-2xs cursor-pointer"
+                        >
+                          <FileText class="w-3.5 h-3.5 text-indigo-300" />
+                          <span>Cetak Surat Sewa</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+
+              </div>
+            </div>
+          </div>
+
+          <!-- Modal Footer -->
+          <div class="px-5 py-3 border-t border-slate-100 flex items-center justify-between bg-slate-50/60">
+            <span class="text-[11px] text-slate-400">Data tersinkronisasi otomatis dengan server IKI KASIR.</span>
+            
+            <div class="flex items-center gap-2">
+              <button 
+                @click="showDetailModal = false"
+                class="px-4 py-2 rounded-xl border border-slate-200 text-slate-700 font-bold text-xs hover:bg-white cursor-pointer"
+              >
+                Tutup
+              </button>
+              <button 
+                @click="openSetupFromDetail"
+                class="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white font-bold text-xs shadow-xs cursor-pointer flex items-center gap-1"
+              >
+                <Wrench class="w-3.5 h-3.5" />
+                <span>Setup Status</span>
+              </button>
+            </div>
+          </div>
+
         </div>
-        <div class="space-y-3 text-sm">
-          <div class="flex justify-between py-2 border-b border-slate-50"><span class="text-slate-500">Telepon</span><span class="font-semibold text-slate-800">{{ selectedCustomer.phone }}</span></div>
-          <div class="flex justify-between py-2 border-b border-slate-50"><span class="text-slate-500">Alamat</span><span class="font-semibold text-slate-800 text-right max-w-[200px]">{{ selectedCustomer.address }}</span></div>
-          <div class="flex justify-between py-2 border-b border-slate-50"><span class="text-slate-500">Paket</span><span class="font-semibold text-slate-800">{{ selectedCustomer.type }}</span></div>
-          <div class="flex justify-between py-2 border-b border-slate-50"><span class="text-slate-500">Masa Aktif</span><span class="font-semibold text-slate-800">{{ selectedCustomer.expiredDate || '-' }}</span></div>
-          <div class="flex justify-between py-2"><span class="text-slate-500">Status</span>
-            <span class="px-2 py-0.5 rounded-full text-[11px] font-bold" :class="selectedCustomer.status === 'active' ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-500'">{{ selectedCustomer.status }}</span>
+      </div>
+    </Teleport>
+
+    <!-- RECEIPT LIGHTBOX ZOOM MODAL -->
+    <Teleport to="body">
+      <div 
+        v-if="isReceiptZoomOpen && zoomedReceiptUrl"
+        class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-in fade-in duration-200"
+        @click.self="isReceiptZoomOpen = false"
+      >
+        <div class="relative max-w-lg w-full bg-white rounded-3xl p-4 shadow-2xl space-y-3">
+          <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+            <span class="text-xs font-bold text-slate-800">Pratinjau Bukti Transfer Pembayaran</span>
+            <button @click="isReceiptZoomOpen = false" class="p-1 hover:bg-slate-100 rounded-lg cursor-pointer">
+              <X class="w-4 h-4 text-slate-500" />
+            </button>
+          </div>
+
+          <div class="flex items-center justify-center overflow-auto max-h-[75vh]">
+            <img :src="zoomedReceiptUrl" alt="Zoomed Receipt" class="max-w-full max-h-[70vh] rounded-2xl object-contain shadow-md" />
+          </div>
+
+          <div class="text-center pt-2">
+            <button 
+              @click="isReceiptZoomOpen = false"
+              class="px-5 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 cursor-pointer"
+            >
+              Tutup Pratinjau
+            </button>
           </div>
         </div>
       </div>
-    </div>
+    </Teleport>
 
     <!-- EXISTING ADD / EDIT MODAL -->
     <div v-if="showAddEditModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center z-50 p-4" @click.self="showAddEditModal = false">
