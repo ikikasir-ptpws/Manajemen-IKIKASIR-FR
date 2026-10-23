@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { Receipt, Search, Download, CheckCircle2, XCircle, Clock, Eye, X, ChevronDown, Filter, Check } from 'lucide-vue-next'
+import { Receipt, Search, Download, CheckCircle2, XCircle, Clock, Eye, X, ChevronDown, Filter, Check, FileText } from 'lucide-vue-next'
 import { useAppData } from '../../composables/useAppData'
 import { usePagination } from '../../composables/usePagination'
 import GlobalPagination from '../../components/common/GlobalPagination.vue'
@@ -16,6 +16,13 @@ const showFilterDropdown = ref(false)
 const showInvoiceModal = ref(false)
 const selectedInvoice = ref<any>(null)
 const toastMessage = ref<string | null>(null)
+const zoomedReceiptUrl = ref<string | null>(null)
+const isReceiptZoomOpen = ref(false)
+
+const openReceiptZoom = (url: string) => {
+  zoomedReceiptUrl.value = url
+  isReceiptZoomOpen.value = true
+}
 
 const showToast = (msg: string) => {
   toastMessage.value = msg
@@ -34,6 +41,7 @@ const filteredSubs = computed(() => {
     status: i.status,
     date: i.date,
     method: i.paymentMethod || 'QRIS',
+    paymentProofUrl: i.paymentProofUrl,
     rawInvoice: i
   }))
 
@@ -343,6 +351,23 @@ const handleExport = () => {
             <span class="font-extrabold text-indigo-700 text-lg">{{ formatCurrency(selectedInvoice.amount) }}</span>
           </div>
 
+          <!-- Bukti Pembayaran / Transfer jika tersedia -->
+          <div v-if="selectedInvoice.paymentProofUrl || selectedInvoice.rawInvoice?.paymentProofUrl" class="p-3 bg-indigo-50/50 rounded-xl border border-indigo-100 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <FileText class="w-4 h-4 text-indigo-600 shrink-0" />
+              <div>
+                <span class="text-xs font-bold text-slate-800 block">Bukti Transfer Pelanggan</span>
+                <span class="text-[10px] text-slate-500">Tersimpan dari verifikasi pendaftaran</span>
+              </div>
+            </div>
+            <button 
+              @click="openReceiptZoom(selectedInvoice.paymentProofUrl || selectedInvoice.rawInvoice?.paymentProofUrl)"
+              class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs cursor-pointer transition-colors shadow-xs"
+            >
+              Lihat Bukti
+            </button>
+          </div>
+
           <!-- Action Button: Mark Paid if pending -->
           <div v-if="selectedInvoice.status === 'Pending'" class="pt-2">
             <button 
@@ -354,6 +379,17 @@ const handleExport = () => {
             </button>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- Zoom Modal Bukti Transfer -->
+    <div v-if="isReceiptZoomOpen" class="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-xs flex items-center justify-center p-4" @click="isReceiptZoomOpen = false">
+      <div class="relative bg-white rounded-2xl max-w-sm w-full p-4 shadow-2xl text-center" @click.stop>
+        <button @click="isReceiptZoomOpen = false" class="absolute top-3 right-3 p-1.5 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 cursor-pointer">
+          <X class="w-4 h-4" />
+        </button>
+        <h4 class="text-xs font-bold text-slate-700 mb-3">Bukti Pembayaran Pelanggan</h4>
+        <img :src="zoomedReceiptUrl || ''" alt="Bukti Transfer" class="w-full rounded-xl shadow-xs border border-slate-100 mx-auto max-h-[70vh] object-contain" />
       </div>
     </div>
   </div>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { 
   Users, 
   Search, 
@@ -28,9 +28,11 @@ import {
   CheckCheck,
   Clock,
   ArrowRight,
-  MessageSquare
+  MessageSquare,
+  RotateCcw
 } from 'lucide-vue-next'
 import RentalAgreementModal from '../../components/RentalAgreementModal.vue'
+import GlobalPagination from '../../components/common/GlobalPagination.vue'
 import { useAppData } from '../../composables/useAppData'
 
 const { 
@@ -136,6 +138,39 @@ const filteredCustomers = computed(() => {
     const bPending = b.technicianStatus && b.technicianStatus !== 'completed' ? 0 : 1
     return aPending - bPending
   })
+})
+
+// ==========================================
+// PAGINATION STATE
+// ==========================================
+const currentPage = ref(1)
+const pageSize = ref(10)
+
+const totalPages = computed(() => {
+  return Math.ceil(filteredCustomers.value.length / pageSize.value) || 1
+})
+
+const startIndex = computed(() => {
+  return (currentPage.value - 1) * pageSize.value
+})
+
+const endIndex = computed(() => {
+  return Math.min(startIndex.value + pageSize.value, filteredCustomers.value.length)
+})
+
+const paginatedCustomers = computed(() => {
+  return filteredCustomers.value.slice(startIndex.value, startIndex.value + pageSize.value)
+})
+
+const resetFilter = () => {
+  searchQuery.value = ''
+  filterType.value = 'Semua'
+  filterTeknisiStatus.value = 'Semua'
+  currentPage.value = 1
+}
+
+watch([searchQuery, filterType, filterTeknisiStatus, pageSize], () => {
+  currentPage.value = 1
 })
 
 const openDetail = (cust: any) => {
@@ -351,39 +386,14 @@ const openAgreementPreview = (user?: any) => {
       </div>
     </header>
 
-    <!-- NOTIFIKASI KHUSUS TEKNISI JIKA ADA APLIKASI SIAP DIKERJAKAN -->
-    <div 
-      v-if="pendingTeknisiCount > 0"
-      class="bg-gradient-to-r from-cyan-500/10 via-cyan-500/5 to-transparent border border-cyan-200/90 rounded-2xl p-3.5 sm:p-4 flex items-center justify-between gap-3 animate-in fade-in duration-150"
-    >
-      <div class="flex items-center gap-3">
-        <div class="w-9 h-9 rounded-xl bg-cyan-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-cyan-200">
-          <Wrench class="w-5 h-5" />
-        </div>
-        <div>
-          <div class="flex items-center gap-2">
-            <span class="text-xs font-extrabold text-slate-900">Antrean Teknisi: {{ pendingTeknisiCount }} Akun Menunggu Penyiapan</span>
-            <span class="px-1.5 py-0.2 rounded text-[9px] font-black bg-cyan-200 text-cyan-900 uppercase">Siap Setup</span>
-          </div>
-          <p class="text-[11px] text-slate-600 mt-0.5">
-            Pelanggan dari Acc Finance siap diproses akun kasirnya. Anda dapat memperbarui status pengerjaan atau langsung hubungi pelanggan via WhatsApp jika ada kendala / selesai.
-          </p>
-        </div>
-      </div>
-
-      <button 
-        @click="filterTeknisiStatus = filterTeknisiStatus === 'Siap Dikerjakan' ? 'Semua' : 'Siap Dikerjakan'"
-        class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0"
-        :class="filterTeknisiStatus === 'Siap Dikerjakan' ? 'bg-cyan-600 text-white shadow-xs' : 'bg-white border border-cyan-200 text-cyan-900 hover:bg-cyan-50'"
-      >
-        {{ filterTeknisiStatus === 'Siap Dikerjakan' ? 'Tampilkan Semua' : 'Filter Siap Dikerjakan' }}
-      </button>
-    </div>
-
-    <!-- Quick Metrics Cards (5 Status Pillars) -->
+    <!-- Quick Metrics Cards (5 Status Pillars - Clickable Filters) -->
     <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
       <!-- Total -->
-      <div class="bg-white rounded-2xl p-3.5 border border-slate-100 shadow-xs flex items-center gap-3">
+      <div 
+        @click="resetFilter"
+        class="bg-white rounded-2xl p-3.5 border border-slate-100 shadow-xs flex items-center gap-3 cursor-pointer hover:border-indigo-300 transition-all"
+        :class="filterTeknisiStatus === 'Semua' && filterType === 'Semua' && !searchQuery ? 'ring-2 ring-indigo-500 bg-indigo-50/20' : ''"
+      >
         <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
           <Users class="w-5 h-5" />
         </div>
@@ -394,7 +404,11 @@ const openAgreementPreview = (user?: any) => {
       </div>
 
       <!-- Siap Dikerjakan -->
-      <div class="bg-white rounded-2xl p-3.5 border border-cyan-100 shadow-xs flex items-center gap-3 bg-cyan-50/20">
+      <div 
+        @click="filterTeknisiStatus = 'Siap Dikerjakan'"
+        class="bg-white rounded-2xl p-3.5 border border-cyan-100 shadow-xs flex items-center gap-3 bg-cyan-50/20 cursor-pointer hover:border-cyan-300 transition-all"
+        :class="filterTeknisiStatus === 'Siap Dikerjakan' ? 'ring-2 ring-cyan-500 bg-cyan-100/30' : ''"
+      >
         <div class="w-10 h-10 rounded-xl bg-cyan-100 text-cyan-700 flex items-center justify-center shrink-0">
           <Clock class="w-5 h-5" />
         </div>
@@ -405,7 +419,11 @@ const openAgreementPreview = (user?: any) => {
       </div>
 
       <!-- Sedang Proses -->
-      <div class="bg-white rounded-2xl p-3.5 border border-slate-100 shadow-xs flex items-center gap-3">
+      <div 
+        @click="filterTeknisiStatus = 'Sedang Dikerjakan'"
+        class="bg-white rounded-2xl p-3.5 border border-slate-100 shadow-xs flex items-center gap-3 cursor-pointer hover:border-indigo-300 transition-all"
+        :class="filterTeknisiStatus === 'Sedang Dikerjakan' ? 'ring-2 ring-indigo-500 bg-indigo-50/20' : ''"
+      >
         <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
           <Wrench class="w-5 h-5" />
         </div>
@@ -416,7 +434,11 @@ const openAgreementPreview = (user?: any) => {
       </div>
 
       <!-- Ada Kendala -->
-      <div class="bg-white rounded-2xl p-3.5 border border-rose-100 shadow-xs flex items-center gap-3 bg-rose-50/20">
+      <div 
+        @click="filterTeknisiStatus = 'Ada Kendala'"
+        class="bg-white rounded-2xl p-3.5 border border-rose-100 shadow-xs flex items-center gap-3 bg-rose-50/20 cursor-pointer hover:border-rose-300 transition-all"
+        :class="filterTeknisiStatus === 'Ada Kendala' ? 'ring-2 ring-rose-500 bg-rose-100/30' : ''"
+      >
         <div class="w-10 h-10 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center shrink-0">
           <AlertTriangle class="w-5 h-5" />
         </div>
@@ -427,7 +449,11 @@ const openAgreementPreview = (user?: any) => {
       </div>
 
       <!-- Aplikasi Diberikan / Selesai -->
-      <div class="bg-white rounded-2xl p-3.5 border border-emerald-100 shadow-xs flex items-center gap-3 bg-emerald-50/20">
+      <div 
+        @click="filterTeknisiStatus = 'Selesai'"
+        class="bg-white rounded-2xl p-3.5 border border-emerald-100 shadow-xs flex items-center gap-3 bg-emerald-50/20 cursor-pointer hover:border-emerald-300 transition-all"
+        :class="filterTeknisiStatus === 'Selesai' ? 'ring-2 ring-emerald-500 bg-emerald-100/30' : ''"
+      >
         <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
           <CheckCircle2 class="w-5 h-5" />
         </div>
@@ -447,7 +473,7 @@ const openAgreementPreview = (user?: any) => {
           v-model="searchQuery"
           type="text" 
           placeholder="Cari pelanggan berdasarkan nama / toko / no telp / email..." 
-          class="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+          class="w-full pl-10 pr-4 py-2 sm:py-2.5 rounded-xl border border-slate-200 text-xs font-medium text-slate-700 placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all"
         />
       </div>
 
@@ -455,7 +481,7 @@ const openAgreementPreview = (user?: any) => {
         <!-- Filter Status Teknisi -->
         <select 
           v-model="filterTeknisiStatus" 
-          class="px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 outline-none focus:border-cyan-500"
+          class="px-3 py-2 sm:py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 outline-none focus:border-cyan-500 cursor-pointer shadow-2xs"
         >
           <option value="Semua">Status Teknisi: Semua</option>
           <option value="Siap Dikerjakan">Siap Dikerjakan ({{ readyForSetupCount }})</option>
@@ -467,13 +493,23 @@ const openAgreementPreview = (user?: any) => {
         <!-- Filter Paket -->
         <select 
           v-model="filterType" 
-          class="px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 outline-none focus:border-indigo-500"
+          class="px-3 py-2 sm:py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 outline-none focus:border-indigo-500 cursor-pointer shadow-2xs"
         >
           <option value="Semua">Paket: Semua</option>
           <option value="Basic">Basic</option>
           <option value="Pro">Pro</option>
           <option value="Custom / IT One">Custom / IT One</option>
         </select>
+
+        <!-- Reset Button -->
+        <button 
+          @click="resetFilter"
+          class="flex items-center justify-center gap-1.5 px-3 py-2 sm:py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 font-semibold transition-colors cursor-pointer shadow-2xs"
+          title="Reset Filter"
+        >
+          <RotateCcw class="w-3.5 h-3.5" />
+          <span class="hidden sm:inline">Reset</span>
+        </button>
       </div>
     </div>
 
@@ -481,126 +517,131 @@ const openAgreementPreview = (user?: any) => {
     <div class="hidden md:block bg-white rounded-2xl shadow-xs border border-slate-100 overflow-hidden">
       <div class="overflow-x-auto">
         <table class="w-full text-left text-xs min-w-[1000px]">
-          <thead class="bg-slate-50 border-b border-slate-100">
-            <tr>
-              <th class="px-5 py-3.5 font-semibold text-slate-600 w-12 whitespace-nowrap">No</th>
-              <th class="px-5 py-3.5 font-semibold text-slate-600 min-w-[200px]">Info Pelanggan & Bisnis</th>
-              <th class="px-5 py-3.5 font-semibold text-slate-600 whitespace-nowrap">Kontak & Kendala Email</th>
-              <th class="px-5 py-3.5 font-semibold text-slate-600 whitespace-nowrap">Tipe Paket</th>
-              <th class="px-5 py-3.5 font-semibold text-slate-600 whitespace-nowrap">Status Teknisi</th>
-              <th class="px-5 py-3.5 font-semibold text-slate-600 whitespace-nowrap">Masa Aktif Expired</th>
-              <th class="px-5 py-3.5 font-semibold text-slate-600 text-center w-44 whitespace-nowrap">Aksi</th>
+          <thead>
+            <tr class="text-slate-400 border-b border-slate-100 bg-slate-50/70 font-semibold text-[11px] uppercase tracking-wider">
+              <th class="py-3 px-3.5 w-16 whitespace-nowrap">No</th>
+              <th class="py-3 px-3.5 min-w-[200px]">Pelanggan & Toko</th>
+              <th class="py-3 px-3.5 whitespace-nowrap">WhatsApp & Email</th>
+              <th class="py-3 px-3.5 whitespace-nowrap">Paket Kasir</th>
+              <th class="py-3 px-3.5 whitespace-nowrap">Status Penyiapan</th>
+              <th class="py-3 px-3.5 whitespace-nowrap">Masa Aktif Expired</th>
+              <th class="py-3 px-3.5 text-center whitespace-nowrap w-48">Aksi</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100">
             <tr 
-              v-for="(cust, index) in filteredCustomers" 
+              v-for="(cust, index) in paginatedCustomers" 
               :key="cust.id" 
-              class="hover:bg-slate-50/60 transition-colors group"
+              class="hover:bg-slate-50/80 transition-colors group cursor-pointer"
               :class="cust.technicianStatus === 'pending_setup' ? 'bg-cyan-50/20' : (cust.emailIssueReported ? 'bg-rose-50/20' : '')"
+              @click="openDetail(cust)"
             >
-              <td class="px-5 py-3.5 text-slate-400 font-mono font-bold whitespace-nowrap">{{ index + 1 }}</td>
+              <!-- No -->
+              <td class="py-3.5 px-3.5 text-slate-400 font-mono font-bold text-[11px] whitespace-nowrap">
+                {{ startIndex + index + 1 }}
+              </td>
               
               <!-- Pelanggan & Bisnis -->
-              <td class="px-5 py-3.5">
+              <td class="py-3.5 px-3.5">
                 <div class="flex items-center gap-3">
-                  <div class="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-xs shrink-0">
+                  <div class="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
                     {{ cust.name.charAt(0) }}
                   </div>
                   <div>
-                    <div class="font-bold text-slate-800 text-xs">{{ cust.name }}</div>
-                    <div class="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
-                      <ShieldCheck class="w-3 h-3 text-slate-400" />
-                      {{ cust.business }}
+                    <div class="font-bold text-slate-800 text-xs group-hover:text-indigo-600 transition-colors leading-snug">{{ cust.name }}</div>
+                    <div class="text-[11px] text-slate-400 flex items-center gap-1 mt-0.5 font-medium leading-tight">
+                      <ShieldCheck class="w-3 h-3 text-slate-400 shrink-0" />
+                      <span>{{ cust.business }}</span>
                     </div>
                   </div>
                 </div>
               </td>
 
-              <!-- Kontak & Kendala Email (Sesuai Flowchart Teknisi) -->
-              <td class="px-5 py-3.5 whitespace-nowrap">
-                <div class="font-medium text-slate-700 font-mono text-[11px]">{{ cust.phone }}</div>
+              <!-- No WhatsApp & Email -->
+              <td class="py-3.5 px-3.5 font-medium whitespace-nowrap">
+                <div class="text-slate-700 font-mono text-[11px] flex items-center gap-1.5">
+                  <Phone class="w-3 h-3 text-slate-400 shrink-0" />
+                  <span>{{ cust.phone }}</span>
+                </div>
                 
                 <!-- Email Issue flag -->
-                <div v-if="cust.emailIssueReported" class="mt-1 space-y-0.5">
-                  <span class="px-1.5 py-0.2 rounded text-[10px] font-bold bg-rose-100 text-rose-700 border border-rose-200 flex items-center gap-1 w-fit animate-pulse">
-                    <AlertTriangle class="w-3 h-3 text-rose-600" />
-                    Kendala Email
-                  </span>
+                <div v-if="cust.emailIssueReported" class="mt-1" @click.stop>
                   <button 
                     @click="redirectToWa(cust, 'issue')"
-                    class="text-[10px] font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-0.5 cursor-pointer"
+                    class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-100 text-rose-700 border border-rose-200 hover:bg-rose-200 transition-colors animate-pulse cursor-pointer"
+                    title="Hubungi Pelanggan via WhatsApp"
                   >
-                    <MessageSquare class="w-2.5 h-2.5" />
-                    <span>Hubungi WA</span>
+                    <AlertTriangle class="w-3 h-3 text-rose-600 shrink-0" />
+                    <span>Kendala Email (Chat WA)</span>
                   </button>
                 </div>
-                <div v-else class="text-[11px] text-slate-400 flex items-center gap-1 mt-0.5">
+                <div v-else class="text-[11px] text-slate-400 flex items-center gap-1.5 mt-0.5">
                   <Mail class="w-3 h-3 text-slate-400 shrink-0" />
                   <span>{{ cust.email || '-' }}</span>
                 </div>
               </td>
 
               <!-- Tipe Paket -->
-              <td class="px-5 py-3.5 whitespace-nowrap">
-                <span class="px-2.5 py-1 rounded-md text-[11px] font-bold inline-block"
+              <td class="py-3.5 px-3.5 whitespace-nowrap">
+                <span 
+                  class="px-2 py-0.5 rounded-md text-[11px] font-bold inline-block border"
                   :class="{
-                    'bg-indigo-50 text-indigo-700 border border-indigo-100': cust.type === 'Custom / IT One',
-                    'bg-blue-50 text-blue-700 border border-blue-100': cust.type === 'Pro',
-                    'bg-slate-100 text-slate-600 border border-slate-200': cust.type === 'Basic'
+                    'bg-purple-50 text-purple-700 border-purple-200': cust.type === 'Custom / IT One',
+                    'bg-indigo-50 text-indigo-700 border-indigo-200': cust.type === 'Pro',
+                    'bg-slate-100 text-slate-700 border-slate-200': cust.type === 'Basic'
                   }"
                 >
                   {{ cust.type }}
                 </span>
               </td>
               
-              <!-- Status Teknisi (Alur Teknisi) -->
-              <td class="px-5 py-3.5 whitespace-nowrap">
+              <!-- Status Teknisi -->
+              <td class="py-3.5 px-3.5 whitespace-nowrap">
                 <span 
                   v-if="cust.emailIssueReported"
-                  class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-rose-100 text-rose-800 border border-rose-200 flex items-center gap-1 w-fit animate-pulse"
+                  class="px-2.5 py-1 rounded-xl text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-200 inline-flex items-center gap-1"
                 >
                   <AlertTriangle class="w-3.5 h-3.5 text-rose-600" />
-                  Ada Kendala
+                  <span>Ada Kendala</span>
                 </span>
                 <span 
                   v-else-if="cust.technicianStatus === 'completed'"
-                  class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 flex items-center gap-1 w-fit"
+                  class="px-2.5 py-1 rounded-xl text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 inline-flex items-center gap-1"
                 >
                   <CheckCircle2 class="w-3.5 h-3.5 text-emerald-600" />
-                  Aplikasi Diberikan
+                  <span>Aplikasi Diberikan</span>
                 </span>
                 <span 
                   v-else-if="cust.technicianStatus === 'in_progress'"
-                  class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-indigo-100 text-indigo-800 border border-indigo-200 flex items-center gap-1 w-fit"
+                  class="px-2.5 py-1 rounded-xl text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 inline-flex items-center gap-1"
                 >
                   <Wrench class="w-3.5 h-3.5 text-indigo-600" />
-                  Sedang Pengerjaan
+                  <span>Sedang Pengerjaan</span>
                 </span>
                 <span 
                   v-else
-                  class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-cyan-100 text-cyan-800 border border-cyan-200 flex items-center gap-1 w-fit"
+                  class="px-2.5 py-1 rounded-xl text-[11px] font-bold bg-cyan-50 text-cyan-700 border border-cyan-200 inline-flex items-center gap-1"
                 >
                   <Clock class="w-3.5 h-3.5 text-cyan-600" />
-                  Siap Dikerjakan
+                  <span>Siap Dikerjakan</span>
                 </span>
               </td>
 
               <!-- Masa Aktif Expired -->
-              <td class="px-5 py-3.5 text-slate-600 text-xs font-mono font-medium whitespace-nowrap">
+              <td class="py-3.5 px-3.5 text-slate-600 text-xs font-mono font-medium whitespace-nowrap">
                 {{ cust.expiredDate || '-' }}
               </td>
 
               <!-- Aksi -->
-              <td class="px-5 py-3.5 text-center whitespace-nowrap">
-                <div class="flex items-center justify-center gap-1.5">
+              <td class="py-3.5 px-3.5 text-center whitespace-nowrap" @click.stop>
+                <div class="inline-flex items-center justify-center gap-1.5">
                   <!-- Tombol Ubah Status Setup -->
                   <button 
                     @click="openSetupModal(cust)"
-                    class="px-2.5 py-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white font-bold text-xs flex items-center gap-1 shadow-sm shadow-cyan-200 transition-colors cursor-pointer"
+                    class="px-2.5 py-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white font-bold text-xs flex items-center gap-1 shadow-sm shadow-cyan-200 transition-colors cursor-pointer whitespace-nowrap"
                     title="Ubah Status Pengerjaan Teknisi"
                   >
-                    <Wrench class="w-3.5 h-3.5" />
+                    <Wrench class="w-3.5 h-3.5 shrink-0" />
                     <span>Setup</span>
                   </button>
 
@@ -608,10 +649,10 @@ const openAgreementPreview = (user?: any) => {
                   <button 
                     v-if="cust.emailIssueReported"
                     @click="redirectToWa(cust, 'issue')"
-                    class="px-2.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs flex items-center gap-1 shadow-sm shadow-rose-200 transition-colors cursor-pointer animate-in fade-in duration-150"
+                    class="px-2.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs flex items-center gap-1 shadow-sm shadow-rose-200 transition-colors cursor-pointer whitespace-nowrap"
                     title="Hubungi Pelanggan via WhatsApp (Ada Kendala)"
                   >
-                    <MessageSquare class="w-3.5 h-3.5" />
+                    <MessageSquare class="w-3.5 h-3.5 shrink-0" />
                     <span>WA Kendala</span>
                   </button>
 
@@ -619,22 +660,36 @@ const openAgreementPreview = (user?: any) => {
                   <button 
                     v-else-if="cust.technicianStatus === 'completed'"
                     @click="redirectToWa(cust, 'completed')"
-                    class="px-2.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1 shadow-sm shadow-emerald-200 transition-colors cursor-pointer animate-in fade-in duration-150"
+                    class="px-2.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1 shadow-sm shadow-emerald-200 transition-colors cursor-pointer whitespace-nowrap"
                     title="Kirim Konfirmasi Selesai via WhatsApp"
                   >
-                    <MessageSquare class="w-3.5 h-3.5" />
+                    <MessageSquare class="w-3.5 h-3.5 shrink-0" />
                     <span>WA Selesai</span>
                   </button>
 
-                  <!-- Segmented Action Toolbar -->
+                  <!-- Segmented Action Toolbar: Detail, Edit, Hapus -->
                   <div class="inline-flex items-center rounded-xl border border-slate-200 bg-white shadow-2xs divide-x divide-slate-100 overflow-hidden">
-                    <button @click="openDetail(cust)" class="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50/70 transition-all cursor-pointer" title="Lihat Detail">
-                      <Eye class="w-3.5 h-3.5" />
+                    <button 
+                      @click="openDetail(cust)" 
+                      class="px-2.5 py-1.5 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50/70 transition-all cursor-pointer flex items-center gap-1 text-xs font-semibold" 
+                      title="Lihat Detail Pelanggan"
+                    >
+                      <Eye class="w-3.5 h-3.5 text-slate-500" />
+                      <span class="text-[11px] font-bold">Detail</span>
                     </button>
-                    <button @click="openEdit(cust)" class="p-1.5 text-slate-500 hover:text-amber-600 hover:bg-amber-50/70 transition-all cursor-pointer" title="Edit Data">
-                      <Edit2 class="w-3.5 h-3.5" />
+                    <button 
+                      @click="openEdit(cust)" 
+                      class="px-2.5 py-1.5 text-slate-600 hover:text-amber-600 hover:bg-amber-50/70 transition-all cursor-pointer flex items-center gap-1 text-xs font-semibold" 
+                      title="Edit Data Pelanggan"
+                    >
+                      <Edit2 class="w-3.5 h-3.5 text-slate-500" />
+                      <span class="text-[11px] font-bold">Edit</span>
                     </button>
-                    <button @click="confirmDelete(cust)" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50/70 transition-all cursor-pointer" title="Hapus Data">
+                    <button 
+                      @click="confirmDelete(cust)" 
+                      class="px-2 py-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50/70 transition-all cursor-pointer" 
+                      title="Hapus Data Pelanggan"
+                    >
                       <Trash2 class="w-3.5 h-3.5" />
                     </button>
                   </div>
@@ -643,21 +698,51 @@ const openAgreementPreview = (user?: any) => {
             </tr>
 
             <tr v-if="filteredCustomers.length === 0">
-              <td colspan="7" class="px-5 py-8 text-center text-slate-400 text-xs">
-                Belum ada data pelanggan yang cocok dengan pencarian/filter.
+              <td colspan="7" class="py-12 px-4 text-center">
+                <div class="max-w-md mx-auto space-y-3">
+                  <div class="w-14 h-14 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto shadow-inner">
+                    <Users class="w-7 h-7 text-indigo-500" />
+                  </div>
+                  <div>
+                    <h4 class="text-sm font-extrabold text-slate-800">Tidak Ada Pelanggan Ditemukan</h4>
+                    <p class="text-xs text-slate-500 mt-1 leading-relaxed">
+                      Belum ada data pelanggan yang cocok dengan kriteria filter atau pencarian Anda.
+                    </p>
+                  </div>
+                  <div class="pt-2">
+                    <button 
+                      @click="resetFilter"
+                      class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs inline-flex items-center gap-1.5 shadow-md shadow-indigo-200 transition-all cursor-pointer"
+                    >
+                      <RotateCcw class="w-3.5 h-3.5" />
+                      <span>Reset Filter</span>
+                    </button>
+                  </div>
+                </div>
               </td>
             </tr>
           </tbody>
         </table>
       </div>
+
+      <!-- PAGINATION FOOTER -->
+      <GlobalPagination
+        v-if="filteredCustomers.length > 0"
+        :current-page="currentPage"
+        :total-items="filteredCustomers.length"
+        :page-size="pageSize"
+        @update:current-page="currentPage = $event"
+        @update:page-size="pageSize = $event"
+      />
     </div>
 
     <!-- Mobile Cards View -->
     <div class="block md:hidden space-y-3">
       <div 
-        v-for="cust in filteredCustomers" 
+        v-for="cust in paginatedCustomers" 
         :key="cust.id"
-        class="bg-white rounded-2xl p-4 border border-slate-100 shadow-xs space-y-3"
+        class="bg-white rounded-2xl p-4 border border-slate-100 shadow-xs space-y-3 cursor-pointer"
+        @click="openDetail(cust)"
       >
         <div class="flex items-start justify-between">
           <div>
@@ -683,13 +768,13 @@ const openAgreementPreview = (user?: any) => {
           </div>
           <div v-if="cust.emailIssueReported" class="pt-1 border-t border-slate-200 flex justify-between items-center text-rose-600 font-bold">
             <span>Ada Kendala!</span>
-            <button @click="redirectToWa(cust, 'issue')" class="text-rose-600 flex items-center gap-1 font-bold">
+            <button @click.stop="redirectToWa(cust, 'issue')" class="text-rose-600 flex items-center gap-1 font-bold">
               <MessageSquare class="w-3 h-3" /> Hubungi WA
             </button>
           </div>
         </div>
 
-        <div class="flex items-center gap-2 pt-1 flex-wrap">
+        <div class="flex items-center gap-2 pt-1 flex-wrap" @click.stop>
           <button 
             @click="openSetupModal(cust)"
             class="flex-1 py-2 px-3 rounded-xl bg-cyan-600 text-white font-bold text-xs flex items-center justify-center gap-1 shadow-md shadow-cyan-200 cursor-pointer"
@@ -716,7 +801,60 @@ const openAgreementPreview = (user?: any) => {
           >
             <Eye class="w-3.5 h-3.5" />
           </button>
+          <button 
+            @click="openEdit(cust)" 
+            class="py-2 px-3 rounded-xl bg-amber-50 text-amber-700 border border-amber-200 font-bold text-xs hover:bg-amber-100 cursor-pointer"
+          >
+            <Edit2 class="w-3.5 h-3.5" />
+          </button>
+          <button 
+            @click="confirmDelete(cust)" 
+            class="py-2 px-3 rounded-xl bg-rose-50 text-rose-700 border border-rose-200 font-bold text-xs hover:bg-rose-100 cursor-pointer"
+          >
+            <Trash2 class="w-3.5 h-3.5" />
+          </button>
         </div>
+      </div>
+
+      <!-- Mobile Empty State -->
+      <div v-if="filteredCustomers.length === 0" class="bg-white rounded-2xl p-6 border border-slate-100 text-center space-y-3">
+        <div class="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto shadow-inner">
+          <Users class="w-6 h-6 text-indigo-500" />
+        </div>
+        <div>
+          <h4 class="text-sm font-extrabold text-slate-800">Tidak Ada Pelanggan</h4>
+          <p class="text-xs text-slate-500 mt-1 leading-relaxed">
+            Belum ada data pelanggan yang cocok dengan pencarian atau filter Anda.
+          </p>
+        </div>
+        <div class="pt-2">
+          <button 
+            @click="resetFilter"
+            class="px-4 py-2 rounded-xl bg-indigo-600 text-white font-bold text-xs inline-flex items-center gap-1.5 shadow-md shadow-indigo-200"
+          >
+            <RotateCcw class="w-3.5 h-3.5" />
+            <span>Reset Filter</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Mobile Pagination Control -->
+      <div v-if="totalPages > 1" class="flex items-center justify-between bg-white rounded-2xl p-3 border border-slate-100 shadow-xs text-xs">
+        <button 
+          @click="currentPage--"
+          :disabled="currentPage <= 1"
+          class="px-3 py-1.5 rounded-xl border border-slate-200 text-slate-600 font-bold disabled:opacity-40"
+        >
+          Sebelumnya
+        </button>
+        <span class="font-bold text-slate-700">Hal {{ currentPage }} / {{ totalPages }}</span>
+        <button 
+          @click="currentPage++"
+          :disabled="currentPage >= totalPages"
+          class="px-3 py-1.5 rounded-xl border border-slate-200 text-slate-600 font-bold disabled:opacity-40"
+        >
+          Selanjutnya
+        </button>
       </div>
     </div>
 

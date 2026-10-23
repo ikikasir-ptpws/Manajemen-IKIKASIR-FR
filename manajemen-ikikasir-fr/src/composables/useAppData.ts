@@ -66,6 +66,7 @@ export interface SubscriptionInvoice {
   date: string
   paymentMethod: string
   status: 'Paid' | 'Pending' | 'Failed'
+  paymentProofUrl?: string
 }
 
 // INITIAL SEED DATA
@@ -723,20 +724,32 @@ export function useAppData() {
   }
 
   // SETUJUI CALON CLIENT (Rule 6: Calon Client -> Disetujui -> Masuk Semua Pelanggan + Invoice)
-  const approveLead = (leadId: string) => {
+  const approveLead = (leadId: string, paymentData?: {
+    amount?: number
+    paymentMethod?: string
+    paymentProofUrl?: string
+    notes?: string
+    date?: string
+  }) => {
     const lead = leads.value.find(l => l.id === leadId)
     if (!lead) return null
 
     // Mark lead status as Converted / Disetujui
     lead.status = 'Converted'
+    lead.paymentStatus = 'verified'
     lead.lastFollowUp = getTodayFormatted()
     lead.updated_at = new Date().toISOString()
+    if (paymentData?.amount) lead.paymentAmount = paymentData.amount
+    if (paymentData?.paymentMethod) lead.paymentMethod = paymentData.paymentMethod
+    if (paymentData?.paymentProofUrl) lead.paymentProofUrl = paymentData.paymentProofUrl
+    if (paymentData?.notes) lead.paymentNotes = paymentData.notes
+
     lead.followUpHistory.unshift({
       id: 'fh-' + Date.now(),
       date: getTodayFormatted(),
       time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
       channel: 'Sistem',
-      notes: 'Pendaftaran disetujui Super Admin. Klien dikonversi menjadi Pelanggan Aktif.'
+      notes: paymentData?.notes || 'Pendaftaran disetujui Super Admin. Klien dikonversi menjadi Pelanggan Aktif.'
     })
     saveStorage(STORAGE_KEY_LEADS, leads.value)
 
@@ -744,8 +757,21 @@ export function useAppData() {
     let targetCustomer: Customer
     const existing = customers.value.find(c => c.id === 'cust-' + lead.id || (lead.phone && c.phone === lead.phone) || (lead.email && c.email === lead.email))
 
+    const packagePrices: Record<string, number> = {
+      'Basic': 250000,
+      'Pro': 500000,
+      'Add on': 150000,
+      'Custom / IT One': 1500000
+    }
+    const finalAmount = paymentData?.amount ?? lead.paymentAmount ?? packagePrices[lead.packageInterest || 'Basic'] ?? 250000
+    const finalMethod = paymentData?.paymentMethod ?? lead.paymentMethod ?? 'QRIS'
+    const finalProof = paymentData?.paymentProofUrl ?? lead.paymentProofUrl
+
     if (existing) {
       targetCustomer = existing
+      targetCustomer.amount = finalAmount
+      targetCustomer.paymentMethod = finalMethod
+      saveStorage(STORAGE_KEY_CUSTOMERS, customers.value)
     } else {
       // Calculate 1 month expired date
       const expDate = new Date()
@@ -763,8 +789,8 @@ export function useAppData() {
         category: lead.businessCategory || 'Retail',
         expiredDate: expISO,
         status: 'active',
-        amount: lead.packageInterest === 'Basic' ? 250000 : 0,
-        paymentMethod: 'QRIS'
+        amount: finalAmount,
+        paymentMethod: finalMethod
       }
       customers.value.unshift(targetCustomer)
       saveStorage(STORAGE_KEY_CUSTOMERS, customers.value)
@@ -778,11 +804,12 @@ export function useAppData() {
       businessName: targetCustomer.businessName || '',
       phone: targetCustomer.phone || '',
       package: targetCustomer.packageType,
-      amount: targetCustomer.packageType === 'Basic' ? 250000 : 0,
+      amount: finalAmount,
       billingCycleMonths: 1,
-      date: getTodayFormatted(),
-      paymentMethod: 'QRIS',
-      status: 'Paid'
+      date: paymentData?.date || getTodayFormatted(),
+      paymentMethod: finalMethod,
+      status: 'Paid',
+      paymentProofUrl: finalProof
     }
     invoices.value.unshift(newInvoice)
     saveStorage(STORAGE_KEY_INVOICES, invoices.value)
