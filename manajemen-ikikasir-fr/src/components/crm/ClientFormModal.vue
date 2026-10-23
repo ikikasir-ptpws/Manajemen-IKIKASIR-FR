@@ -5,19 +5,15 @@ import {
   UserPlus, 
   User, 
   Store, 
-  Phone, 
   Mail, 
   MapPin, 
   Tag, 
   Sparkles, 
   CheckCircle2, 
-  Calendar, 
-  Compass, 
+  Package,
   ArrowRight,
-  ShieldCheck,
-  DollarSign,
-  Loader2,
-  AlertCircle
+  ArrowLeft,
+  Loader2
 } from 'lucide-vue-next'
 import type { ClientLead, LeadStatus, LeadSource } from '../../types/crm'
 import { useAppData } from '../../composables/useAppData'
@@ -35,7 +31,7 @@ const emit = defineEmits<{
 const { addRegistration, updateLead } = useAppData()
 const isSubmitting = ref(false)
 const submitError = ref<string | null>(null)
-const activeTab = ref<'contact' | 'business' | 'crm'>('contact')
+const activeTab = ref<'contact' | 'business'>('contact')
 
 const formData = ref({
   name: '',
@@ -46,7 +42,7 @@ const formData = ref({
   address: '',
   status: 'New' as LeadStatus,
   source: 'Website' as LeadSource,
-  packageInterest: 'Basic' as 'Basic' | 'Pro' | 'Custom / IT One' | string,
+  packageInterest: 'Basic' as 'Basic' | 'Pro' | 'Add on' | 'Custom / IT One' | string,
   estimatedDeal: 250000,
   notes: '',
   followUpSchedule: 'Hari ini' as 'Hari ini' | 'Besok' | '2 Hari lagi' | '3 Hari lagi' | '5 Hari lagi' | 'Terlambat'
@@ -55,6 +51,25 @@ const formData = ref({
 const categories = ['Retail', 'F&B / Kuliner', 'Fashion & Butik', 'Jasa & Servis', 'Minimarket & Grosir', 'Lainnya']
 const sources: LeadSource[] = ['Website', 'Instagram', 'WhatsApp', 'Facebook Ads', 'Referral', 'Direct / Walk-in']
 const statuses: LeadStatus[] = ['New', 'Contacted', 'Follow Up', 'Interested', 'Converted', 'Lost']
+
+const statusColors: Record<LeadStatus, { bg: string, text: string }> = {
+  New: { bg: 'bg-blue-50 border-blue-200', text: 'text-blue-600' },
+  Contacted: { bg: 'bg-amber-50 border-amber-200', text: 'text-amber-600' },
+  'Follow Up': { bg: 'bg-purple-50 border-purple-200', text: 'text-purple-600' },
+  Interested: { bg: 'bg-teal-50 border-teal-200', text: 'text-teal-600' },
+  Converted: { bg: 'bg-emerald-50 border-emerald-200', text: 'text-emerald-600' },
+  Lost: { bg: 'bg-rose-50 border-rose-200', text: 'text-rose-600' },
+}
+
+const handlePackageChange = () => {
+  const deals: Record<string, number> = {
+    'Basic': 250000,
+    'Pro': 500000,
+    'Add on': 150000,
+    'Custom / IT One': 1500000
+  }
+  formData.value.estimatedDeal = deals[formData.value.packageInterest] || 250000
+}
 
 // Watch for editing client
 watch(() => props.clientToEdit, (val) => {
@@ -96,28 +111,17 @@ function resetForm() {
   activeTab.value = 'contact'
 }
 
-const statusColors: Record<LeadStatus, { bg: string, text: string }> = {
-  New: { bg: 'bg-blue-50 border-blue-200', text: 'text-blue-600' },
-  Contacted: { bg: 'bg-amber-50 border-amber-200', text: 'text-amber-600' },
-  'Follow Up': { bg: 'bg-purple-50 border-purple-200', text: 'text-purple-600' },
-  Interested: { bg: 'bg-teal-50 border-teal-200', text: 'text-teal-600' },
-  Converted: { bg: 'bg-emerald-50 border-emerald-200', text: 'text-emerald-600' },
-  Lost: { bg: 'bg-rose-50 border-rose-200', text: 'text-rose-600' },
-}
-
-const formatRupiah = (val: number) => {
-  return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val)
-}
-
 const handleSubmit = () => {
   submitError.value = null
 
   if (!formData.value.name.trim()) {
     submitError.value = 'Nama lengkap wajib diisi.'
+    activeTab.value = 'contact'
     return
   }
   if (!formData.value.businessName.trim()) {
-    submitError.value = 'Nama bisnis/usaha wajib diisi.'
+    submitError.value = 'Nama bisnis/usaha wajib diisi pada Profil Usaha.'
+    activeTab.value = 'business'
     return
   }
 
@@ -159,7 +163,7 @@ const handleSubmit = () => {
         source: formData.value.source,
         notes: formData.value.notes || `Calon client ditambahkan manual via CRM Admin. Paket: ${formData.value.packageInterest}.`
       })
-      // Terapkan fields tambahan (status, estimatedDeal, followUpSchedule) yang tidak ada di addRegistration
+      // Terapkan fields tambahan jika diperlukan
       if (formData.value.status !== 'New' || formData.value.estimatedDeal !== 250000 || formData.value.followUpSchedule !== 'Hari ini') {
         updateLead({
           ...savedClient,
@@ -191,7 +195,7 @@ const handleSubmit = () => {
     ></div>
 
     <!-- Modal Dialog -->
-    <div class="relative bg-white w-full max-w-3xl rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-100 overflow-hidden flex flex-col my-auto z-10 animate-in fade-in zoom-in-95 duration-200 max-h-[94vh]">
+    <div class="relative bg-white w-full max-w-2xl rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-100 overflow-hidden flex flex-col my-auto z-10 animate-in fade-in zoom-in-95 duration-200 max-h-[94vh]">
       
       <!-- Top Bar / Gradient Header -->
       <div class="px-4 py-3.5 sm:px-6 sm:py-5 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-slate-50 via-indigo-50/40 to-slate-50">
@@ -220,7 +224,7 @@ const handleSubmit = () => {
         </button>
       </div>
 
-      <!-- Navigation Tabs (Horizontal scrollable with no-scrollbar on mobile) -->
+      <!-- Navigation Tabs (2 Tabs Ringkas) -->
       <div class="px-4 sm:px-6 border-b border-slate-100 bg-white flex items-center gap-2 text-xs font-bold pt-2 overflow-x-auto no-scrollbar whitespace-nowrap">
         <button 
           type="button"
@@ -238,16 +242,7 @@ const handleSubmit = () => {
           :class="activeTab === 'business' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-800'"
         >
           <Store class="w-3.5 h-3.5" />
-          <span>2. Profil Usaha</span>
-        </button>
-        <button 
-          type="button"
-          @click="activeTab = 'crm'"
-          class="pb-2.5 px-3 border-b-2 transition-all cursor-pointer flex items-center gap-1.5 shrink-0"
-          :class="activeTab === 'crm' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-800'"
-        >
-          <Compass class="w-3.5 h-3.5" />
-          <span>3. Status CRM & Follow Up</span>
+          <span>2. Profil Usaha & Kebutuhan Kasir</span>
         </button>
       </div>
 
@@ -312,152 +307,137 @@ const handleSubmit = () => {
           </div>
         </div>
 
-        <!-- TAB 2: PROFIL BISNIS -->
-        <div v-if="activeTab === 'business'" class="space-y-4 animate-in fade-in duration-150">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                Nama Bisnis / Toko <span class="text-rose-500">*</span>
-              </label>
-              <div class="relative">
-                <Store class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                <input 
-                  v-model="formData.businessName"
-                  type="text" 
-                  placeholder="Contoh: Toko ABC / Kopi Senja"
-                  class="w-full pl-10 pr-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 font-medium transition-all"
-                  required
-                />
-              </div>
+        <!-- TAB 2: PROFIL USAHA & KEBUTUHAN KASIR -->
+        <div v-if="activeTab === 'business'" class="space-y-5 animate-in fade-in duration-150">
+          
+          <!-- Section 1: Profil Usaha -->
+          <div class="space-y-3.5">
+            <div class="flex items-center gap-2 pb-1 border-b border-slate-100">
+              <Store class="w-4 h-4 text-indigo-600" />
+              <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Profil Usaha</h3>
             </div>
 
-            <div>
-              <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                Jenis / Kategori Bisnis
-              </label>
-              <div class="relative">
-                <Tag class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Nama Bisnis / Toko <span class="text-rose-500">*</span>
+                </label>
+                <div class="relative">
+                  <Store class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input 
+                    v-model="formData.businessName"
+                    type="text" 
+                    placeholder="Contoh: Toko ABC / Kopi Senja"
+                    class="w-full pl-10 pr-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 font-medium transition-all"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Jenis / Kategori Bisnis
+                </label>
+                <div class="relative">
+                  <Tag class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <select 
+                    v-model="formData.businessCategory"
+                    class="w-full pl-10 pr-8 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 font-medium bg-white appearance-none cursor-pointer"
+                  >
+                    <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="md:col-span-2">
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Alamat Lokasi Toko
+                </label>
+                <div class="relative">
+                  <MapPin class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input 
+                    v-model="formData.address"
+                    type="text" 
+                    placeholder="Contoh: Jl. Merdeka No. 10, Jakarta Pusat"
+                    class="w-full pl-10 pr-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 font-medium transition-all"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 2: Kebutuhan Paket & Prospek -->
+          <div class="space-y-3.5 pt-2">
+            <div class="flex items-center gap-2 pb-1 border-b border-slate-100">
+              <Package class="w-4 h-4 text-indigo-600" />
+              <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Kebutuhan Paket & Catatan</h3>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <!-- Minat Paket -->
+              <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Minat Paket Kasir
+                </label>
                 <select 
-                  v-model="formData.businessCategory"
-                  class="w-full pl-10 pr-8 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 font-medium bg-white appearance-none cursor-pointer"
+                  v-model="formData.packageInterest"
+                  @change="handlePackageChange"
+                  class="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 font-medium bg-white"
                 >
-                  <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
+                  <option value="Basic">Paket Basic (Rp 250.000 / bln)</option>
+                  <option value="Pro">Paket Pro (Rp 500.000 / bln)</option>
+                  <option value="Add on">Paket Add on (Rp 150.000)</option>
+                  <option value="Custom / IT One">Paket Custom / IT One (Konsultasi)</option>
                 </select>
               </div>
-            </div>
 
-            <div class="md:col-span-2">
-              <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                Alamat Lokasi Toko
-              </label>
-              <div class="relative">
-                <MapPin class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                <input 
-                  v-model="formData.address"
-                  type="text" 
-                  placeholder="Contoh: Jl. Merdeka No. 10, Jakarta Pusat"
-                  class="w-full pl-10 pr-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 font-medium transition-all"
-                />
+              <!-- Sumber Lead -->
+              <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Sumber Prospek (Lead Source)
+                </label>
+                <select 
+                  v-model="formData.source"
+                  class="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 font-medium bg-white"
+                >
+                  <option v-for="src in sources" :key="src" :value="src">{{ src }}</option>
+                </select>
+              </div>
+
+              <!-- Status Prospek (Hanya ditampilkan saat EDIT data) -->
+              <div v-if="clientToEdit" class="md:col-span-2">
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                  Status Prospek Lead
+                </label>
+                <div class="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                  <button 
+                    v-for="st in statuses" 
+                    :key="st"
+                    type="button"
+                    @click="formData.status = st"
+                    class="py-2 px-2 rounded-xl text-xs font-bold border transition-all cursor-pointer text-center"
+                    :class="formData.status === st ? `${statusColors[st].bg} ${statusColors[st].text} shadow-xs ring-2 ring-indigo-300` : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'"
+                  >
+                    {{ st }}
+                  </button>
+                </div>
+              </div>
+
+              <!-- Catatan Kebutuhan -->
+              <div class="md:col-span-2">
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Catatan Kebutuhan Client
+                </label>
+                <textarea 
+                  v-model="formData.notes"
+                  rows="2"
+                  placeholder="Contoh: Client tertarik dengan paket Basic. Membutuhkan panduan setting printer dan demo aplikasi kasir."
+                  class="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 font-medium transition-all"
+                ></textarea>
               </div>
             </div>
           </div>
-        </div>
 
-        <!-- TAB 3: STATUS CRM & PROSPEK -->
-        <div v-if="activeTab === 'crm'" class="space-y-4 animate-in fade-in duration-150">
-          <!-- Status Selector Grid -->
-          <div>
-            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-              Status Prospek Lead
-            </label>
-            <div class="grid grid-cols-3 sm:grid-cols-6 gap-2">
-              <button 
-                v-for="st in statuses" 
-                :key="st"
-                type="button"
-                @click="formData.status = st"
-                class="py-2 px-2 rounded-xl text-xs font-bold border transition-all cursor-pointer text-center"
-                :class="formData.status === st ? `${statusColors[st].bg} ${statusColors[st].text} shadow-xs ring-2 ring-indigo-300` : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'"
-              >
-                {{ st }}
-              </button>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <!-- Sumber Lead -->
-            <div>
-              <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                Sumber Prospek (Lead Source)
-              </label>
-              <select 
-                v-model="formData.source"
-                class="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 font-medium bg-white"
-              >
-                <option v-for="src in sources" :key="src" :value="src">{{ src }}</option>
-              </select>
-            </div>
-
-            <!-- Minat Paket -->
-            <div>
-              <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                Minat Paket Kasir
-              </label>
-              <select 
-                v-model="formData.packageInterest"
-                class="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 font-medium bg-white"
-              >
-                <option value="Basic">Paket Basic (Rp 250.000 / bln)</option>
-                <option value="Pro">Paket Pro (Rp 500.000 / bln)</option>
-                <option value="Add on">Paket Add on</option>
-                <option value="Custom / IT One">Paket Custom / IT One (Konsultasi)</option>
-              </select>
-            </div>
-
-            <!-- Jadwal Follow Up -->
-            <div>
-              <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                Jadwal Follow Up
-              </label>
-              <select 
-                v-model="formData.followUpSchedule"
-                class="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 font-medium bg-white"
-              >
-                <option value="Hari ini">Hari ini</option>
-                <option value="Besok">Besok</option>
-                <option value="2 Hari lagi">2 Hari lagi</option>
-                <option value="3 Hari lagi">3 Hari lagi</option>
-                <option value="5 Hari lagi">5 Hari lagi</option>
-                <option value="Terlambat">Terlambat</option>
-              </select>
-            </div>
-
-            <!-- Estimasi Deal -->
-            <div>
-              <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                Estimasi Potensi Nilai Deal
-              </label>
-              <input 
-                v-model.number="formData.estimatedDeal"
-                type="number"
-                step="50000"
-                class="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 font-medium"
-              />
-            </div>
-
-            <!-- Catatan Kebutuhan -->
-            <div class="md:col-span-2">
-              <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                Catatan Kebutuhan Client
-              </label>
-              <textarea 
-                v-model="formData.notes"
-                rows="2"
-                placeholder="Contoh: Client tertarik dengan paket Custom / IT One. Membutuhkan integrasi QRIS dan demo aplikasi minggu depan."
-                class="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 font-medium transition-all"
-              ></textarea>
-            </div>
-          </div>
         </div>
 
       </div>
@@ -473,16 +453,29 @@ const handleSubmit = () => {
         </button>
 
         <div class="flex items-center gap-1.5 sm:gap-2">
+          <!-- Tombol Kembali jika di Tab 2 -->
           <button 
-            v-if="activeTab !== 'crm'"
+            v-if="activeTab === 'business'"
             type="button"
-            @click="activeTab = activeTab === 'contact' ? 'business' : 'crm'"
+            @click="activeTab = 'contact'"
+            class="px-3 sm:px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-white transition-all cursor-pointer flex items-center gap-1"
+          >
+            <ArrowLeft class="w-3.5 h-3.5" />
+            <span>Kembali</span>
+          </button>
+
+          <!-- Tombol Selanjutnya jika di Tab 1 -->
+          <button 
+            v-if="activeTab === 'contact'"
+            type="button"
+            @click="activeTab = 'business'"
             class="px-3 sm:px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-white transition-all cursor-pointer flex items-center gap-1"
           >
             <span>Selanjutnya</span>
             <ArrowRight class="w-3.5 h-3.5" />
           </button>
 
+          <!-- Tombol Simpan -->
           <button 
             type="button"
             @click="handleSubmit"
@@ -499,3 +492,4 @@ const handleSubmit = () => {
     </div>
   </div>
 </template>
+
