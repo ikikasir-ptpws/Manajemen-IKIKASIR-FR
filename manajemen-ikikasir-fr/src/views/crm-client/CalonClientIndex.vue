@@ -532,25 +532,11 @@ const sendWhatsAppDirect = (client: ClientLead) => {
     <!-- Top Header -->
     <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
       <div>
-        <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-50 border border-indigo-100 text-indigo-700 text-[11px] font-bold mb-1">
-          <Sparkles class="w-3.5 h-3.5 text-indigo-600" />
-          <span>Pusat Data Pendaftaran & Verifikasi Finance</span>
-        </div>
         <h1 class="text-xl sm:text-2xl font-extrabold text-slate-800 tracking-tight">Data Pendaftar & Calon Client</h1>
         <p class="text-[11px] sm:text-xs text-slate-500 mt-0.5 font-medium">Kelola pendaftaran masuk, verifikasi bukti transfer pembayaran Finance, dan konversi ke pelanggan aktif.</p>
       </div>
 
       <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-        <!-- Google Form Docs Button -->
-        <button 
-          @click="isGoogleFormModalOpen = true"
-          class="flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 text-xs font-bold transition-all cursor-pointer shadow-2xs"
-        >
-          <FileSpreadsheet class="w-4 h-4 text-emerald-600" />
-          <span class="hidden sm:inline">Dokumentasi Google Form</span>
-          <span class="sm:hidden">Google Form</span>
-        </button>
-
         <!-- "+ Tambah Client" button -->
         <button 
           @click="openAddModal"
@@ -981,7 +967,7 @@ const sendWhatsAppDirect = (client: ClientLead) => {
                       class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-indigo-200 transition-all cursor-pointer"
                     >
                       <Plus class="w-3.5 h-3.5" />
-                      <span>+ Tambah Calon Client</span>
+                      <span>Tambah Calon Client</span>
                     </button>
                     <button 
                       @click="router.push('/semua-pelanggan')"
@@ -989,15 +975,6 @@ const sendWhatsAppDirect = (client: ClientLead) => {
                     >
                       <Users class="w-3.5 h-3.5 text-slate-500" />
                       <span>Buka Daftar Pelanggan ({{ statistics.convertedCount }})</span>
-                    </button>
-                  </div>
-                  <div class="pt-1">
-                    <button 
-                      @click="handleCreateSampleLead"
-                      class="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 hover:underline inline-flex items-center gap-1 cursor-pointer"
-                    >
-                      <Sparkles class="w-3 h-3 text-indigo-500" />
-                      <span>+ Buat contoh calon client baru untuk uji coba persetujuan</span>
                     </button>
                   </div>
                 </div>

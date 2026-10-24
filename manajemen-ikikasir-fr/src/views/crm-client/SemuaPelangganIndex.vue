@@ -466,10 +466,6 @@ const openAgreementPreview = (user?: any) => {
     <!-- Top Header -->
     <header class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       <div>
-        <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-cyan-50 border border-cyan-100 text-cyan-800 text-[11px] font-bold mb-1">
-          <Wrench class="w-3.5 h-3.5 text-cyan-600" />
-          <span>Data Pelanggan & Penyiapan Aplikasi Teknisi</span>
-        </div>
         <h1 class="text-xl sm:text-2xl font-extrabold text-slate-800 tracking-tight">Semua Pelanggan</h1>
         <p class="text-xs text-slate-500 mt-0.5">Kelola data pelanggan aktif serta proses penyiapan teknis aplikasi kasir (APK, kredensial, & surat sewa) oleh Teknisi.</p>
       </div>

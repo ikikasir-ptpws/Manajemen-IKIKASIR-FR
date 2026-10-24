@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import {
   Users,
   Search,
@@ -13,8 +13,12 @@ import {
   User,
   Shield,
   KeyRound,
-  AlertCircle
+  AlertCircle,
+  RotateCcw,
+  Clock
 } from 'lucide-vue-next'
+import { usePagination } from '../../composables/usePagination'
+import GlobalPagination from '../../components/common/GlobalPagination.vue'
 
 export interface AppUser {
   id: string
@@ -25,7 +29,7 @@ export interface AppUser {
   lastLogin: string
 }
 
-const STORAGE_KEY_USERS = 'ikikasir_users_v2'
+const STORAGE_KEY_USERS = 'ikikasir_users_v3'
 
 const initialUsers: AppUser[] = [
   { id: 'usr-1', name: 'Budi Santoso', email: 'budi@ikikasir.com', role: 'Super Admin', status: 'Active', lastLogin: '2 jam yang lalu' },
@@ -33,7 +37,13 @@ const initialUsers: AppUser[] = [
   { id: 'usr-tek', name: 'Doni Teknisi', email: 'teknisi@ikikasir.com', role: 'Teknisi', status: 'Active', lastLogin: '10 menit yang lalu' },
   { id: 'usr-2', name: 'Siti Aisyah', email: 'siti@ikikasir.com', role: 'Admin', status: 'Active', lastLogin: '1 hari yang lalu' },
   { id: 'usr-3', name: 'Andi Wijaya', email: 'andi@ikikasir.com', role: 'Staff', status: 'Inactive', lastLogin: '1 minggu yang lalu' },
-  { id: 'usr-4', name: 'Dewi Lestari', email: 'dewi.kasir@ikikasir.com', role: 'Kasir', status: 'Active', lastLogin: '3 jam yang lalu' }
+  { id: 'usr-4', name: 'Dewi Lestari', email: 'dewi.kasir@ikikasir.com', role: 'Kasir', status: 'Active', lastLogin: '3 jam yang lalu' },
+  { id: 'usr-5', name: 'Hendra Kurniawan', email: 'hendra.tek@ikikasir.com', role: 'Teknisi', status: 'Active', lastLogin: '4 jam yang lalu' },
+  { id: 'usr-6', name: 'Maya Putri', email: 'maya.finance@ikikasir.com', role: 'Finance', status: 'Active', lastLogin: '5 jam yang lalu' },
+  { id: 'usr-7', name: 'Rizky Pratama', email: 'rizky.admin@ikikasir.com', role: 'Admin', status: 'Active', lastLogin: '2 hari yang lalu' },
+  { id: 'usr-8', name: 'Linda Kusuma', email: 'linda.kasir@ikikasir.com', role: 'Kasir', status: 'Active', lastLogin: '30 menit yang lalu' },
+  { id: 'usr-9', name: 'Fajar Ramadhan', email: 'fajar.staff@ikikasir.com', role: 'Staff', status: 'Inactive', lastLogin: '3 minggu yang lalu' },
+  { id: 'usr-10', name: 'Nia Safitri', email: 'nia.kasir@ikikasir.com', role: 'Kasir', status: 'Active', lastLogin: '1 hari yang lalu' }
 ]
 
 const users = ref<AppUser[]>([])
@@ -72,11 +82,26 @@ const loadUsers = () => {
   try {
     const saved = localStorage.getItem(STORAGE_KEY_USERS)
     if (saved) {
-      users.value = JSON.parse(saved)
-    } else {
-      users.value = [...initialUsers]
-      localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(users.value))
+      const parsed = JSON.parse(saved)
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        users.value = parsed
+        return
+      }
     }
+    // Also check older key v2 if v3 not present
+    const oldSaved = localStorage.getItem('ikikasir_users_v2')
+    if (oldSaved) {
+      const parsedOld = JSON.parse(oldSaved)
+      if (Array.isArray(parsedOld) && parsedOld.length >= 6) {
+        const existingIds = new Set(parsedOld.map(u => u.id))
+        const merged = [...parsedOld, ...initialUsers.filter(u => !existingIds.has(u.id))]
+        users.value = merged
+        localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(users.value))
+        return
+      }
+    }
+    users.value = [...initialUsers]
+    localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(users.value))
   } catch {
     users.value = [...initialUsers]
   }
@@ -107,6 +132,31 @@ const filteredUsers = computed(() => {
   }
   return list
 })
+
+// Pagination composable with default page size 10 (options: 5, 10, 25, 50)
+const {
+  currentPage,
+  pageSize,
+  totalItems,
+  totalPages,
+  startIndex,
+  endIndex,
+  paginatedItems: paginatedUsers,
+  resetPage
+} = usePagination(filteredUsers, 10)
+
+watch([searchQuery, filterRole], () => {
+  resetPage()
+})
+
+const resetFilters = () => {
+  searchQuery.value = ''
+  filterRole.value = 'Semua Role'
+  resetPage()
+}
+
+const totalUsersCount = computed(() => users.value.length)
+const activeUsersCount = computed(() => users.value.filter(u => u.status === 'Active').length)
 
 const openAddModal = () => {
   isEditing.value = false
@@ -230,18 +280,60 @@ const toggleStatus = (u: AppUser) => {
     <!-- Header -->
     <header class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       <div>
-        <h1 class="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
-          <Users class="w-6 h-6 text-indigo-600" />
-          Manajemen Pengguna
-        </h1>
-        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Kelola data pengguna, hak akses, dan status akun sistem.</p>
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-2xl bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+            <Users class="w-5 h-5" />
+          </div>
+          <div>
+            <h1 class="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+              Manajemen Pengguna
+            </h1>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Kelola data pengguna, hak akses, dan status akun sistem.</p>
+          </div>
+        </div>
       </div>
 
-      <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+      <div class="flex items-center gap-2">
+        <div class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs text-slate-600 dark:text-slate-300 font-medium border border-slate-200/60 dark:border-slate-700/60">
+          <span>Total: <strong class="text-slate-900 dark:text-white font-bold">{{ totalUsersCount }}</strong></span>
+          <span class="text-slate-300 dark:text-slate-600">•</span>
+          <span class="text-emerald-600 dark:text-emerald-400 font-bold">{{ activeUsersCount }} Aktif</span>
+        </div>
+        <button 
+          @click="openAddModal"
+          class="flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-xl text-xs sm:text-sm font-semibold hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-200 dark:shadow-none shrink-0 cursor-pointer active:scale-95"
+        >
+          <Plus class="w-4 h-4" />
+          <span>Tambah Pengguna</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Toolbar Filters -->
+    <div class="bg-white dark:bg-slate-800 rounded-2xl p-3 sm:p-4 shadow-xs border border-slate-100 dark:border-slate-700/60 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+      <!-- Search Input -->
+      <div class="relative flex-1">
+        <Search class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+        <input 
+          v-model="searchQuery"
+          type="text" 
+          placeholder="Cari pengguna berdasarkan nama, email, atau role..." 
+          class="w-full pl-10 pr-9 py-2 sm:py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50 text-slate-800 dark:text-slate-100 text-xs sm:text-sm focus:outline-none focus:border-indigo-500 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-900/40 transition-all placeholder-slate-400"
+        />
+        <button 
+          v-if="searchQuery"
+          @click="searchQuery = ''"
+          class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 rounded cursor-pointer"
+        >
+          <X class="w-3.5 h-3.5" />
+        </button>
+      </div>
+
+      <div class="flex items-center flex-wrap gap-2 text-xs">
         <!-- Role Filter -->
         <select
           v-model="filterRole"
-          class="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+          class="px-3 py-2 sm:py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-indigo-500 cursor-pointer shadow-2xs"
         >
           <option>Semua Role</option>
           <option>Super Admin</option>
@@ -252,57 +344,57 @@ const toggleStatus = (u: AppUser) => {
           <option>Kasir</option>
         </select>
 
-        <!-- Search Input -->
-        <div class="relative flex-1 sm:w-60">
-          <Search class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-          <input 
-            v-model="searchQuery"
-            type="text" 
-            placeholder="Cari pengguna..." 
-            class="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-900/40"
-          />
-        </div>
-
-        <!-- Add Button -->
+        <!-- Reset Button -->
         <button 
-          @click="openAddModal"
-          class="flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-200 dark:shadow-none shrink-0 cursor-pointer active:scale-95"
+          v-if="searchQuery || filterRole !== 'Semua Role'"
+          @click="resetFilters"
+          class="flex items-center justify-center gap-1.5 px-3 py-2 sm:py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 font-semibold transition-colors cursor-pointer shadow-2xs"
+          title="Reset Filter"
         >
-          <Plus class="w-4 h-4" />
-          <span>Tambah Pengguna</span>
+          <RotateCcw class="w-3.5 h-3.5" />
+          <span class="hidden sm:inline">Reset</span>
         </button>
       </div>
-    </header>
+    </div>
 
-    <!-- Table Container -->
+    <!-- Table Container & Card Wrapper -->
     <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-xs border border-slate-100 dark:border-slate-700/60 overflow-hidden">
-      <div class="overflow-x-auto">
-        <table class="w-full text-left text-sm min-w-[700px]">
-          <thead class="bg-slate-50 dark:bg-slate-700/40 border-b border-slate-100 dark:border-slate-700/60">
+      <!-- Desktop Table (Visible on md and up) -->
+      <div class="hidden md:block overflow-x-auto">
+        <table class="w-full text-left text-sm min-w-[750px]">
+          <thead class="bg-slate-50/75 dark:bg-slate-700/40 border-b border-slate-100 dark:border-slate-700/60 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
             <tr>
-              <th class="px-6 py-4 font-semibold text-slate-600 dark:text-slate-300 w-16">No</th>
-              <th class="px-6 py-4 font-semibold text-slate-600 dark:text-slate-300">Pengguna</th>
-              <th class="px-6 py-4 font-semibold text-slate-600 dark:text-slate-300">Role</th>
-              <th class="px-6 py-4 font-semibold text-slate-600 dark:text-slate-300">Status</th>
-              <th class="px-6 py-4 font-semibold text-slate-600 dark:text-slate-300">Login Terakhir</th>
-              <th class="px-6 py-4 font-semibold text-slate-600 dark:text-slate-300 text-right">Aksi</th>
+              <th class="px-5 py-3.5 w-16">No</th>
+              <th class="px-5 py-3.5">Pengguna</th>
+              <th class="px-5 py-3.5">Role</th>
+              <th class="px-5 py-3.5">Status</th>
+              <th class="px-5 py-3.5">Login Terakhir</th>
+              <th class="px-5 py-3.5 text-right">Aksi</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100 dark:divide-slate-700/50">
-            <tr v-for="(u, index) in filteredUsers" :key="u.id" class="hover:bg-slate-50/60 dark:hover:bg-slate-700/20 transition-colors">
-              <td class="px-6 py-4 text-slate-500 dark:text-slate-400 font-medium">{{ index + 1 }}</td>
-              <td class="px-6 py-4">
+            <tr 
+              v-for="(u, index) in paginatedUsers" 
+              :key="u.id" 
+              class="hover:bg-slate-50/80 dark:hover:bg-slate-700/25 transition-colors group"
+            >
+              <td class="px-5 py-4 text-slate-400 dark:text-slate-500 font-mono text-xs font-semibold">
+                {{ startIndex + index + 1 }}
+              </td>
+              <td class="px-5 py-4">
                 <div class="flex items-center gap-3">
-                  <div class="w-9 h-9 rounded-full bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-xs">
+                  <div class="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
                     {{ u.name.charAt(0).toUpperCase() }}
                   </div>
                   <div>
-                    <div class="font-semibold text-slate-800 dark:text-slate-100">{{ u.name }}</div>
+                    <div class="font-semibold text-slate-800 dark:text-slate-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                      {{ u.name }}
+                    </div>
                     <div class="text-xs text-slate-500 dark:text-slate-400">{{ u.email }}</div>
                   </div>
                 </div>
               </td>
-              <td class="px-6 py-4">
+              <td class="px-5 py-4">
                 <span 
                   class="px-2.5 py-1 rounded-md text-xs font-semibold"
                   :class="{
@@ -317,7 +409,7 @@ const toggleStatus = (u: AppUser) => {
                   {{ u.role }}
                 </span>
               </td>
-              <td class="px-6 py-4">
+              <td class="px-5 py-4">
                 <button
                   @click="toggleStatus(u)"
                   title="Klik untuk mengubah status"
@@ -326,12 +418,17 @@ const toggleStatus = (u: AppUser) => {
                 >
                   <CheckCircle2 v-if="u.status === 'Active'" class="w-3.5 h-3.5" />
                   <XCircle v-else class="w-3.5 h-3.5" />
-                  {{ u.status }}
+                  <span>{{ u.status }}</span>
                 </button>
               </td>
-              <td class="px-6 py-4 text-slate-500 dark:text-slate-400 text-xs">{{ u.lastLogin }}</td>
-              <td class="px-6 py-4">
-                <div class="flex items-center justify-end gap-2">
+              <td class="px-5 py-4 text-slate-500 dark:text-slate-400 text-xs">
+                <div class="flex items-center gap-1.5">
+                  <Clock class="w-3.5 h-3.5 text-slate-400" />
+                  <span>{{ u.lastLogin }}</span>
+                </div>
+              </td>
+              <td class="px-5 py-4">
+                <div class="flex items-center justify-end gap-1.5">
                   <button 
                     @click="openEditModal(u)"
                     class="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
@@ -349,14 +446,136 @@ const toggleStatus = (u: AppUser) => {
                 </div>
               </td>
             </tr>
+
+            <!-- Empty state desktop -->
             <tr v-if="filteredUsers.length === 0">
-              <td colspan="6" class="px-6 py-12 text-center text-slate-400 text-sm">
-                Tidak ada pengguna yang sesuai dengan pencarian atau filter.
+              <td colspan="6" class="px-6 py-12 text-center">
+                <div class="max-w-xs mx-auto space-y-3">
+                  <div class="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-700/60 flex items-center justify-center mx-auto text-slate-400">
+                    <Users class="w-6 h-6" />
+                  </div>
+                  <div class="space-y-1">
+                    <p class="font-bold text-slate-700 dark:text-slate-200 text-sm">Tidak ada pengguna ditemukan</p>
+                    <p class="text-xs text-slate-400 dark:text-slate-500">Coba ubah kata kunci pencarian atau role filter Anda.</p>
+                  </div>
+                  <button 
+                    v-if="searchQuery || filterRole !== 'Semua Role'"
+                    @click="resetFilters"
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                  >
+                    <RotateCcw class="w-3.5 h-3.5" />
+                    <span>Reset Filter</span>
+                  </button>
+                </div>
               </td>
             </tr>
           </tbody>
         </table>
       </div>
+
+      <!-- Mobile List/Cards View (Visible on < md) -->
+      <div class="md:hidden divide-y divide-slate-100 dark:divide-slate-700/50">
+        <div 
+          v-for="(u, index) in paginatedUsers" 
+          :key="u.id" 
+          class="p-4 space-y-3 hover:bg-slate-50/60 dark:hover:bg-slate-700/20 transition-colors"
+        >
+          <div class="flex items-start justify-between gap-3">
+            <div class="flex items-center gap-3">
+              <div class="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
+                {{ u.name.charAt(0).toUpperCase() }}
+              </div>
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="text-[10px] text-slate-400 font-mono font-bold">#{{ startIndex + index + 1 }}</span>
+                  <h4 class="font-bold text-slate-800 dark:text-slate-100 text-sm">{{ u.name }}</h4>
+                </div>
+                <p class="text-xs text-slate-500 dark:text-slate-400">{{ u.email }}</p>
+              </div>
+            </div>
+            <button
+              @click="toggleStatus(u)"
+              title="Klik untuk mengubah status"
+              class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold cursor-pointer transition-colors shrink-0"
+              :class="u.status === 'Active' ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400' : 'bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400'"
+            >
+              <CheckCircle2 v-if="u.status === 'Active'" class="w-3 h-3" />
+              <XCircle v-else class="w-3 h-3" />
+              <span>{{ u.status }}</span>
+            </button>
+          </div>
+
+          <div class="flex items-center justify-between text-xs pt-1 border-t border-slate-100 dark:border-slate-700/40">
+            <div class="flex items-center gap-2">
+              <span 
+                class="px-2 py-0.5 rounded-md text-[11px] font-semibold"
+                :class="{
+                  'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300': u.role === 'Super Admin',
+                  'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300': u.role === 'Finance',
+                  'bg-cyan-50 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300': u.role === 'Teknisi',
+                  'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300': u.role === 'Admin',
+                  'bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300': u.role === 'Staff',
+                  'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300': u.role === 'Kasir'
+                }"
+              >
+                {{ u.role }}
+              </span>
+              <span class="text-[11px] text-slate-400 dark:text-slate-500 flex items-center gap-1">
+                <Clock class="w-3 h-3" />
+                <span>{{ u.lastLogin }}</span>
+              </span>
+            </div>
+
+            <div class="flex items-center gap-1">
+              <button 
+                @click="openEditModal(u)"
+                class="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
+                title="Edit Pengguna"
+              >
+                <Edit2 class="w-4 h-4" />
+              </button>
+              <button 
+                @click="confirmDelete(u)"
+                class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
+                title="Hapus Pengguna"
+              >
+                <Trash2 class="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Empty state mobile -->
+        <div v-if="filteredUsers.length === 0" class="p-8 text-center">
+          <div class="max-w-xs mx-auto space-y-3">
+            <div class="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-700/60 flex items-center justify-center mx-auto text-slate-400">
+              <Users class="w-6 h-6" />
+            </div>
+            <div class="space-y-1">
+              <p class="font-bold text-slate-700 dark:text-slate-200 text-sm">Tidak ada pengguna ditemukan</p>
+              <p class="text-xs text-slate-400 dark:text-slate-500">Coba ubah kata kunci atau role filter.</p>
+            </div>
+            <button 
+              v-if="searchQuery || filterRole !== 'Semua Role'"
+              @click="resetFilters"
+              class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+            >
+              <RotateCcw class="w-3.5 h-3.5" />
+              <span>Reset Filter</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAGINATION FOOTER -->
+      <GlobalPagination
+        v-if="filteredUsers.length > 0"
+        :current-page="currentPage"
+        :total-items="totalItems"
+        :page-size="pageSize"
+        @update:current-page="currentPage = $event"
+        @update:page-size="pageSize = $event"
+      />
     </div>
 
     <!-- Modal Form Tambah/Edit Pengguna -->

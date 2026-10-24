@@ -76,24 +76,24 @@ const handlePageSizeChange = (e: Event) => {
 </script>
 
 <template>
-  <div class="px-4 py-3 bg-white border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs select-none">
+  <div class="px-4 py-3 bg-white dark:bg-slate-800 border-t border-slate-100 dark:border-slate-700/60 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs select-none">
     <!-- Info & Page Size Selector -->
-    <div class="flex items-center gap-3 text-slate-500 font-medium">
+    <div class="flex items-center gap-3 text-slate-500 dark:text-slate-400 font-medium">
       <span>
         Menampilkan 
-        <strong class="text-slate-800 font-bold">{{ totalItems === 0 ? 0 : startIndex + 1 }}</strong> 
+        <strong class="text-slate-800 dark:text-slate-100 font-bold">{{ totalItems === 0 ? 0 : startIndex + 1 }}</strong> 
         - 
-        <strong class="text-slate-800 font-bold">{{ endIndex }}</strong> 
+        <strong class="text-slate-800 dark:text-slate-100 font-bold">{{ endIndex }}</strong> 
         dari 
-        <strong class="text-slate-800 font-bold">{{ totalItems }}</strong> data
+        <strong class="text-slate-800 dark:text-slate-100 font-bold">{{ totalItems }}</strong> data
       </span>
 
-      <div class="flex items-center gap-1.5 pl-3 border-l border-slate-200">
-        <span class="text-slate-400">Tampilkan:</span>
+      <div class="flex items-center gap-1.5 pl-3 border-l border-slate-200 dark:border-slate-700">
+        <span class="text-slate-400 dark:text-slate-500">Tampilkan:</span>
         <select 
           :value="pageSize" 
           @change="handlePageSizeChange"
-          class="px-2 py-1 rounded-lg border border-slate-200 bg-slate-50 text-slate-700 font-bold text-xs outline-none focus:border-indigo-500 cursor-pointer"
+          class="px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-200 font-bold text-xs outline-none focus:border-indigo-500 cursor-pointer"
         >
           <option v-for="opt in pageSizeOptions" :key="opt" :value="opt">{{ opt }}</option>
         </select>
@@ -105,7 +105,7 @@ const handlePageSizeChange = (e: Event) => {
       <button 
         @click="prevPage"
         :disabled="currentPage <= 1"
-        class="px-2.5 py-1.5 rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 font-bold flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+        class="px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 font-bold flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
       >
         <ChevronLeft class="w-3.5 h-3.5" />
         <span class="hidden sm:inline">Sebelumnya</span>
@@ -118,7 +118,7 @@ const handlePageSizeChange = (e: Event) => {
           @click="goToPage(page)"
           :disabled="typeof page !== 'number'"
           class="w-7 h-7 rounded-xl font-bold text-xs flex items-center justify-center transition-all"
-          :class="currentPage === page ? 'bg-indigo-600 text-white shadow-xs' : (typeof page === 'number' ? 'text-slate-600 hover:bg-slate-100 cursor-pointer' : 'text-slate-300 cursor-default')"
+          :class="currentPage === page ? 'bg-indigo-600 text-white shadow-xs' : (typeof page === 'number' ? 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/60 cursor-pointer' : 'text-slate-300 dark:text-slate-600 cursor-default')"
         >
           {{ page }}
         </button>
@@ -127,7 +127,7 @@ const handlePageSizeChange = (e: Event) => {
       <button 
         @click="nextPage"
         :disabled="currentPage >= totalPages"
-        class="px-2.5 py-1.5 rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 font-bold flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+        class="px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 font-bold flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
       >
         <span class="hidden sm:inline">Selanjutnya</span>
         <ChevronRight class="w-3.5 h-3.5" />
