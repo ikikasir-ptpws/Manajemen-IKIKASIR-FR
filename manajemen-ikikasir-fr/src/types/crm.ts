@@ -41,6 +41,16 @@ export interface ClientLead {
   created_at?: string
   updated_at?: string
 
+  // === FIELD REFERRAL INVITE PELANGGAN ===
+  /** Kode referral yang digunakan calon client saat mendaftar */
+  referralCode?: string
+  /** ID Pelanggan yang meng-invite / pemilik kode referral */
+  referredByCustomerId?: string
+  /** Nama Pelanggan yang meng-invite */
+  referredByCustomerName?: string
+  /** Nama Bisnis/Toko Pelanggan yang meng-invite */
+  referredByBusinessName?: string
+
   // === FIELD LAMA (tetap ada untuk kompatibilitas data lama) ===
   employeeCount?: string
   employeeCountChoice?: string

@@ -15,7 +15,8 @@ import {
   Plus, 
   ChevronRight,
   Send,
-  CheckCircle2
+  CheckCircle2,
+  Share2
 } from 'lucide-vue-next'
 import type { ClientLead, LeadStatus } from '../../types/crm'
 
@@ -160,6 +161,25 @@ const handleSaveFollowUp = () => {
                 <p class="font-bold text-slate-700">{{ client.source }}</p>
               </div>
 
+              <!-- Referral Badge & Info Card -->
+              <div v-if="client.source === 'Referral' || client.referralCode" class="p-2.5 rounded-xl bg-purple-50 border border-purple-200/80 text-left">
+                <div class="flex items-center gap-1.5 text-purple-800 font-bold text-[11px]">
+                  <Share2 class="w-3.5 h-3.5 text-purple-600" />
+                  <span>Jalur Referral</span>
+                </div>
+                <div class="mt-1.5 space-y-1">
+                  <div>
+                    <span class="text-slate-400 block text-[10px]">Kode Referral:</span>
+                    <span class="font-mono font-extrabold text-purple-900 text-xs">{{ client.referralCode || '-' }}</span>
+                  </div>
+                  <div v-if="client.referredByCustomerName">
+                    <span class="text-slate-400 block text-[10px]">Pelanggan Pengundang:</span>
+                    <p class="font-bold text-slate-800 text-[11px] leading-tight">{{ client.referredByCustomerName }}</p>
+                    <p v-if="client.referredByBusinessName" class="text-[10px] text-slate-500">{{ client.referredByBusinessName }}</p>
+                  </div>
+                </div>
+              </div>
+
               <div>
                 <span class="text-slate-400 block text-[11px]">Paket Diminati:</span>
                 <span class="inline-block mt-0.5 px-2 py-0.5 rounded-md text-[11px] font-bold bg-indigo-50 text-indigo-700">
@@ -253,6 +273,33 @@ const handleSaveFollowUp = () => {
                 <div>
                   <span class="text-slate-400 block text-[11px]">Persetujuan Penggunaan Data:</span>
                   <p class="font-bold" :class="client.consentAgreed ? 'text-emerald-700' : 'text-slate-500'">{{ client.consentAgreed === undefined ? '-' : client.consentAgreed ? 'Ya' : 'Tidak' }}</p>
+                </div>
+
+                <!-- Section Terhubung Pelanggan Pengundang -->
+                <div v-if="client.source === 'Referral' || client.referralCode" class="sm:col-span-2 p-3 rounded-xl bg-gradient-to-r from-purple-50/90 via-indigo-50/70 to-pink-50/60 border border-purple-200/90">
+                  <div class="flex items-center justify-between mb-1">
+                    <span class="text-purple-900 font-bold text-xs flex items-center gap-1.5">
+                      <Share2 class="w-3.5 h-3.5 text-purple-600" />
+                      <span>Terhubung ke Pelanggan Pengundang (Referral)</span>
+                    </span>
+                    <span class="font-mono text-[10px] font-bold bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full border border-purple-200">
+                      {{ client.referralCode || '-' }}
+                    </span>
+                  </div>
+                  <div class="mt-2 text-xs flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <div>
+                      <span class="text-slate-400 text-[10px] block">Nama Pelanggan:</span>
+                      <span class="font-bold text-slate-800">{{ client.referredByCustomerName || 'Pelanggan IKI KASIR' }}</span>
+                    </div>
+                    <div v-if="client.referredByBusinessName">
+                      <span class="text-slate-400 text-[10px] block">Nama Usaha / Toko:</span>
+                      <span class="font-semibold text-slate-700">{{ client.referredByBusinessName }}</span>
+                    </div>
+                    <div v-if="client.referredByCustomerId">
+                      <span class="text-slate-400 text-[10px] block">ID Pelanggan:</span>
+                      <span class="font-mono text-slate-600 font-semibold">#{{ client.referredByCustomerId }}</span>
+                    </div>
+                  </div>
                 </div>
 
                 <div class="sm:col-span-2">

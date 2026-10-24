@@ -30,6 +30,9 @@ export interface Customer {
   emailIssueNotes?: string
   setupCompletedAt?: string
   leadId?: string
+  referralCode?: string
+  referredByCustomerId?: string
+  referredByCustomerName?: string
 }
 
 export interface ActivityItem {

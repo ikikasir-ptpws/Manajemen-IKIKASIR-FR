@@ -184,7 +184,11 @@ const initialLeads: ClientLead[] = [
     email: 'siti.rahma@bakery.com',
     address: 'Jl. Raya Pajajaran No. 88, Bogor',
     status: 'New',
-    source: 'Google Form',
+    source: 'Referral',
+    referralCode: 'REF-BUDI101',
+    referredByCustomerId: 'cust-101',
+    referredByCustomerName: 'Budi Santoso',
+    referredByBusinessName: 'Toko Budi Jaya',
     registrationDate: '18 Sep 2026', // Antrean terlama kedua
     lastFollowUp: '18 Sep 2026',
     packageInterest: 'Pro',
@@ -306,6 +310,15 @@ const initialLeads: ClientLead[] = [
   }
 ]
 
+export function getOrCreateCustomerReferralCode(customer: { name?: string; id?: string; referralCode?: string }): string {
+  if (customer.referralCode && customer.referralCode.trim().length > 0) {
+    return customer.referralCode.trim().toUpperCase()
+  }
+  const cleanName = (customer.name || 'PELANGGAN').replace(/[^a-zA-Z0-9]/g, '').slice(0, 4).toUpperCase()
+  const cleanId = (customer.id || '101').replace(/[^a-zA-Z0-9]/g, '').slice(-3).toUpperCase()
+  return `REF-${cleanName}${cleanId}`
+}
+
 const initialCustomers: Customer[] = [
   {
     id: 'cust-101',
@@ -319,7 +332,8 @@ const initialCustomers: Customer[] = [
     expiredDate: '2026-12-31', // Future date
     status: 'active',
     amount: 1500000,
-    paymentMethod: 'QRIS'
+    paymentMethod: 'QRIS',
+    referralCode: 'REF-BUDI101'
   },
   {
     id: 'cust-102',
@@ -333,7 +347,8 @@ const initialCustomers: Customer[] = [
     expiredDate: '2026-10-15', // Active
     status: 'active',
     amount: 750000,
-    paymentMethod: 'Transfer BCA'
+    paymentMethod: 'Transfer BCA',
+    referralCode: 'REF-DEWI102'
   },
   {
     id: 'cust-103',
@@ -347,7 +362,8 @@ const initialCustomers: Customer[] = [
     expiredDate: '2026-09-01', // Expired
     status: 'expired',
     amount: 250000,
-    paymentMethod: 'Transfer BCA'
+    paymentMethod: 'Transfer BCA',
+    referralCode: 'REF-SITI103'
   },
   {
     id: 'cust-104',
@@ -361,7 +377,8 @@ const initialCustomers: Customer[] = [
     expiredDate: '2026-08-31', // Expired
     status: 'expired',
     amount: 250000,
-    paymentMethod: 'QRIS'
+    paymentMethod: 'QRIS',
+    referralCode: 'REF-DONNI104'
   },
   {
     id: 'cust-105',
@@ -375,7 +392,8 @@ const initialCustomers: Customer[] = [
     expiredDate: '2026-08-28', // Expired
     status: 'expired',
     amount: 500000,
-    paymentMethod: 'Transfer Mandiri'
+    paymentMethod: 'Transfer Mandiri',
+    referralCode: 'REF-FAJAR105'
   }
 ]
 
@@ -456,8 +474,16 @@ function loadAllFromStorage() {
     else { leads.value = [...initialLeads]; saveStorage(STORAGE_KEY_LEADS, leads.value) }
 
     const rawC = localStorage.getItem(STORAGE_KEY_CUSTOMERS)
-    if (rawC) customers.value = JSON.parse(rawC)
-    else { customers.value = [...initialCustomers]; saveStorage(STORAGE_KEY_CUSTOMERS, customers.value) }
+    if (rawC) {
+      const parsed: Customer[] = JSON.parse(rawC)
+      customers.value = parsed.map(c => ({
+        ...c,
+        referralCode: c.referralCode || getOrCreateCustomerReferralCode(c)
+      }))
+    } else {
+      customers.value = [...initialCustomers]
+      saveStorage(STORAGE_KEY_CUSTOMERS, customers.value)
+    }
 
     const rawI = localStorage.getItem(STORAGE_KEY_INVOICES)
     if (rawI) invoices.value = JSON.parse(rawI)
@@ -607,6 +633,10 @@ export function useAppData() {
     knownFrom?: string
     otherKnownFrom?: string
     consentAgreed?: boolean
+    referralCode?: string
+    referredByCustomerId?: string
+    referredByCustomerName?: string
+    referredByBusinessName?: string
   }) => {
     const today = getTodayFormatted()
     const nowIso = new Date().toISOString()
@@ -688,6 +718,10 @@ export function useAppData() {
       knownFrom: data.knownFrom,
       otherKnownFrom: data.otherKnownFrom,
       consentAgreed: data.consentAgreed,
+      referralCode: data.referralCode?.trim() || undefined,
+      referredByCustomerId: data.referredByCustomerId || undefined,
+      referredByCustomerName: data.referredByCustomerName || undefined,
+      referredByBusinessName: data.referredByBusinessName || undefined,
       followUpHistory: [
         {
           id: 'fh-' + Date.now(),
@@ -771,6 +805,13 @@ export function useAppData() {
       targetCustomer = existing
       targetCustomer.amount = finalAmount
       targetCustomer.paymentMethod = finalMethod
+      if (!targetCustomer.referralCode) {
+        targetCustomer.referralCode = getOrCreateCustomerReferralCode(targetCustomer)
+      }
+      if (lead.referredByCustomerId && !targetCustomer.referredByCustomerId) {
+        targetCustomer.referredByCustomerId = lead.referredByCustomerId
+        targetCustomer.referredByCustomerName = lead.referredByCustomerName
+      }
       saveStorage(STORAGE_KEY_CUSTOMERS, customers.value)
     } else {
       // Calculate 1 month expired date
@@ -790,7 +831,10 @@ export function useAppData() {
         expiredDate: expISO,
         status: 'active',
         amount: finalAmount,
-        paymentMethod: finalMethod
+        paymentMethod: finalMethod,
+        referralCode: getOrCreateCustomerReferralCode({ name: lead.name, id: 'cust-' + lead.id }),
+        referredByCustomerId: lead.referredByCustomerId,
+        referredByCustomerName: lead.referredByCustomerName
       }
       customers.value.unshift(targetCustomer)
       saveStorage(STORAGE_KEY_CUSTOMERS, customers.value)
@@ -1467,6 +1511,7 @@ export function useAppData() {
     getAdminWaUrl,
     getCustomerWaUrl,
     getComputedCustomerStatus,
+    getOrCreateCustomerReferralCode,
     resetAllToDefault: () => {
       leads.value = [...initialLeads]
       customers.value = [...initialCustomers]

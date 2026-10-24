@@ -15,6 +15,7 @@ import {
   Store,
   User,
   X,
+  Share2
 } from "lucide-vue-next";
 import { computed, nextTick, onUnmounted, ref, watch } from "vue";
 import { useAppData } from "../composables/useAppData";
@@ -29,7 +30,7 @@ const emit = defineEmits<{
   (e: "submitted", leadId: string): void;
 }>();
 
-const { addRegistration, packages: systemPackages } = useAppData();
+const { addRegistration, packages: systemPackages, customers } = useAppData();
 
 const businessTypeOptions = [
   "Kafe / Restoran / Warung makan",
@@ -89,7 +90,19 @@ const formData = ref({
   willingToTest: "",
   knownFrom: "",
   otherKnownFrom: "",
+  referralCode: "",
   consentAgreed: false,
+});
+
+// Pencocokan kode referral dengan pelanggan aktif
+const matchedCustomer = computed(() => {
+  const code = formData.value.referralCode?.trim().toUpperCase();
+  if (!code) return null;
+  return customers.value.find(
+    (c) =>
+      (c.referralCode && c.referralCode.toUpperCase() === code) ||
+      c.id.toUpperCase() === code
+  ) || null;
 });
 
 // Validation Errors
@@ -161,6 +174,7 @@ watch(
         willingToTest: "",
         knownFrom: "",
         otherKnownFrom: "",
+        referralCode: "",
         consentAgreed: false,
       };
     } else {
@@ -267,7 +281,11 @@ const handleSubmit = async () => {
       knownFrom: formData.value.knownFrom,
       otherKnownFrom: formData.value.otherKnownFrom.trim(),
       consentAgreed: formData.value.consentAgreed,
-      source: "Website",
+      referralCode: formData.value.referralCode?.trim() ? formData.value.referralCode.trim().toUpperCase() : undefined,
+      referredByCustomerId: matchedCustomer.value?.id,
+      referredByCustomerName: matchedCustomer.value?.name,
+      referredByBusinessName: matchedCustomer.value?.businessName,
+      source: (formData.value.knownFrom === "Teman / rekomendasi" || formData.value.referralCode?.trim()) ? "Referral" : "Website",
     });
 
     if (!newLead || !newLead.id) {
@@ -595,6 +613,28 @@ const closeModal = () => {
               <div v-if="formData.knownFrom === 'Lainnya'" class="mt-2">
                 <input v-model="formData.otherKnownFrom" @input="clearError('otherKnownFrom')" type="text" placeholder="Tuliskan sumber lainnya" class="w-full px-3 py-2 rounded-xl border text-slate-800 focus:outline-none focus:ring-2 transition-all font-medium" :class="errors.otherKnownFrom ? 'border-rose-300 focus:ring-rose-200 bg-rose-50/30' : 'border-slate-200 focus:ring-indigo-100 focus:border-indigo-500'" />
                 <p v-if="errors.otherKnownFrom" class="mt-1 text-[11px] text-rose-500 flex items-center gap-1"><AlertCircle class="w-3 h-3" /> {{ errors.otherKnownFrom }}</p>
+              </div>
+
+              <!-- Input Kode Referal jika memilih Teman / rekomendasi -->
+              <div v-if="formData.knownFrom === 'Teman / rekomendasi'" class="mt-2.5 p-3 rounded-2xl bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 space-y-2">
+                <label class="block font-bold text-xs text-purple-950 flex items-center gap-1.5">
+                  <Share2 class="w-3.5 h-3.5 text-purple-600" />
+                  <span>Kode Referal Teman / Pengundang <span class="text-slate-400 font-normal">(opsional)</span></span>
+                </label>
+                <div class="relative">
+                  <input 
+                    v-model="formData.referralCode" 
+                    @input="formData.referralCode = (formData.referralCode || '').toUpperCase()"
+                    type="text" 
+                    placeholder="Contoh: REF-BUDI101" 
+                    class="w-full px-3 py-2 rounded-xl border border-purple-200 bg-white text-xs font-mono font-bold uppercase tracking-wider text-slate-800 placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-purple-200 focus:border-purple-500 transition-all" 
+                  />
+                  <CheckCircle2 v-if="matchedCustomer" class="w-4 h-4 text-emerald-600 absolute right-2.5 top-1/2 -translate-y-1/2" />
+                </div>
+                <div v-if="matchedCustomer" class="p-2 rounded-lg bg-emerald-50 border border-emerald-200 text-[11px] text-emerald-800 flex items-center gap-1.5">
+                  <CheckCircle2 class="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <span>Terhubung ke pelanggan: <strong>{{ matchedCustomer.name }}</strong> ({{ matchedCustomer.businessName }})</span>
+                </div>
               </div>
             </div>
 

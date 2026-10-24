@@ -37,7 +37,8 @@ import {
   X,
   Copy,
   ArrowUpDown,
-  ArrowRight
+  ArrowRight,
+  Share2
 } from 'lucide-vue-next'
 import ClientFormModal from '../../components/crm/ClientFormModal.vue'
 import ClientDetailModal from '../../components/crm/ClientDetailModal.vue'
@@ -819,6 +820,10 @@ const sendWhatsAppDirect = (client: ClientLead) => {
               <td class="py-3.5 px-3.5">
                 <div class="font-bold text-slate-800 group-hover:text-indigo-600 transition-colors leading-snug">{{ client.name }}</div>
                 <div class="text-[11px] text-slate-400 font-medium leading-tight mt-0.5">{{ client.businessName }} ({{ client.businessCategory || 'Retail' }})</div>
+                <div v-if="client.source === 'Referral' || client.referralCode" class="mt-1 flex items-center gap-1 text-[10px] font-bold text-purple-700 bg-purple-50 border border-purple-200/80 rounded-md px-1.5 py-0.5 w-fit">
+                  <Share2 class="w-2.5 h-2.5 text-purple-600" />
+                  <span>Ref: {{ client.referredByCustomerName || client.referralCode }}</span>
+                </div>
               </td>
 
               <!-- No WhatsApp & Email -->
@@ -1075,6 +1080,10 @@ const sendWhatsAppDirect = (client: ClientLead) => {
             </div>
             <h4 class="font-extrabold text-sm text-slate-900 mt-0.5">{{ client.name }}</h4>
             <p class="text-xs text-slate-500">{{ client.businessName }} • {{ client.phone }}</p>
+            <div v-if="client.source === 'Referral' || client.referralCode" class="mt-1 flex items-center gap-1 text-[10px] font-bold text-purple-700 bg-purple-50 border border-purple-200/80 rounded-md px-1.5 py-0.5 w-fit">
+              <Share2 class="w-2.5 h-2.5 text-purple-600" />
+              <span>Ref: {{ client.referredByCustomerName || client.referralCode }}</span>
+            </div>
           </div>
 
           <div v-if="client.status === 'Converted'" class="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">

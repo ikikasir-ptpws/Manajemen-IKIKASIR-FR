@@ -40,7 +40,8 @@ import {
   User,
   AlertCircle,
   Building2,
-  ChevronRight
+  ChevronRight,
+  Share2
 } from 'lucide-vue-next'
 import RentalAgreementModal from '../../components/RentalAgreementModal.vue'
 import GlobalPagination from '../../components/common/GlobalPagination.vue'
@@ -48,7 +49,8 @@ import {
   useAppData, 
   SAMPLE_RECEIPT_BCA, 
   SAMPLE_RECEIPT_QRIS, 
-  getCustomerWaUrl 
+  getCustomerWaUrl,
+  getOrCreateCustomerReferralCode
 } from '../../composables/useAppData'
 
 const { 
@@ -68,6 +70,26 @@ const toastMessage = ref<string | null>(null)
 const showToast = (msg: string) => {
   toastMessage.value = msg
   setTimeout(() => { toastMessage.value = null }, 3500)
+}
+
+const copyReferralCode = (code: string) => {
+  if (!code) return
+  if (navigator?.clipboard) {
+    navigator.clipboard.writeText(code)
+    showToast(`Kode referral "${code}" berhasil disalin ke clipboard!`)
+  } else {
+    showToast(`Kode Referral: ${code}`)
+  }
+}
+
+const getInvitedLeadsForCustomer = (cust: any) => {
+  if (!cust) return []
+  const code = (cust.referralCode || '').toUpperCase().trim()
+  const custId = cust.id
+  return leads.value.filter(l => 
+    (l.referredByCustomerId && l.referredByCustomerId === custId) ||
+    (code && l.referralCode && l.referralCode.toUpperCase().trim() === code)
+  )
 }
 
 // Search & Filter state
@@ -1553,6 +1575,91 @@ const openAgreementPreview = (user?: any) => {
                     <div v-if="getAssociatedLead(selectedCustomer)?.notes" class="mt-2 p-3 rounded-xl bg-slate-50 border border-slate-100 text-xs">
                       <span class="text-slate-400 block text-[11px] font-semibold">Catatan Pendaftaran Awal:</span>
                       <p class="text-slate-600 mt-0.5 italic">"{{ getAssociatedLead(selectedCustomer)?.notes }}"</p>
+                    </div>
+                  </div>
+
+                  <!-- Card Program Referral & Calon Klien yang Di-Invite -->
+                  <div class="bg-white rounded-2xl p-4 sm:p-5 border border-purple-200/90 shadow-xs space-y-4">
+                    <div class="flex items-center justify-between border-b border-purple-100 pb-2.5">
+                      <h4 class="text-xs font-bold uppercase tracking-wider text-purple-950 flex items-center gap-1.5">
+                        <Share2 class="w-4 h-4 text-purple-600" />
+                        <span>Program Referral Pelanggan</span>
+                      </h4>
+                      <span class="text-[10px] font-bold text-purple-700 bg-purple-50 px-2.5 py-0.5 rounded-full border border-purple-200">
+                        Total Di-invite: {{ getInvitedLeadsForCustomer(selectedCustomer).length }} Klien
+                      </span>
+                    </div>
+
+                    <!-- Kode Referal Pelanggan Ini -->
+                    <div class="p-3.5 rounded-xl bg-gradient-to-r from-purple-50 via-indigo-50 to-pink-50/60 border border-purple-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div>
+                        <span class="text-[11px] font-bold text-purple-950 block">Kode Referral Unik Pelanggan:</span>
+                        <div class="flex items-center gap-2 mt-1">
+                          <span class="text-base font-black font-mono tracking-wider text-purple-950 bg-white px-2.5 py-1 rounded-lg border border-purple-300 shadow-xs">
+                            {{ selectedCustomer.referralCode || getOrCreateCustomerReferralCode(selectedCustomer) }}
+                          </span>
+                          <button 
+                            @click="copyReferralCode(selectedCustomer.referralCode || getOrCreateCustomerReferralCode(selectedCustomer))"
+                            type="button"
+                            class="p-1.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white transition-all cursor-pointer shadow-xs active:scale-95 flex items-center gap-1 text-xs font-bold px-2.5"
+                            title="Salin Kode Referral"
+                          >
+                            <Copy class="w-3.5 h-3.5" />
+                            <span>Salin</span>
+                          </button>
+                        </div>
+                        <p class="text-[10px] text-purple-700 mt-1">Bagikan kode ini ke calon pelanggan baru saat pendaftaran IKI KASIR.</p>
+                      </div>
+
+                      <!-- Jika pelanggan ini diundang oleh orang lain -->
+                      <div v-if="selectedCustomer.referredByCustomerName" class="text-xs bg-white/80 p-2.5 rounded-xl border border-purple-200 sm:max-w-xs">
+                        <span class="text-slate-400 block text-[10px]">Di-invite oleh Pelanggan:</span>
+                        <p class="font-bold text-slate-800 text-[11px]">{{ selectedCustomer.referredByCustomerName }}</p>
+                      </div>
+                    </div>
+
+                    <!-- Daftar Calon Klien yang Menggunakan Kode Ini -->
+                    <div class="space-y-2">
+                      <h5 class="text-xs font-bold text-slate-700">
+                        Daftar Calon Klien Terhubung (Di-invite):
+                      </h5>
+
+                      <div v-if="getInvitedLeadsForCustomer(selectedCustomer).length > 0" class="divide-y divide-slate-100 border border-slate-200/80 rounded-xl overflow-hidden bg-white">
+                        <div 
+                          v-for="lead in getInvitedLeadsForCustomer(selectedCustomer)" 
+                          :key="lead.id"
+                          class="p-3 flex items-center justify-between gap-2 hover:bg-slate-50 transition-colors"
+                        >
+                          <div class="min-w-0">
+                            <div class="flex items-center gap-2">
+                              <span class="font-bold text-xs text-slate-900 truncate">{{ lead.name }}</span>
+                              <span class="text-[11px] text-slate-500 font-medium">({{ lead.businessName }})</span>
+                            </div>
+                            <div class="text-[10px] text-slate-400 flex items-center gap-2 mt-0.5">
+                              <span>Paket: <strong class="text-slate-600">{{ lead.packageInterest || 'Basic' }}</strong></span>
+                              <span>•</span>
+                              <span>Daftar: {{ lead.registrationDate || '-' }}</span>
+                            </div>
+                          </div>
+
+                          <div class="shrink-0 flex items-center gap-2">
+                            <span 
+                              class="px-2 py-0.5 rounded-full text-[10px] font-bold border"
+                              :class="lead.status === 'Converted' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : lead.status === 'Lost' ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-blue-50 text-blue-700 border-blue-200'"
+                            >
+                              {{ lead.status === 'Converted' ? 'Pelanggan Aktif' : lead.status === 'Lost' ? 'Ditolak' : 'Prospek Lead' }}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div v-else class="p-4 rounded-xl bg-slate-50 border border-dashed border-slate-200 text-center text-xs text-slate-500">
+                        <Share2 class="w-6 h-6 text-slate-300 mx-auto mb-1" />
+                        <p class="font-medium text-slate-700">Belum ada calon klien yang di-invite</p>
+                        <p class="text-[11px] text-slate-400 mt-0.5">
+                          Saat calon klien mendaftar dengan memilih sumber <strong>Referral</strong> dan kode <strong>{{ selectedCustomer.referralCode || getOrCreateCustomerReferralCode(selectedCustomer) }}</strong>, mereka akan otomatis terhubung di sini.
+                        </p>
+                      </div>
                     </div>
                   </div>
 

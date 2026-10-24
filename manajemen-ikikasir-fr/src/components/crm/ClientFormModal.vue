@@ -13,10 +13,13 @@ import {
   Package,
   ArrowRight,
   ArrowLeft,
-  Loader2
+  Loader2,
+  Share2,
+  AlertCircle,
+  Link2
 } from 'lucide-vue-next'
 import type { ClientLead, LeadStatus, LeadSource } from '../../types/crm'
-import { useAppData } from '../../composables/useAppData'
+import { useAppData, getOrCreateCustomerReferralCode } from '../../composables/useAppData'
 
 const props = defineProps<{
   isOpen: boolean
@@ -28,7 +31,7 @@ const emit = defineEmits<{
   (e: 'saved', client: ClientLead): void
 }>()
 
-const { addRegistration, updateLead } = useAppData()
+const { addRegistration, updateLead, customers } = useAppData()
 const isSubmitting = ref(false)
 const submitError = ref<string | null>(null)
 const activeTab = ref<'contact' | 'business'>('contact')
@@ -45,7 +48,11 @@ const formData = ref({
   packageInterest: 'Basic' as 'Basic' | 'Pro' | 'Add on' | 'Custom / IT One' | string,
   estimatedDeal: 250000,
   notes: '',
-  followUpSchedule: 'Hari ini' as 'Hari ini' | 'Besok' | '2 Hari lagi' | '3 Hari lagi' | '5 Hari lagi' | 'Terlambat'
+  followUpSchedule: 'Hari ini' as 'Hari ini' | 'Besok' | '2 Hari lagi' | '3 Hari lagi' | '5 Hari lagi' | 'Terlambat',
+  referralCode: '',
+  referredByCustomerId: '',
+  referredByCustomerName: '',
+  referredByBusinessName: ''
 })
 
 const categories = ['Retail', 'F&B / Kuliner', 'Fashion & Butik', 'Jasa & Servis', 'Minimarket & Grosir', 'Lainnya']
@@ -71,6 +78,45 @@ const handlePackageChange = () => {
   formData.value.estimatedDeal = deals[formData.value.packageInterest] || 250000
 }
 
+// Pencocokan otomatis kode referral dengan pelanggan terdaftar
+const matchedCustomer = computed(() => {
+  if (formData.value.source !== 'Referral') return null
+  const code = formData.value.referralCode?.trim().toUpperCase()
+  if (!code) return null
+  return customers.value.find(c => 
+    (c.referralCode && c.referralCode.toUpperCase() === code) ||
+    c.id.toUpperCase() === code ||
+    (c.phone && c.phone.replace(/[^0-9]/g, '') === code.replace(/[^0-9]/g, ''))
+  ) || null
+})
+
+// Ketika pelanggan pengundang dipilih dari dropdown quick select
+const selectReferringCustomer = (customerId: string) => {
+  if (!customerId) {
+    formData.value.referralCode = ''
+    formData.value.referredByCustomerId = ''
+    formData.value.referredByCustomerName = ''
+    formData.value.referredByBusinessName = ''
+    return
+  }
+  const cust = customers.value.find(c => c.id === customerId)
+  if (cust) {
+    formData.value.referralCode = cust.referralCode || getOrCreateCustomerReferralCode(cust)
+    formData.value.referredByCustomerId = cust.id
+    formData.value.referredByCustomerName = cust.name
+    formData.value.referredByBusinessName = cust.businessName
+  }
+}
+
+// Sinkronkan data pengundang jika kode referal cocok otomatis
+watch(matchedCustomer, (cust) => {
+  if (cust) {
+    formData.value.referredByCustomerId = cust.id
+    formData.value.referredByCustomerName = cust.name
+    formData.value.referredByBusinessName = cust.businessName
+  }
+})
+
 // Watch for editing client
 watch(() => props.clientToEdit, (val) => {
   if (val) {
@@ -86,7 +132,11 @@ watch(() => props.clientToEdit, (val) => {
       packageInterest: val.packageInterest || 'Basic',
       estimatedDeal: val.estimatedDeal || 250000,
       notes: val.notes || '',
-      followUpSchedule: val.followUpSchedule || 'Hari ini'
+      followUpSchedule: val.followUpSchedule || 'Hari ini',
+      referralCode: val.referralCode || '',
+      referredByCustomerId: val.referredByCustomerId || '',
+      referredByCustomerName: val.referredByCustomerName || '',
+      referredByBusinessName: val.referredByBusinessName || ''
     }
   } else {
     resetForm()
@@ -106,7 +156,11 @@ function resetForm() {
     packageInterest: 'Basic',
     estimatedDeal: 250000,
     notes: '',
-    followUpSchedule: 'Hari ini'
+    followUpSchedule: 'Hari ini',
+    referralCode: '',
+    referredByCustomerId: '',
+    referredByCustomerName: '',
+    referredByBusinessName: ''
   }
   activeTab.value = 'contact'
 }
@@ -129,6 +183,11 @@ const handleSubmit = () => {
 
   try {
     let savedClient: ClientLead
+    const isReferral = formData.value.source === 'Referral'
+    const finalReferralCode = isReferral ? formData.value.referralCode.trim().toUpperCase() : undefined
+    const finalReferredCustomerId = isReferral ? (formData.value.referredByCustomerId || matchedCustomer.value?.id || undefined) : undefined
+    const finalReferredCustomerName = isReferral ? (formData.value.referredByCustomerName || matchedCustomer.value?.name || undefined) : undefined
+    const finalReferredBusinessName = isReferral ? (formData.value.referredByBusinessName || matchedCustomer.value?.businessName || undefined) : undefined
 
     if (props.clientToEdit) {
       // MODE EDIT — update data yang sudah ada di store
@@ -147,6 +206,10 @@ const handleSubmit = () => {
         estimatedDeal: formData.value.estimatedDeal,
         notes: formData.value.notes || props.clientToEdit.notes || '',
         followUpSchedule: formData.value.followUpSchedule,
+        referralCode: finalReferralCode,
+        referredByCustomerId: finalReferredCustomerId,
+        referredByCustomerName: finalReferredCustomerName,
+        referredByBusinessName: finalReferredBusinessName,
         updated_at: nowIso
       }
       updateLead(savedClient)
@@ -161,7 +224,11 @@ const handleSubmit = () => {
         address: formData.value.address || 'Belum diisi',
         packageInterest: formData.value.packageInterest,
         source: formData.value.source,
-        notes: formData.value.notes || `Calon client ditambahkan manual via CRM Admin. Paket: ${formData.value.packageInterest}.`
+        notes: formData.value.notes || `Calon client ditambahkan manual via CRM Admin. Paket: ${formData.value.packageInterest}.${isReferral && finalReferralCode ? ` Referral dari: ${finalReferredCustomerName || finalReferralCode}.` : ''}`,
+        referralCode: finalReferralCode,
+        referredByCustomerId: finalReferredCustomerId,
+        referredByCustomerName: finalReferredCustomerName,
+        referredByBusinessName: finalReferredBusinessName
       })
       // Terapkan fields tambahan jika diperlukan
       if (formData.value.status !== 'New' || formData.value.estimatedDeal !== 250000 || formData.value.followUpSchedule !== 'Hari ini') {
@@ -402,6 +469,101 @@ const handleSubmit = () => {
                 >
                   <option v-for="src in sources" :key="src" :value="src">{{ src }}</option>
                 </select>
+              </div>
+
+              <!-- Input Kode Referal & Sambungan Pelanggan (Hanya jika Sumber = Referral) -->
+              <div 
+                v-if="formData.source === 'Referral'" 
+                class="md:col-span-2 p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-purple-50/80 via-indigo-50/60 to-pink-50/50 border border-purple-200/90 shadow-xs space-y-3 animate-in fade-in zoom-in-95 duration-200"
+              >
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <span class="w-7 h-7 rounded-lg bg-purple-600 text-white flex items-center justify-center shadow-xs">
+                      <Share2 class="w-4 h-4" />
+                    </span>
+                    <div>
+                      <h4 class="text-xs font-bold text-purple-950 uppercase tracking-wide">Kode Referal & Pelanggan Pengundang</h4>
+                      <p class="text-[11px] text-purple-700/80">Calon client akan otomatis terhubung ke pelanggan IKI KASIR yang meng-invite</p>
+                    </div>
+                  </div>
+                  <span class="text-[10px] font-bold text-purple-700 bg-purple-100/80 border border-purple-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+                    <Link2 class="w-3 h-3 text-purple-600" />
+                    Tersambung Pelanggan
+                  </span>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <!-- Input Kode Referal Manual -->
+                  <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">
+                      Input Kode Referal <span class="text-purple-600">*</span>
+                    </label>
+                    <div class="relative">
+                      <input 
+                        v-model="formData.referralCode"
+                        @input="formData.referralCode = (formData.referralCode || '').toUpperCase()"
+                        type="text"
+                        placeholder="Contoh: REF-BUDI101"
+                        class="w-full px-3 py-2.5 rounded-xl border border-purple-200 bg-white text-sm font-mono font-bold uppercase tracking-wider text-slate-800 placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all"
+                      />
+                      <span v-if="matchedCustomer" class="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-600">
+                        <CheckCircle2 class="w-4 h-4" />
+                      </span>
+                    </div>
+                    <p class="text-[10px] text-slate-500 mt-1">Ketik kode referal milik pelanggan yang mengundang.</p>
+                  </div>
+
+                  <!-- Dropdown Quick Select Pelanggan Pengundang -->
+                  <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">
+                      Atau Pilih Pelanggan Pengundang
+                    </label>
+                    <select 
+                      @change="(e: any) => selectReferringCustomer(e.target.value)"
+                      class="w-full px-3 py-2.5 rounded-xl border border-purple-200 bg-white text-sm font-medium text-slate-700 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all"
+                    >
+                      <option value="">-- Cari / Pilih Pelanggan --</option>
+                      <option 
+                        v-for="c in customers" 
+                        :key="c.id" 
+                        :value="c.id"
+                        :selected="matchedCustomer?.id === c.id || formData.referredByCustomerId === c.id"
+                      >
+                        {{ c.name }} ({{ c.businessName }}) — {{ c.referralCode || c.id }}
+                      </option>
+                    </select>
+                    <p class="text-[10px] text-slate-500 mt-1">Otomatis terisi jika memilih dari daftar pelanggan.</p>
+                  </div>
+                </div>
+
+                <!-- Status Terhubung ke Pelanggan -->
+                <div 
+                  v-if="matchedCustomer" 
+                  class="p-3 rounded-xl bg-emerald-50 border border-emerald-200/90 text-emerald-900 text-xs flex items-start gap-2.5 animate-in fade-in duration-150"
+                >
+                  <CheckCircle2 class="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                      <span class="font-bold text-emerald-800">Tersambung ke Pelanggan:</span>
+                      <span class="font-extrabold text-emerald-950">{{ matchedCustomer.name }}</span>
+                      <span class="text-[11px] text-emerald-700 font-medium">({{ matchedCustomer.businessName }})</span>
+                      <span class="font-mono text-[10px] font-bold bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded border border-emerald-300">
+                        {{ matchedCustomer.referralCode || matchedCustomer.id }}
+                      </span>
+                    </div>
+                    <p class="text-[11px] text-emerald-700 mt-0.5">
+                      Calon client ini berhasil terhubung ke pelanggan pengundang dan akan tercatat otomatis di daftar calon klien yang di-invite oleh pelanggan tersebut.
+                    </p>
+                  </div>
+                </div>
+
+                <div 
+                  v-else-if="formData.referralCode.trim()" 
+                  class="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs flex items-center gap-2"
+                >
+                  <AlertCircle class="w-4 h-4 text-amber-600 shrink-0" />
+                  <span>Kode referral belum cocok dengan data pelanggan terdaftar. Anda tetap dapat menyimpannya atau memilih pelanggan langsung dari dropdown di samping.</span>
+                </div>
               </div>
 
               <!-- Status Prospek (Hanya ditampilkan saat EDIT data) -->
