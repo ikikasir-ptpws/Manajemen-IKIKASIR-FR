@@ -43,6 +43,7 @@ import {
 import ClientFormModal from '../../components/crm/ClientFormModal.vue'
 import ClientDetailModal from '../../components/crm/ClientDetailModal.vue'
 import GoogleFormIntegrationModal from '../../components/crm/GoogleFormIntegrationModal.vue'
+import { uploadApi } from '../../api/upload.api'
 import DateRangePicker from '../../components/common/DateRangePicker.vue'
 import { useAppData } from '../../composables/useAppData'
 import type { ClientLead, LeadStatus, LeadSource } from '../../types/crm'
@@ -412,15 +413,37 @@ const onApprovalPackageChange = () => {
   approvalForm.value.amount = pkgPrices[approvalForm.value.packageType] || 250000
 }
 
-const handleProofFileUpload = (e: Event) => {
+const isUploadingProof = ref(false)
+
+const handleProofFileUpload = async (e: Event) => {
   const target = e.target as HTMLInputElement
   if (target.files && target.files[0]) {
     const file = target.files[0]
+    
+    // Preview langsung sementara
     const reader = new FileReader()
     reader.onload = (event) => {
-      approvalForm.value.paymentProofUrl = event.target?.result as string
+      if (!approvalForm.value.paymentProofUrl) {
+        approvalForm.value.paymentProofUrl = event.target?.result as string
+      }
     }
     reader.readAsDataURL(file)
+
+    // Upload langsung ke server storage
+    try {
+      isUploadingProof.value = true
+      showToast('Mengunggah berkas bukti bayar ke storage...')
+      const res = await uploadApi.uploadFile(file)
+      if (res.data?.url) {
+        approvalForm.value.paymentProofUrl = res.data.url
+        showToast('✅ Berkas bukti bayar berhasil disimpan ke storage server!')
+      }
+    } catch (err: any) {
+      console.warn('Gagal upload langsung ke storage:', err)
+      showToast('⚠️ Menggunakan format berkas lokal.')
+    } finally {
+      isUploadingProof.value = false
+    }
   }
 }
 

@@ -1465,6 +1465,66 @@
           }
         }
       ]
+    },
+    {
+      "name": "STORAGE & UPLOAD BUKTI PEMBAYARAN",
+      "item": [
+        {
+          "name": "POST Upload Bukti Pembayaran (Multipart/Form-Data File)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "description": "Pilih file gambar bukti transfer / struk pembayaran (JPG, PNG, atau WEBP)"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/upload/payment-proof",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "upload",
+                "payment-proof"
+              ]
+            },
+            "description": "Mengunggah berkas gambar bukti pembayaran langsung ke server storage (folder /uploads/receipts/). Mengembalikan URL publik yang dapat disimpan ke PostgreSQL pada tabel customers / leads."
+          }
+        },
+        {
+          "name": "POST Upload Bukti Pembayaran (Base64 JSON)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"image\": \"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==\",\n  \"fileName\": \"bukti_transfer_mandiri.png\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/upload/base64",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "upload",
+                "base64"
+              ]
+            },
+            "description": "Mengunggah bukti pembayaran format Base64 JSON. Sistem otomatis mengubah string Base64 menjadi file fisik di storage /uploads/receipts/ dan mengembalikan URL publik."
+          }
+        }
+      ]
     }
   ]
 }

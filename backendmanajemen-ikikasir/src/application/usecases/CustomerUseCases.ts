@@ -14,6 +14,7 @@ import {
   BadRequestError,
 } from '../../domain/errors/AppError.js';
 import { Customer } from '../../domain/entities/Customer.js';
+import { saveProofFileToStorage } from '../../infrastructure/utils/storage.util.js';
 
 export class CustomerUseCases {
   constructor(
@@ -63,7 +64,9 @@ export class CustomerUseCases {
 
     const startedAt = new Date();
     const expiresAt = this.calculateExpiryDate(startedAt, months);
-    const totalAmount = packagePrice * months;
+    const totalAmount = dto.paymentAmount !== undefined ? dto.paymentAmount : packagePrice * months;
+    const finalMethod = dto.paymentMethod || 'QRIS';
+    const finalProof = saveProofFileToStorage(dto.paymentProofUrl);
 
     // 3. Simpan data pelanggan ke database
     const newCustomer = await this.customerRepository.create({
@@ -77,6 +80,14 @@ export class CustomerUseCases {
       startedAt,
       expiresAt,
       notes: dto.notes,
+      paymentProofUrl: finalProof,
+      paymentMethod: finalMethod,
+      paymentAmount: totalAmount,
+      paymentDate: dto.paymentDate ? new Date(dto.paymentDate) : startedAt,
+      paymentStatus: dto.paymentStatus || 'PAID',
+      appUsername: dto.appUsername || cleanEmail,
+      appPassword: dto.appPassword || 'Kasir#2026',
+      technicianStatus: dto.technicianStatus || 'completed',
     });
 
     // 4. Catat riwayat invoice awal
@@ -87,9 +98,10 @@ export class CustomerUseCases {
         packageName,
         amount: totalAmount,
         billingCycleMonths: months,
-        paymentMethod: dto.paymentMethod || 'QRIS',
-        paymentStatus: 'PAID',
-        notes: `Pendaftaran awal paket ${packageName} (${months} Bulan)`,
+        paymentMethod: finalMethod,
+        paymentStatus: dto.paymentStatus || 'PAID',
+        paymentProofUrl: finalProof,
+        notes: dto.notes || `Pendaftaran awal paket ${packageName} (${months} Bulan)`,
         startedAt,
         expiresAt,
       });
@@ -138,7 +150,11 @@ export class CustomerUseCases {
       }
     }
 
-    const updated = await this.customerRepository.update(id, dto);
+    const updateData: any = { ...dto };
+    if (dto.paymentProofUrl !== undefined) {
+      updateData.paymentProofUrl = saveProofFileToStorage(dto.paymentProofUrl);
+    }
+    const updated = await this.customerRepository.update(id, updateData);
     return updated.toJSON();
   }
 
@@ -170,12 +186,16 @@ export class CustomerUseCases {
     const baseDate = isCurrentlyExpired ? new Date() : new Date(customer.expiresAt);
     const newExpiresAt = this.calculateExpiryDate(baseDate, months);
     const amount = dto.customAmount !== undefined ? dto.customAmount : packagePrice * months;
+    const finalProof = dto.paymentProofUrl !== undefined ? saveProofFileToStorage(dto.paymentProofUrl) : undefined;
 
     // Perbarui status dan masa aktif pelanggan
     const updatedCustomer = await this.customerRepository.update(id, {
       packageId: targetPackageId,
       status: 'ACTIVE',
       expiresAt: newExpiresAt,
+      paymentProofUrl: finalProof,
+      paymentMethod: dto.paymentMethod !== undefined ? dto.paymentMethod : undefined,
+      paymentAmount: amount,
     });
 
     // Catat invoice / riwayat pembayaran
@@ -187,6 +207,7 @@ export class CustomerUseCases {
       billingCycleMonths: months,
       paymentMethod: dto.paymentMethod || 'QRIS',
       paymentStatus: 'PAID',
+      paymentProofUrl: finalProof || customer.paymentProofUrl || '',
       notes: dto.notes || `Perpanjangan paket ${packageName} (${months} Bulan)`,
       startedAt: baseDate,
       expiresAt: newExpiresAt,

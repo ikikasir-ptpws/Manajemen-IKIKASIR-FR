@@ -15,6 +15,14 @@ export interface CreateCustomerData {
   startedAt?: Date;
   expiresAt: Date;
   notes?: string;
+  paymentProofUrl?: string;
+  paymentMethod?: string;
+  paymentAmount?: number;
+  paymentDate?: Date;
+  paymentStatus?: string;
+  appUsername?: string;
+  appPassword?: string;
+  technicianStatus?: string;
 }
 
 export interface UpdateCustomerData {
@@ -30,6 +38,14 @@ export interface UpdateCustomerData {
   status?: string;
   expiresAt?: Date;
   notes?: string;
+  paymentProofUrl?: string;
+  paymentMethod?: string;
+  paymentAmount?: number;
+  paymentDate?: Date;
+  paymentStatus?: string;
+  appUsername?: string;
+  appPassword?: string;
+  technicianStatus?: string;
 }
 
 export interface CustomerFilter {
@@ -46,6 +62,7 @@ export interface CreateSubscriptionHistoryData {
   billingCycleMonths: number;
   paymentMethod: string;
   paymentStatus: string;
+  paymentProofUrl?: string;
   notes?: string;
   startedAt: Date;
   expiresAt: Date;

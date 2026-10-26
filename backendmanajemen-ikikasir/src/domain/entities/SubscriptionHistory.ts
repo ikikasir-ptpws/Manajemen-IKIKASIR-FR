@@ -7,6 +7,7 @@ export interface SubscriptionHistoryProps {
   billingCycleMonths: number;
   paymentMethod: string;
   paymentStatus: string;
+  paymentProofUrl?: string | null;
   notes?: string | null;
   startedAt: Date;
   expiresAt: Date;
@@ -22,6 +23,7 @@ export class SubscriptionHistory {
   public readonly billingCycleMonths: number;
   public readonly paymentMethod: string;
   public readonly paymentStatus: string;
+  public readonly paymentProofUrl: string;
   public readonly notes: string;
   public readonly startedAt: Date;
   public readonly expiresAt: Date;
@@ -36,6 +38,7 @@ export class SubscriptionHistory {
     this.billingCycleMonths = props.billingCycleMonths;
     this.paymentMethod = props.paymentMethod;
     this.paymentStatus = props.paymentStatus;
+    this.paymentProofUrl = props.paymentProofUrl ?? '';
     this.notes = props.notes ?? '';
     this.startedAt = props.startedAt;
     this.expiresAt = props.expiresAt;
@@ -52,6 +55,7 @@ export class SubscriptionHistory {
       billingCycleMonths: this.billingCycleMonths,
       paymentMethod: this.paymentMethod,
       paymentStatus: this.paymentStatus,
+      paymentProofUrl: this.paymentProofUrl,
       notes: this.notes,
       startedAt: this.startedAt.toISOString(),
       expiresAt: this.expiresAt.toISOString(),

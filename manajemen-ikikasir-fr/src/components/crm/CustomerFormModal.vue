@@ -14,7 +14,7 @@ import {
   ArrowRight
 } from 'lucide-vue-next'
 import type { Customer, PackageType } from '../../types/dashboard'
-import { customersApi } from '../../api'
+import { customersApi, uploadApi } from '../../api'
 import { 
   useAppData, 
   getOrCreateCustomerReferralCode, 
@@ -142,6 +142,15 @@ const handleFileUpload = (e: Event) => {
     reader.onload = (event) => {
       formData.value.paymentProofUrl = event.target?.result as string
       formData.value.paymentProofFileName = file.name
+
+      // Upload file ke server storage
+      uploadApi.uploadFile(file).then(res => {
+        if (res.data?.url) {
+          formData.value.paymentProofUrl = res.data.url
+        }
+      }).catch(err => {
+        console.warn('Upload server storage fallback ke base64:', err)
+      })
     }
     reader.readAsDataURL(file)
   }
@@ -225,7 +234,13 @@ const handleSubmit = () => {
           email: savedCustomer.email,
           phone: savedCustomer.phone,
           address: savedCustomer.address,
-          notes: savedCustomer.notes
+          notes: savedCustomer.notes,
+          paymentProofUrl: savedCustomer.paymentProofUrl,
+          paymentMethod: savedCustomer.paymentMethod,
+          paymentAmount: savedCustomer.amount,
+          appUsername: savedCustomer.appUsername,
+          appPassword: savedCustomer.appPassword,
+          technicianStatus: savedCustomer.technicianStatus
         }).catch(err => console.warn('Backend customersApi.update warning:', err))
       } else {
         throw new Error('Data pelanggan tidak ditemukan.')
@@ -271,6 +286,11 @@ const handleSubmit = () => {
         address: savedCustomer.address,
         billingCycleMonths: 1,
         paymentMethod: savedCustomer.paymentMethod,
+        paymentAmount: savedCustomer.amount,
+        paymentProofUrl: savedCustomer.paymentProofUrl,
+        appUsername: savedCustomer.appUsername,
+        appPassword: savedCustomer.appPassword,
+        technicianStatus: savedCustomer.technicianStatus,
         notes: savedCustomer.notes
       }).then(res => {
         if (res.data?.id) {

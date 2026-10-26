@@ -660,8 +660,8 @@ function mapBackendCustomerToFrontend(c: any, index: number): Customer {
     joinDate: c.startedAt ? c.startedAt.substring(0, 10) : (c.createdAt ? c.createdAt.substring(0, 10) : '2026-09-01'),
     expiredDate: c.expiresAt ? c.expiresAt.substring(0, 10) : new Date().toISOString().substring(0, 10),
     status: isExpired ? 'expired' : 'active',
-    amount: c.packagePrice || (pkgType === 'Pro' ? 500000 : (pkgType === 'Custom / IT One' ? 1500000 : 250000)),
-    paymentMethod: leadMatch?.paymentMethod || 'QRIS',
+    amount: c.paymentAmount || c.packagePrice || (pkgType === 'Pro' ? 500000 : (pkgType === 'Custom / IT One' ? 1500000 : 250000)),
+    paymentMethod: c.paymentMethod || leadMatch?.paymentMethod || 'QRIS',
     technicianStatus: c.technicianStatus || leadMatch?.technicianStatus || (isExpired ? 'completed' : 'completed'),
     technicianAssignedTo: c.technicianAssignedTo || leadMatch?.technicianAssignedTo || 'Doni Teknisi',
     emailIssueReported: Boolean(c.emailIssueReported ?? leadMatch?.emailIssueReported),
@@ -1077,6 +1077,7 @@ export function useAppData() {
       targetCustomer = existing
       targetCustomer.amount = finalAmount
       targetCustomer.paymentMethod = finalMethod
+      targetCustomer.paymentProofUrl = finalProof
       if (!targetCustomer.referralCode) {
         targetCustomer.referralCode = getOrCreateCustomerReferralCode(targetCustomer)
       }
@@ -1104,6 +1105,7 @@ export function useAppData() {
         status: 'active',
         amount: finalAmount,
         paymentMethod: finalMethod,
+        paymentProofUrl: finalProof,
         referralCode: getOrCreateCustomerReferralCode({ name: lead.name, id: 'cust-' + lead.id }),
         referredByCustomerId: lead.referredByCustomerId,
         referredByCustomerName: lead.referredByCustomerName
@@ -1136,6 +1138,11 @@ export function useAppData() {
       paymentMethod: finalMethod,
       paymentProofUrl: finalProof,
       notes: paymentData?.notes
+    }).then(res => {
+      if (res.data?.customer?.paymentProofUrl) {
+        targetCustomer.paymentProofUrl = res.data.customer.paymentProofUrl
+        saveStorage(STORAGE_KEY_CUSTOMERS, customers.value)
+      }
     }).catch(err => {
       console.warn('Backend leadsApi.approve warning:', err)
     })

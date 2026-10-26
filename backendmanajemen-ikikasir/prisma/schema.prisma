@@ -99,6 +99,19 @@ model Customer {
   notes                 String?               @default("")
   createdAt             DateTime              @default(now())
   updatedAt             DateTime              @updatedAt
+
+  // Bukti Pembayaran & Finance
+  paymentProofUrl       String?               @default("")
+  paymentMethod         String?               @default("QRIS")
+  paymentAmount         Float?                @default(0)
+  paymentDate           DateTime?
+  paymentStatus         String?               @default("PAID")
+
+  // Akun Kasir & Status Teknisi
+  appUsername           String?               @default("")
+  appPassword           String?               @default("")
+  technicianStatus      String?               @default("completed") // pending_setup, in_progress, completed, issue
+
   subscriptionHistories SubscriptionHistory[]
 
   @@index([email])
@@ -118,6 +131,7 @@ model SubscriptionHistory {
   billingCycleMonths Int       @default(1)
   paymentMethod      String    @default("QRIS")
   paymentStatus      String    @default("PAID") // PAID, PENDING, FAILED
+  paymentProofUrl    String?   @default("")
   notes              String?   @default("")
   startedAt          DateTime  @default(now())
   expiresAt          DateTime

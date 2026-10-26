@@ -1,6 +1,8 @@
 import express, { Application, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import path from 'path';
+import fs from 'fs';
 import authRoutes from './presentation/routes/auth.routes.js';
 import roleRoutes from './presentation/routes/role.routes.js';
 import userRoutes from './presentation/routes/user.routes.js';
@@ -8,6 +10,7 @@ import packageRoutes from './presentation/routes/package.routes.js';
 import customerRoutes from './presentation/routes/customer.routes.js';
 import subscriptionRoutes from './presentation/routes/subscription.routes.js';
 import leadRoutes from './presentation/routes/lead.routes.js';
+import uploadRoutes from './presentation/routes/upload.routes.js';
 import { errorHandler } from './presentation/middlewares/error.middleware.js';
 import { NotFoundError } from './domain/errors/AppError.js';
 
@@ -15,15 +18,26 @@ export function createApp(): Application {
   const app = express();
 
   // Middleware Keamanan & Parser
-  app.use(helmet());
+  app.use(
+    helmet({
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
+    })
+  );
   app.use(
     cors({
       origin: true, // Memungkinkan request dari frontend Vite localhost:5173
       credentials: true,
     })
   );
-  app.use(express.json());
-  app.use(express.urlencoded({ extended: true }));
+  app.use(express.json({ limit: '25mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '25mb' }));
+
+  // Static File Serving untuk Bukti Pembayaran / Uploads
+  const uploadsDir = path.resolve(process.cwd(), 'uploads');
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+  app.use('/uploads', express.static(uploadsDir));
 
   // Endpoint Health Check
   app.get('/api/health', (_req: Request, res: Response) => {
@@ -43,6 +57,7 @@ export function createApp(): Application {
   app.use('/api/subscriptions', subscriptionRoutes);
   app.use('/api/leads', leadRoutes);
   app.use('/api/calon-client', leadRoutes);
+  app.use('/api/upload', uploadRoutes);
 
   // Penanganan rute 404 Not Found
   app.use((req: Request, _res: Response, next: NextFunction) => {

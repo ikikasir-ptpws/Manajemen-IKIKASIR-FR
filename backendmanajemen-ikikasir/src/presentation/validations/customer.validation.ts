@@ -25,6 +25,13 @@ export const createCustomerSchema = z.object({
     .min(1, 'Durasi bulan minimal 1 bulan.')
     .optional(),
   paymentMethod: z.string().trim().optional(),
+  paymentAmount: z.number().min(0).optional(),
+  paymentProofUrl: z.string().trim().optional(),
+  paymentDate: z.union([z.string(), z.date()]).optional(),
+  paymentStatus: z.string().trim().optional(),
+  appUsername: z.string().trim().optional(),
+  appPassword: z.string().trim().optional(),
+  technicianStatus: z.string().trim().optional(),
   notes: z.string().trim().optional(),
 });
 
@@ -50,7 +57,16 @@ export const updateCustomerSchema = z.object({
     .min(6, 'Nomor telepon / WhatsApp minimal terdiri dari 6 karakter.')
     .optional(),
   address: z.string().trim().optional(),
+  packageId: z.string().uuid('ID Paket harus berupa format UUID yang valid.').optional().nullable(),
   notes: z.string().trim().optional(),
+  paymentMethod: z.string().trim().optional(),
+  paymentAmount: z.number().min(0).optional(),
+  paymentProofUrl: z.string().trim().optional(),
+  paymentDate: z.union([z.string(), z.date()]).optional(),
+  paymentStatus: z.string().trim().optional(),
+  appUsername: z.string().trim().optional(),
+  appPassword: z.string().trim().optional(),
+  technicianStatus: z.string().trim().optional(),
 });
 
 export const renewSubscriptionSchema = z.object({
@@ -61,6 +77,7 @@ export const renewSubscriptionSchema = z.object({
     .min(1, 'Durasi minimal 1 bulan.')
     .optional(),
   paymentMethod: z.string().trim().optional(),
+  paymentProofUrl: z.string().trim().optional(),
   notes: z.string().trim().optional(),
   customAmount: z.number().min(0, 'Nominal pembayaran tidak boleh negatif.').optional(),
 });

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import {
   Tag,
   Search,
@@ -12,8 +12,11 @@ import {
   X,
   Percent,
   Banknote,
-  AlertCircle
+  AlertCircle,
+  RotateCcw
 } from 'lucide-vue-next'
+import { usePagination } from '../../composables/usePagination'
+import GlobalPagination from '../../components/common/GlobalPagination.vue'
 
 export interface PromoItem {
   id: string
@@ -37,6 +40,8 @@ const initialPromos: PromoItem[] = [
 const promos = ref<PromoItem[]>([])
 const searchQuery = ref('')
 const filterStatus = ref('Semua Status')
+const filterType = ref('Semua Tipe')
+
 const isModalOpen = ref(false)
 const isEditing = ref(false)
 const selectedPromo = ref<PromoItem | null>(null)
@@ -92,21 +97,54 @@ onMounted(() => {
   loadPromos()
 })
 
+// Metrics
+const totalPromosCount = computed(() => promos.value.length)
+const activePromosCount = computed(() => promos.value.filter(p => p.status === 'Active').length)
+
+// Filtered list
 const filteredPromos = computed(() => {
   let list = promos.value
+
   if (filterStatus.value !== 'Semua Status') {
     list = list.filter(p => p.status === filterStatus.value)
   }
+
+  if (filterType.value !== 'Semua Tipe') {
+    list = list.filter(p => p.type === filterType.value)
+  }
+
   if (searchQuery.value.trim()) {
     const q = searchQuery.value.toLowerCase().trim()
     list = list.filter(p =>
-      p.name.toLowerCase().includes(q) ||
-      p.code.toLowerCase().includes(q) ||
-      p.value.toLowerCase().includes(q)
+      (p.name || '').toLowerCase().includes(q) ||
+      (p.code || '').toLowerCase().includes(q) ||
+      (p.value || '').toLowerCase().includes(q)
     )
   }
+
   return list
 })
+
+// Pagination
+const {
+  currentPage,
+  pageSize,
+  totalItems,
+  startIndex,
+  paginatedItems: paginatedPromos,
+  resetPage
+} = usePagination(filteredPromos, 10)
+
+watch([searchQuery, filterStatus, filterType], () => {
+  resetPage()
+})
+
+const resetFilters = () => {
+  searchQuery.value = ''
+  filterStatus.value = 'Semua Status'
+  filterType.value = 'Semua Tipe'
+  resetPage()
+}
 
 const formatIndoDate = (dateStr: string) => {
   if (!dateStr) return 'Tidak terbatas'
@@ -119,7 +157,6 @@ const formatIndoDate = (dateStr: string) => {
 const openAddModal = () => {
   isEditing.value = false
   selectedPromo.value = null
-  // Default expiry date 30 days from now
   const nextMonth = new Date()
   nextMonth.setDate(nextMonth.getDate() + 30)
   const defaultIso = nextMonth.toISOString().split('T')[0] ?? ''
@@ -259,7 +296,7 @@ const toggleStatus = (p: PromoItem) => {
 </script>
 
 <template>
-  <div class="p-4 sm:p-6 md:p-8 space-y-6 max-w-[1400px] mx-auto select-none">
+  <div class="space-y-6 max-w-[1400px] mx-auto select-none">
     
     <!-- Toast Notification -->
     <div
@@ -270,42 +307,33 @@ const toggleStatus = (p: PromoItem) => {
       <span>{{ toastMessage }}</span>
     </div>
 
-    <!-- Header -->
+    <!-- Header Section -->
     <header class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       <div>
-        <h1 class="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
-          <Tag class="w-6 h-6 text-indigo-600" />
-          Manajemen Promo
-        </h1>
-        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Kelola kode promo, diskon harga, dan penawaran spesial aplikasi kasir.</p>
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-2xl bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+            <Tag class="w-5 h-5" />
+          </div>
+          <div>
+            <h1 class="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+              Manajemen Promo
+            </h1>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Kelola kode promo, voucher diskon harga, dan penawaran spesial aplikasi kasir.
+            </p>
+          </div>
+        </div>
       </div>
 
-      <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto">
-        <!-- Filter Status -->
-        <select
-          v-model="filterStatus"
-          class="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-        >
-          <option>Semua Status</option>
-          <option>Active</option>
-          <option>Expired</option>
-        </select>
-
-        <!-- Search Input -->
-        <div class="relative flex-1 sm:w-60">
-          <Search class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-          <input 
-            v-model="searchQuery"
-            type="text" 
-            placeholder="Cari promo / kode..." 
-            class="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-900/40"
-          />
+      <div class="flex items-center gap-2">
+        <div class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs text-slate-600 dark:text-slate-300 font-medium border border-slate-200/60 dark:border-slate-700/60">
+          <span>Total: <strong class="text-slate-900 dark:text-white font-bold">{{ totalPromosCount }}</strong></span>
+          <span class="text-slate-300 dark:text-slate-600">•</span>
+          <span class="text-emerald-600 dark:text-emerald-400 font-bold">{{ activePromosCount }} Aktif</span>
         </div>
-
-        <!-- Add Button -->
         <button 
           @click="openAddModal"
-          class="flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-200 dark:shadow-none shrink-0 cursor-pointer active:scale-95"
+          class="flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-xl text-xs sm:text-sm font-semibold hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-200 dark:shadow-none shrink-0 cursor-pointer active:scale-95"
         >
           <Plus class="w-4 h-4" />
           <span>Buat Promo</span>
@@ -313,56 +341,148 @@ const toggleStatus = (p: PromoItem) => {
       </div>
     </header>
 
-    <!-- Table Container -->
+    <!-- Toolbar Filters Card -->
+    <div class="bg-white dark:bg-slate-800 rounded-2xl p-3 sm:p-4 shadow-xs border border-slate-100 dark:border-slate-700/60 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+      <!-- Search Input -->
+      <div class="relative flex-1">
+        <Search class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+        <input 
+          v-model="searchQuery" 
+          type="text" 
+          placeholder="Cari promo berdasarkan nama, kode voucher, atau nilai..." 
+          class="w-full pl-10 pr-9 py-2 sm:py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50 text-slate-800 dark:text-slate-100 text-xs sm:text-sm focus:outline-none focus:border-indigo-500 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-900/40 transition-all placeholder-slate-400"
+        />
+        <button 
+          v-if="searchQuery"
+          @click="searchQuery = ''"
+          class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 rounded cursor-pointer"
+        >
+          <X class="w-3.5 h-3.5" />
+        </button>
+      </div>
+
+      <div class="flex items-center flex-wrap gap-2 text-xs">
+        <!-- Status Filter -->
+        <select
+          v-model="filterStatus"
+          class="px-3 py-2 sm:py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-indigo-500 cursor-pointer shadow-2xs"
+        >
+          <option>Semua Status</option>
+          <option value="Active">Active</option>
+          <option value="Expired">Expired</option>
+        </select>
+
+        <!-- Tipe Diskon Filter -->
+        <select
+          v-model="filterType"
+          class="px-3 py-2 sm:py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-indigo-500 cursor-pointer shadow-2xs"
+        >
+          <option>Semua Tipe</option>
+          <option value="Percentage">Persentase (%)</option>
+          <option value="Fixed">Potongan Nominal (Rp)</option>
+        </select>
+
+        <!-- Reset Button -->
+        <button 
+          v-if="searchQuery || filterStatus !== 'Semua Status' || filterType !== 'Semua Tipe'"
+          @click="resetFilters"
+          class="flex items-center justify-center gap-1.5 px-3 py-2 sm:py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 font-semibold transition-colors cursor-pointer shadow-2xs"
+          title="Reset Filter"
+        >
+          <RotateCcw class="w-3.5 h-3.5" />
+          <span class="hidden sm:inline">Reset</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Table Container & Card Wrapper -->
     <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-xs border border-slate-100 dark:border-slate-700/60 overflow-hidden">
-      <div class="overflow-x-auto">
+      <!-- Desktop Table (Visible on md and up) -->
+      <div class="hidden md:block overflow-x-auto">
         <table class="w-full text-left text-sm min-w-[800px]">
-          <thead class="bg-slate-50 dark:bg-slate-700/40 border-b border-slate-100 dark:border-slate-700/60">
+          <thead class="bg-slate-50/75 dark:bg-slate-700/40 border-b border-slate-100 dark:border-slate-700/60 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
             <tr>
-              <th class="px-6 py-4 font-semibold text-slate-600 dark:text-slate-300 w-16">No</th>
-              <th class="px-6 py-4 font-semibold text-slate-600 dark:text-slate-300">Nama Promo</th>
-              <th class="px-6 py-4 font-semibold text-slate-600 dark:text-slate-300">Kode</th>
-              <th class="px-6 py-4 font-semibold text-slate-600 dark:text-slate-300">Nilai Diskon</th>
-              <th class="px-6 py-4 font-semibold text-slate-600 dark:text-slate-300">Masa Berlaku</th>
-              <th class="px-6 py-4 font-semibold text-slate-600 dark:text-slate-300">Status</th>
-              <th class="px-6 py-4 font-semibold text-slate-600 dark:text-slate-300 text-right">Aksi</th>
+              <th class="px-5 py-3.5 w-16">No</th>
+              <th class="px-5 py-3.5">Nama Promo</th>
+              <th class="px-5 py-3.5">Kode Voucher</th>
+              <th class="px-5 py-3.5">Nilai Diskon</th>
+              <th class="px-5 py-3.5">Masa Berlaku</th>
+              <th class="px-5 py-3.5 text-center">Status</th>
+              <th class="px-5 py-3.5 text-right">Aksi</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100 dark:divide-slate-700/50">
-            <tr v-for="(promo, index) in filteredPromos" :key="promo.id" class="hover:bg-slate-50/60 dark:hover:bg-slate-700/20 transition-colors">
-              <td class="px-6 py-4 text-slate-500 dark:text-slate-400 font-medium">{{ index + 1 }}</td>
-              <td class="px-6 py-4 font-semibold text-slate-800 dark:text-slate-100">{{ promo.name }}</td>
-              <td class="px-6 py-4">
+            <tr
+              v-for="(promo, index) in paginatedPromos"
+              :key="promo.id"
+              class="hover:bg-slate-50/80 dark:hover:bg-slate-700/25 transition-colors group"
+            >
+              <!-- Index Number -->
+              <td class="px-5 py-4 text-slate-400 dark:text-slate-500 font-mono text-xs font-semibold">
+                {{ startIndex + index + 1 }}
+              </td>
+
+              <!-- Nama Promo -->
+              <td class="px-5 py-4">
+                <div class="flex items-center gap-3">
+                  <div class="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
+                    <Tag class="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div class="font-semibold text-slate-800 dark:text-slate-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                      {{ promo.name }}
+                    </div>
+                    <div class="text-xs text-slate-500 dark:text-slate-400">
+                      {{ promo.type === 'Percentage' ? 'Diskon Persen' : 'Potongan Nominal' }}
+                    </div>
+                  </div>
+                </div>
+              </td>
+
+              <!-- Kode Voucher -->
+              <td class="px-5 py-4">
                 <span class="px-2.5 py-1 rounded-md text-xs font-mono font-bold bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-800">
                   {{ promo.code }}
                 </span>
               </td>
-              <td class="px-6 py-4">
+
+              <!-- Nilai Diskon -->
+              <td class="px-5 py-4">
                 <div class="font-bold text-slate-800 dark:text-slate-100">{{ promo.value }}</div>
-                <div class="text-[10px] text-slate-500 dark:text-slate-400">
-                  {{ promo.type === 'Percentage' ? 'Diskon Persen' : 'Potongan Nominal' }}
+                <div class="text-[11px] text-slate-500 dark:text-slate-400">
+                  {{ promo.type === 'Percentage' ? 'Otomatis potong %' : 'Potong langsung' }}
                 </div>
               </td>
-              <td class="px-6 py-4">
+
+              <!-- Masa Berlaku -->
+              <td class="px-5 py-4">
                 <div class="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300">
                   <Calendar class="w-3.5 h-3.5 text-slate-400" />
-                  {{ promo.validUntil }}
+                  <span>{{ promo.validUntil }}</span>
                 </div>
               </td>
-              <td class="px-6 py-4">
+
+              <!-- Status Toggle -->
+              <td class="px-5 py-4 text-center">
                 <button
                   @click="toggleStatus(promo)"
                   title="Klik untuk mengubah status promo"
                   class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold cursor-pointer transition-colors active:scale-95"
-                  :class="promo.status === 'Active' ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400' : 'bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400'"
+                  :class="
+                    promo.status === 'Active'
+                      ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-800/40'
+                      : 'bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-800/40'
+                  "
                 >
                   <CheckCircle2 v-if="promo.status === 'Active'" class="w-3.5 h-3.5" />
                   <XCircle v-else class="w-3.5 h-3.5" />
-                  {{ promo.status }}
+                  <span>{{ promo.status }}</span>
                 </button>
               </td>
-              <td class="px-6 py-4">
-                <div class="flex items-center justify-end gap-2">
+
+              <!-- Aksi -->
+              <td class="px-5 py-4">
+                <div class="flex items-center justify-end gap-1.5">
                   <button 
                     @click="openEditModal(promo)"
                     class="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
@@ -380,14 +500,132 @@ const toggleStatus = (p: PromoItem) => {
                 </div>
               </td>
             </tr>
+
+            <!-- Empty state desktop -->
             <tr v-if="filteredPromos.length === 0">
-              <td colspan="7" class="px-6 py-12 text-center text-slate-400 text-sm">
-                Tidak ada data promo yang sesuai dengan pencarian atau filter.
+              <td colspan="7" class="px-6 py-12 text-center">
+                <div class="max-w-xs mx-auto space-y-3">
+                  <div class="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-700/60 flex items-center justify-center mx-auto text-slate-400">
+                    <Tag class="w-6 h-6" />
+                  </div>
+                  <div class="space-y-1">
+                    <p class="font-bold text-slate-700 dark:text-slate-200 text-sm">Tidak ada promo ditemukan</p>
+                    <p class="text-xs text-slate-400 dark:text-slate-500">Coba ubah kata kunci pencarian atau filter status Anda.</p>
+                  </div>
+                  <button 
+                    v-if="searchQuery || filterStatus !== 'Semua Status' || filterType !== 'Semua Tipe'"
+                    @click="resetFilters"
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                  >
+                    <RotateCcw class="w-3.5 h-3.5" />
+                    <span>Reset Filter</span>
+                  </button>
+                </div>
               </td>
             </tr>
           </tbody>
         </table>
       </div>
+
+      <!-- Mobile List/Cards View (Visible on < md) -->
+      <div class="md:hidden divide-y divide-slate-100 dark:divide-slate-700/50">
+        <div 
+          v-for="(promo, index) in paginatedPromos" 
+          :key="promo.id" 
+          class="p-4 space-y-3 hover:bg-slate-50/60 dark:hover:bg-slate-700/20 transition-colors"
+        >
+          <div class="flex items-start justify-between gap-3">
+            <div class="flex items-center gap-3">
+              <div class="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
+                <Tag class="w-4 h-4" />
+              </div>
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="text-[10px] text-slate-400 font-mono font-bold">#{{ startIndex + index + 1 }}</span>
+                  <h4 class="font-bold text-slate-800 dark:text-slate-100 text-sm">{{ promo.name }}</h4>
+                </div>
+                <div class="flex items-center gap-2 mt-0.5">
+                  <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-800">
+                    {{ promo.code }}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <button
+              @click="toggleStatus(promo)"
+              class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold cursor-pointer transition-colors shrink-0"
+              :class="
+                promo.status === 'Active'
+                  ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400'
+                  : 'bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400'
+              "
+            >
+              <CheckCircle2 v-if="promo.status === 'Active'" class="w-3 h-3" />
+              <XCircle v-else class="w-3 h-3" />
+              <span>{{ promo.status }}</span>
+            </button>
+          </div>
+
+          <div class="flex items-center justify-between text-xs pt-1 border-t border-slate-100 dark:border-slate-700/40">
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-slate-900 dark:text-white">{{ promo.value }}</span>
+              <span class="text-slate-400">•</span>
+              <span class="text-slate-500 text-[11px] flex items-center gap-1">
+                <Calendar class="w-3 h-3" />
+                {{ promo.validUntil }}
+              </span>
+            </div>
+
+            <div class="flex items-center gap-1">
+              <button 
+                @click="openEditModal(promo)"
+                class="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
+                title="Edit Promo"
+              >
+                <Edit2 class="w-4 h-4" />
+              </button>
+              <button 
+                @click="confirmDelete(promo)"
+                class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
+                title="Hapus Promo"
+              >
+                <Trash2 class="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Empty state mobile -->
+        <div v-if="filteredPromos.length === 0" class="p-8 text-center">
+          <div class="max-w-xs mx-auto space-y-3">
+            <div class="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-700/60 flex items-center justify-center mx-auto text-slate-400">
+              <Tag class="w-6 h-6" />
+            </div>
+            <div class="space-y-1">
+              <p class="font-bold text-slate-700 dark:text-slate-200 text-sm">Tidak ada promo ditemukan</p>
+              <p class="text-xs text-slate-400 dark:text-slate-500">Coba ubah kata kunci atau filter status.</p>
+            </div>
+            <button 
+              v-if="searchQuery || filterStatus !== 'Semua Status' || filterType !== 'Semua Tipe'"
+              @click="resetFilters"
+              class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+            >
+              <RotateCcw class="w-3.5 h-3.5" />
+              <span>Reset Filter</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAGINATION FOOTER -->
+      <GlobalPagination
+        v-if="filteredPromos.length > 0"
+        :current-page="currentPage"
+        :total-items="totalItems"
+        :page-size="pageSize"
+        @update:current-page="currentPage = $event"
+        @update:page-size="pageSize = $event"
+      />
     </div>
 
     <!-- Modal Form Tambah/Edit Promo -->
@@ -572,7 +810,7 @@ const toggleStatus = (p: PromoItem) => {
         <div class="flex items-center gap-3 mt-6">
           <button
             @click="isDeleteConfirmOpen = false"
-            class="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 text-sm font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 cursor-pointer"
+            class="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 text-sm font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer"
           >
             Batal
           </button>

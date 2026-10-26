@@ -7,6 +7,13 @@ export interface CreateCustomerDto {
   packageId?: string;
   billingCycleMonths?: number;
   paymentMethod?: string;
+  paymentAmount?: number;
+  paymentProofUrl?: string;
+  paymentDate?: string | Date;
+  paymentStatus?: string;
+  appUsername?: string;
+  appPassword?: string;
+  technicianStatus?: string;
   notes?: string;
 }
 
@@ -17,12 +24,21 @@ export interface UpdateCustomerDto {
   phone?: string;
   address?: string;
   notes?: string;
+  paymentProofUrl?: string;
+  paymentMethod?: string;
+  paymentAmount?: number;
+  paymentDate?: string | Date;
+  paymentStatus?: string;
+  appUsername?: string;
+  appPassword?: string;
+  technicianStatus?: string;
 }
 
 export interface RenewSubscriptionDto {
   packageId?: string;
   billingCycleMonths?: number;
   paymentMethod?: string;
+  paymentProofUrl?: string;
   notes?: string;
   customAmount?: number;
 }
@@ -47,6 +63,14 @@ export interface CustomerResponseDto {
   startedAt: string;
   expiresAt: string;
   notes: string;
+  paymentProofUrl: string;
+  paymentMethod: string;
+  paymentAmount: number;
+  paymentDate: string | null;
+  paymentStatus: string;
+  appUsername: string;
+  appPassword: string;
+  technicianStatus: string;
   createdAt: string;
   updatedAt: string;
 }

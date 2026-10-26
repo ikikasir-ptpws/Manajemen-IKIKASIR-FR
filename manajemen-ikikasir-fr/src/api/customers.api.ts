@@ -20,6 +20,14 @@ export interface CustomerItem {
   startedAt: string
   expiresAt: string
   notes?: string
+  paymentProofUrl?: string
+  paymentMethod?: string
+  paymentAmount?: number
+  paymentDate?: string | null
+  paymentStatus?: string
+  appUsername?: string
+  appPassword?: string
+  technicianStatus?: string
   createdAt?: string
   updatedAt?: string
 }
@@ -33,6 +41,7 @@ export interface SubscriptionHistoryItem {
   billingCycleMonths: number
   paymentMethod: string
   paymentStatus: string
+  paymentProofUrl?: string
   notes?: string
   startedAt: string
   expiresAt: string
@@ -48,6 +57,13 @@ export interface CreateCustomerPayload {
   packageId?: string
   billingCycleMonths?: number
   paymentMethod?: string
+  paymentAmount?: number
+  paymentProofUrl?: string
+  paymentDate?: string
+  paymentStatus?: string
+  appUsername?: string
+  appPassword?: string
+  technicianStatus?: string
   notes?: string
 }
 
@@ -57,7 +73,16 @@ export interface UpdateCustomerPayload {
   email?: string
   phone?: string
   address?: string
+  packageId?: string
   notes?: string
+  paymentProofUrl?: string
+  paymentMethod?: string
+  paymentAmount?: number
+  paymentDate?: string
+  paymentStatus?: string
+  appUsername?: string
+  appPassword?: string
+  technicianStatus?: string
 }
 
 export interface RenewSubscriptionPayload {

@@ -15,6 +15,18 @@ export interface CustomerProps {
   notes?: string | null;
   createdAt: Date;
   updatedAt: Date;
+
+  // Bukti Pembayaran & Finance
+  paymentProofUrl?: string | null;
+  paymentMethod?: string | null;
+  paymentAmount?: number | null;
+  paymentDate?: Date | null;
+  paymentStatus?: string | null;
+
+  // Akun Kasir & Status Teknisi
+  appUsername?: string | null;
+  appPassword?: string | null;
+  technicianStatus?: string | null;
 }
 
 export class Customer {
@@ -35,6 +47,15 @@ export class Customer {
   public readonly createdAt: Date;
   public readonly updatedAt: Date;
 
+  public readonly paymentProofUrl: string;
+  public readonly paymentMethod: string;
+  public readonly paymentAmount: number;
+  public readonly paymentDate: Date | null;
+  public readonly paymentStatus: string;
+  public readonly appUsername: string;
+  public readonly appPassword: string;
+  public readonly technicianStatus: string;
+
   constructor(props: CustomerProps) {
     this.id = props.id;
     this.name = props.name;
@@ -52,6 +73,15 @@ export class Customer {
     this.notes = props.notes ?? '';
     this.createdAt = props.createdAt;
     this.updatedAt = props.updatedAt;
+
+    this.paymentProofUrl = props.paymentProofUrl ?? '';
+    this.paymentMethod = props.paymentMethod ?? 'QRIS';
+    this.paymentAmount = props.paymentAmount ?? props.packagePrice ?? 0;
+    this.paymentDate = props.paymentDate ?? props.startedAt;
+    this.paymentStatus = props.paymentStatus ?? 'PAID';
+    this.appUsername = props.appUsername ?? '';
+    this.appPassword = props.appPassword ?? '';
+    this.technicianStatus = props.technicianStatus ?? 'completed';
   }
 
   /**
@@ -122,6 +152,14 @@ export class Customer {
       startedAt: this.startedAt.toISOString(),
       expiresAt: this.expiresAt.toISOString(),
       notes: this.notes,
+      paymentProofUrl: this.paymentProofUrl,
+      paymentMethod: this.paymentMethod,
+      paymentAmount: this.paymentAmount,
+      paymentDate: this.paymentDate ? this.paymentDate.toISOString() : null,
+      paymentStatus: this.paymentStatus,
+      appUsername: this.appUsername,
+      appPassword: this.appPassword,
+      technicianStatus: this.technicianStatus,
       createdAt: this.createdAt.toISOString(),
       updatedAt: this.updatedAt.toISOString(),
     };

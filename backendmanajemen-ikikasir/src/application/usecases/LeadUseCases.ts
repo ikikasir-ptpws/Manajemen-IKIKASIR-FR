@@ -11,6 +11,7 @@ import {
 } from '../dtos/lead.dto.js';
 import { NotFoundError, BadRequestError } from '../../domain/errors/AppError.js';
 import { Lead, LeadFollowUp } from '../../domain/entities/Lead.js';
+import { saveProofFileToStorage } from '../../infrastructure/utils/storage.util.js';
 
 export class LeadUseCases {
   constructor(
@@ -139,9 +140,10 @@ export class LeadUseCases {
 
     const newLead = await this.leadRepository.create({
       ...dto,
-      packageId: pkgInfo.packageId,
+      packageId: pkgInfo.packageId ?? undefined,
       packageInterest: pkgInfo.packageName,
       estimatedDeal: estimatedDeal,
+      paymentProofUrl: dto.paymentProofUrl ? saveProofFileToStorage(dto.paymentProofUrl) : undefined,
     });
 
     const json = newLead.toJSON();
@@ -165,10 +167,11 @@ export class LeadUseCases {
 
     const updated = await this.leadRepository.update(id, {
       ...dto,
-      packageId: pkgInfo ? pkgInfo.packageId : dto.packageId,
+      packageId: (pkgInfo ? pkgInfo.packageId : dto.packageId) ?? undefined,
       packageInterest: pkgInfo ? pkgInfo.packageName : dto.packageInterest,
       estimatedDeal: dto.estimatedDeal ?? (pkgInfo ? pkgInfo.packagePrice : undefined),
       paymentDate: dto.paymentDate ? new Date(dto.paymentDate) : undefined,
+      paymentProofUrl: dto.paymentProofUrl !== undefined ? saveProofFileToStorage(dto.paymentProofUrl) : undefined,
     });
 
     const json = updated.toJSON();
@@ -220,7 +223,7 @@ export class LeadUseCases {
     const now = new Date();
     const finalAmount = dto.amount || lead.estimatedDeal || 250000;
     const finalMethod = dto.paymentMethod || lead.paymentMethod || 'Transfer BCA';
-    const finalProof = dto.paymentProofUrl || lead.paymentProofUrl;
+    const finalProof = saveProofFileToStorage(dto.paymentProofUrl || lead.paymentProofUrl);
     const notes = dto.notes || 'Pendaftaran disetujui Super Admin. Klien dikonversi menjadi Pelanggan Aktif.';
 
     // 1. Update lead ke Converted & verified
@@ -261,6 +264,14 @@ export class LeadUseCases {
             status: 'ACTIVE',
             expiresAt,
             notes: `Diperbarui dari persetujuan calon client (Lead ID: ${lead.id})`,
+            paymentProofUrl: finalProof || existingCust.paymentProofUrl,
+            paymentMethod: finalMethod,
+            paymentAmount: finalAmount,
+            paymentDate: lead.paymentDate || now,
+            paymentStatus: 'PAID',
+            appUsername: lead.appUsername || existingCust.appUsername || cleanEmail,
+            appPassword: lead.appPassword || existingCust.appPassword || 'Kasir#2026',
+            technicianStatus: lead.technicianStatus || existingCust.technicianStatus || 'completed',
           });
         } else {
           // Buat pelanggan baru
@@ -277,6 +288,14 @@ export class LeadUseCases {
             startedAt: now,
             expiresAt,
             notes: `Dikonversi dari Calon Client (Lead ID: ${lead.id}). Sumber: ${lead.source}`,
+            paymentProofUrl: finalProof,
+            paymentMethod: finalMethod,
+            paymentAmount: finalAmount,
+            paymentDate: lead.paymentDate || now,
+            paymentStatus: 'PAID',
+            appUsername: lead.appUsername || cleanEmail,
+            appPassword: lead.appPassword || 'Kasir#2026',
+            technicianStatus: lead.technicianStatus || 'completed',
           });
 
           // Catat history invoice pertama
@@ -288,6 +307,7 @@ export class LeadUseCases {
             billingCycleMonths: months,
             paymentMethod: finalMethod,
             paymentStatus: 'PAID',
+            paymentProofUrl: finalProof,
             notes: 'Pembayaran pendaftaran calon client',
             startedAt: now,
             expiresAt,

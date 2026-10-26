@@ -27,6 +27,14 @@ export class PrismaCustomerRepository implements ICustomerRepository {
       startedAt: record.startedAt,
       expiresAt: record.expiresAt,
       notes: record.notes,
+      paymentProofUrl: record.paymentProofUrl ?? '',
+      paymentMethod: record.paymentMethod ?? 'QRIS',
+      paymentAmount: record.paymentAmount ?? record.package?.price ?? 0,
+      paymentDate: record.paymentDate ?? record.startedAt,
+      paymentStatus: record.paymentStatus ?? 'PAID',
+      appUsername: record.appUsername ?? '',
+      appPassword: record.appPassword ?? '',
+      technicianStatus: record.technicianStatus ?? 'completed',
       createdAt: record.createdAt,
       updatedAt: record.updatedAt,
     });
@@ -42,6 +50,7 @@ export class PrismaCustomerRepository implements ICustomerRepository {
       billingCycleMonths: record.billingCycleMonths,
       paymentMethod: record.paymentMethod,
       paymentStatus: record.paymentStatus,
+      paymentProofUrl: record.paymentProofUrl ?? '',
       notes: record.notes,
       startedAt: record.startedAt,
       expiresAt: record.expiresAt,
@@ -131,6 +140,14 @@ export class PrismaCustomerRepository implements ICustomerRepository {
           startedAt: data.startedAt ?? new Date(),
           expiresAt: data.expiresAt,
           notes: data.notes ?? '',
+          paymentProofUrl: data.paymentProofUrl ?? '',
+          paymentMethod: data.paymentMethod ?? 'QRIS',
+          paymentAmount: data.paymentAmount ?? 0,
+          paymentDate: data.paymentDate ?? (data.startedAt ?? new Date()),
+          paymentStatus: data.paymentStatus ?? 'PAID',
+          appUsername: data.appUsername ?? '',
+          appPassword: data.appPassword ?? '',
+          technicianStatus: data.technicianStatus ?? 'completed',
         },
         include: { package: true },
       });
@@ -153,6 +170,14 @@ export class PrismaCustomerRepository implements ICustomerRepository {
       if (data.status !== undefined) updateData.status = data.status;
       if (data.expiresAt !== undefined) updateData.expiresAt = data.expiresAt;
       if (data.notes !== undefined) updateData.notes = data.notes;
+      if (data.paymentProofUrl !== undefined) updateData.paymentProofUrl = data.paymentProofUrl;
+      if (data.paymentMethod !== undefined) updateData.paymentMethod = data.paymentMethod;
+      if (data.paymentAmount !== undefined) updateData.paymentAmount = data.paymentAmount;
+      if (data.paymentDate !== undefined) updateData.paymentDate = data.paymentDate;
+      if (data.paymentStatus !== undefined) updateData.paymentStatus = data.paymentStatus;
+      if (data.appUsername !== undefined) updateData.appUsername = data.appUsername;
+      if (data.appPassword !== undefined) updateData.appPassword = data.appPassword;
+      if (data.technicianStatus !== undefined) updateData.technicianStatus = data.technicianStatus;
 
       const record = await prisma.customer.update({
         where: { id },
@@ -218,6 +243,7 @@ export class PrismaCustomerRepository implements ICustomerRepository {
           billingCycleMonths: data.billingCycleMonths,
           paymentMethod: data.paymentMethod,
           paymentStatus: data.paymentStatus,
+          paymentProofUrl: data.paymentProofUrl ?? '',
           notes: data.notes ?? '',
           startedAt: data.startedAt,
           expiresAt: data.expiresAt,

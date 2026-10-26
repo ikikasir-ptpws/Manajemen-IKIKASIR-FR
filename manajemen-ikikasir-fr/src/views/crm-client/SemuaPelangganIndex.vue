@@ -261,16 +261,25 @@ const getAssociatedInvoices = (cust: any) => {
   )
 }
 
+const formatStorageUrl = (url?: string): string => {
+  if (!url) return ''
+  if (url.startsWith('/uploads/')) {
+    const baseUrl = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000'
+    return `${baseUrl}${url}`
+  }
+  return url
+}
+
 const getCustomerPaymentProof = (cust: any) => {
-  if (!cust) return SAMPLE_RECEIPT_BCA
-  if (cust.paymentProofUrl) return cust.paymentProofUrl
+  if (!cust) return formatStorageUrl('/uploads/receipts/default-receipt.svg')
+  if (cust.paymentProofUrl) return formatStorageUrl(cust.paymentProofUrl)
   const lead = getAssociatedLead(cust)
-  if (lead && lead.paymentProofUrl) return lead.paymentProofUrl
+  if (lead && lead.paymentProofUrl) return formatStorageUrl(lead.paymentProofUrl)
   const invs = getAssociatedInvoices(cust)
   const invWithProof = invs.find((i: any) => i.paymentProofUrl)
-  if (invWithProof) return invWithProof.paymentProofUrl
+  if (invWithProof) return formatStorageUrl(invWithProof.paymentProofUrl)
   if (cust.paymentMethod?.toLowerCase().includes('qris')) return SAMPLE_RECEIPT_QRIS
-  return SAMPLE_RECEIPT_BCA
+  return formatStorageUrl('/uploads/receipts/default-receipt.svg')
 }
 
 const getCustomerCredentials = (cust: any) => {
@@ -1753,13 +1762,15 @@ const openAgreementPreview = (user?: any) => {
                       <!-- Struk Details -->
                       <div class="flex-1 space-y-2 text-xs">
                         <div>
-                          <span class="text-slate-400 block text-[11px]">Rekening / Channel Tujuan:</span>
-                          <p class="font-bold text-slate-800">PT PUNDI MAS BERKAH (BCA 8735019283)</p>
+                          <span class="text-slate-400 block text-[11px]">Metode / Channel Pembayaran:</span>
+                          <p class="font-bold text-slate-800">
+                            {{ selectedCustomer.paymentMethod || 'Transfer Mandiri' }} &bull; PT PUNDI MAS BERKAH
+                          </p>
                         </div>
                         <div>
                           <span class="text-slate-400 block text-[11px]">Nominal Transfer:</span>
                           <p class="font-extrabold text-slate-900 text-sm">
-                            Rp {{ Number(selectedCustomer.amount || 250000).toLocaleString('id-ID') }}
+                            Rp {{ Number(selectedCustomer.amount || selectedCustomer.packagePrice || 250000).toLocaleString('id-ID') }}
                           </p>
                         </div>
                         <div>
@@ -1771,6 +1782,7 @@ const openAgreementPreview = (user?: any) => {
                         </div>
                         <div class="pt-1">
                           <button 
+                            type="button"
                             @click="openReceiptZoom(getCustomerPaymentProof(selectedCustomer))"
                             class="px-3 py-1.5 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs flex items-center gap-1.5 shadow-2xs cursor-pointer"
                           >
