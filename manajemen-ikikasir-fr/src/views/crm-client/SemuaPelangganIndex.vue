@@ -45,6 +45,7 @@ import {
 } from 'lucide-vue-next'
 import RentalAgreementModal from '../../components/RentalAgreementModal.vue'
 import GlobalPagination from '../../components/common/GlobalPagination.vue'
+import CustomerFormModal from '../../components/crm/CustomerFormModal.vue'
 import { 
   useAppData, 
   SAMPLE_RECEIPT_BCA, 
@@ -301,55 +302,18 @@ const openAgreementFromDetail = () => {
 
 const openEdit = (cust: any) => {
   editMode.value = true
-  form.value = { name: cust.name, business: cust.business, type: cust.type, phone: cust.phone, address: cust.address }
   selectedCustomer.value = cust
   showAddEditModal.value = true
 }
 
 const openAdd = () => {
   editMode.value = false
-  form.value = { name: '', business: '', type: 'Basic', phone: '', address: '' }
+  selectedCustomer.value = null
   showAddEditModal.value = true
 }
 
-const saveCustomer = () => {
-  if (!form.value.name || !form.value.business) return
-  if (editMode.value && selectedCustomer.value) {
-    const idx = customers.value.findIndex(c => c.id === selectedCustomer.value.id)
-    if (idx !== -1 && customers.value[idx]) {
-      const curr = customers.value[idx]
-      customers.value[idx] = {
-        ...curr,
-        name: form.value.name,
-        businessName: form.value.business,
-        business: form.value.business,
-        packageType: form.value.type as any,
-        phone: form.value.phone,
-        address: form.value.address,
-        joinDate: curr.joinDate,
-        status: curr.status
-      }
-      showToast(`Data "${form.value.name}" berhasil diperbarui!`)
-    }
-  } else {
-    customers.value.push({
-      id: 'cust-' + Date.now(),
-      no: customers.value.length + 1,
-      name: form.value.name,
-      businessName: form.value.business,
-      business: form.value.business,
-      packageType: form.value.type as any,
-      phone: form.value.phone,
-      address: form.value.address,
-      expiredDate: new Date(Date.now() + 30 * 86400000).toISOString().substring(0, 10),
-      joinDate: new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }),
-      status: 'active',
-      technicianStatus: 'pending_setup',
-      amount: form.value.type === 'Pro' ? 500000 : 250000,
-      paymentMethod: 'Transfer'
-    })
-    showToast(`Pelanggan "${form.value.name}" berhasil ditambahkan!`)
-  }
+const handleCustomerSaved = (savedCust: any) => {
+  showToast(`Data pelanggan "${savedCust.name}" berhasil disimpan!`)
   showAddEditModal.value = false
 }
 
@@ -2114,45 +2078,13 @@ const openAgreementPreview = (user?: any) => {
       </div>
     </Teleport>
 
-    <!-- EXISTING ADD / EDIT MODAL -->
-    <div v-if="showAddEditModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center z-50 p-4" @click.self="showAddEditModal = false">
-      <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl border border-slate-100">
-        <div class="flex items-center justify-between mb-5">
-          <h3 class="text-lg font-bold text-slate-800">{{ editMode ? 'Edit Pelanggan' : 'Tambah Pelanggan Baru' }}</h3>
-          <button @click="showAddEditModal = false" class="p-1.5 hover:bg-slate-100 rounded-lg cursor-pointer"><X class="w-4 h-4 text-slate-400" /></button>
-        </div>
-        <div class="space-y-3">
-          <div>
-            <label class="text-xs font-semibold text-slate-600 mb-1 block">Nama Pelanggan *</label>
-            <input v-model="form.name" type="text" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="Masukkan nama..." />
-          </div>
-          <div>
-            <label class="text-xs font-semibold text-slate-600 mb-1 block">Nama Bisnis *</label>
-            <input v-model="form.business" type="text" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="Masukkan nama bisnis..." />
-          </div>
-          <div>
-            <label class="text-xs font-semibold text-slate-600 mb-1 block">No. Telepon</label>
-            <input v-model="form.phone" type="text" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="08xxx..." />
-          </div>
-          <div>
-            <label class="text-xs font-semibold text-slate-600 mb-1 block">Alamat</label>
-            <input v-model="form.address" type="text" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="Alamat..." />
-          </div>
-          <div>
-            <label class="text-xs font-semibold text-slate-600 mb-1 block">Tipe Paket</label>
-            <select v-model="form.type" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-500">
-              <option>Basic</option>
-              <option>Pro</option>
-              <option>Custom / IT One</option>
-            </select>
-          </div>
-        </div>
-        <div class="flex items-center gap-3 mt-6">
-          <button @click="showAddEditModal = false" class="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50 cursor-pointer">Batal</button>
-          <button @click="saveCustomer" class="flex-1 px-4 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 shadow-md shadow-indigo-200 cursor-pointer">{{ editMode ? 'Simpan Perubahan' : 'Tambah Pelanggan' }}</button>
-        </div>
-      </div>
-    </div>
+    <!-- CUSTOMER FORM MODAL (TAMBAH & EDIT DENGAN PEMILIHAN PEMBAYARAN & BUKTI TRANSFER) -->
+    <CustomerFormModal 
+      :is-open="showAddEditModal"
+      :customer-to-edit="editMode ? selectedCustomer : null"
+      @close="showAddEditModal = false"
+      @saved="handleCustomerSaved"
+    />
 
     <!-- EXISTING DELETE CONFIRMATION -->
     <div v-if="showDeleteConfirm && selectedCustomer" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center z-50 p-4" @click.self="showDeleteConfirm = false">

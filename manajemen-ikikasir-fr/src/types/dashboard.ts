@@ -33,6 +33,8 @@ export interface Customer {
   referralCode?: string
   referredByCustomerId?: string
   referredByCustomerName?: string
+  paymentProofUrl?: string
+  notes?: string
 }
 
 export interface ActivityItem {
