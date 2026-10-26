@@ -633,12 +633,8 @@ async function ensureAuthenticated(): Promise<boolean> {
 }
 
 function mapBackendCustomerToFrontend(c: any, index: number): Customer {
-  const pName = c.packageName || 'Basic'
-  let pkgType: PackageType = 'Basic'
-  if (pName.toLowerCase().includes('pro')) pkgType = 'Pro'
-  else if (pName.toLowerCase().includes('custom')) pkgType = 'Custom / IT One'
-  else if (pName.toLowerCase().includes('add')) pkgType = 'Add on'
-  else pkgType = 'Basic'
+  const pName = c.packageName || (c.package?.name) || 'Basic'
+  const pkgType: PackageType = pName
 
   // Cross-reference with lead data if available (e.g. converted from lead)
   const leadMatch = leads.value.find(l => 
@@ -659,7 +655,9 @@ function mapBackendCustomerToFrontend(c: any, index: number): Customer {
     name: c.name,
     businessName: c.businessName || '',
     business: c.businessName || '',
+    packageId: c.packageId || leadMatch?.packageId || undefined,
     packageType: pkgType,
+    packageName: pName,
     phone: c.phone || '',
     email: c.email || '',
     address: c.address || '',
@@ -667,7 +665,7 @@ function mapBackendCustomerToFrontend(c: any, index: number): Customer {
     joinDate: c.startedAt ? c.startedAt.substring(0, 10) : (c.createdAt ? c.createdAt.substring(0, 10) : '2026-09-01'),
     expiredDate: c.expiresAt ? c.expiresAt.substring(0, 10) : new Date().toISOString().substring(0, 10),
     status: isExpired ? 'expired' : 'active',
-    amount: c.paymentAmount || c.packagePrice || (pkgType === 'Pro' ? 500000 : (pkgType === 'Custom / IT One' ? 1500000 : 250000)),
+    amount: c.paymentAmount ?? c.packagePrice ?? (c.package?.price) ?? 250000,
     paymentMethod: c.paymentMethod || leadMatch?.paymentMethod || 'QRIS',
     technicianStatus: techStatus,
     technicianAssignedTo: c.technicianAssignedTo || leadMatch?.technicianAssignedTo || 'Doni Teknisi',

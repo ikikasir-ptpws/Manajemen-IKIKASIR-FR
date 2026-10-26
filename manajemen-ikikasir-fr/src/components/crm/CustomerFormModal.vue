@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { 
   X, 
   Eye, 
@@ -32,7 +32,7 @@ const emit = defineEmits<{
   (e: 'saved', customer: Customer): void
 }>()
 
-const { customers, invoices } = useAppData()
+const { customers, invoices, packages } = useAppData()
 
 const isSubmitting = ref(false)
 const submitError = ref<string | null>(null)
@@ -42,7 +42,6 @@ const fileInputRef = ref<HTMLInputElement | null>(null)
 const showPassword = ref(false)
 
 const categories = ['Retail', 'F&B / Kuliner', 'Fashion & Butik', 'Jasa & Servis', 'Minimarket & Grosir', 'Lainnya']
-const packageOptions: PackageType[] = ['Basic', 'Pro', 'Add on', 'Custom / IT One']
 
 const paymentMethods = [
   { id: 'Transfer BCA', name: 'Transfer BCA' },
@@ -52,13 +51,19 @@ const paymentMethods = [
   { id: 'Tunai / Cash', name: 'Tunai / Cash' }
 ]
 
-const packagePrices: Record<string, number> = {
-  'Basic': 250000,
-  'Pro': 500000,
-  'Add on': 150000,
-  'Custom': 1500000,
-  'Custom / IT One': 1500000
-}
+// Paket dinamis tersinkronisasi dari menu Kelola Paket & Backend
+const defaultFallbackPackages = [
+  { id: 'basic', name: 'Basic', price: 250000, period: '/bulan' },
+  { id: 'pro', name: 'Pro', price: 500000, period: '/bulan' },
+  { id: 'custom', name: 'Custom / IT One', price: 1500000, period: '/bulan' }
+]
+
+const availablePackages = computed(() => {
+  const active = packages.value.filter(p => p.isActive !== false)
+  if (active.length > 0) return active
+  if (packages.value.length > 0) return packages.value
+  return defaultFallbackPackages
+})
 
 const formData = ref({
   name: '',
@@ -68,7 +73,8 @@ const formData = ref({
   email: '',
   password: '',
   address: '',
-  packageType: 'Basic' as PackageType,
+  packageId: '',
+  packageType: 'Basic' as PackageType | string,
   amount: 250000,
   notes: '',
   paymentMethod: 'Transfer BCA (PT PUNDI MAS BERKAH)',
@@ -79,11 +85,22 @@ const formData = ref({
 })
 
 const handlePackageChange = () => {
-  formData.value.amount = packagePrices[formData.value.packageType] || 250000
+  const selected = availablePackages.value.find(p => p.id === formData.value.packageId || p.name === formData.value.packageId)
+  if (selected) {
+    formData.value.packageId = selected.id
+    formData.value.packageType = selected.name
+    formData.value.amount = selected.price ?? 0
+  }
 }
 
 watch(() => props.customerToEdit, (val) => {
   if (val) {
+    const matchedPkg = availablePackages.value.find(p => 
+      (val.packageId && p.id === val.packageId) ||
+      (val.packageType && p.name.toLowerCase() === String(val.packageType).toLowerCase()) ||
+      (val.packageName && p.name.toLowerCase() === String(val.packageName).toLowerCase())
+    ) || availablePackages.value[0]
+
     formData.value = {
       name: val.name,
       businessName: val.businessName || val.business || '',
@@ -92,8 +109,9 @@ watch(() => props.customerToEdit, (val) => {
       email: val.email || '',
       password: val.appPassword || '',
       address: val.address || '',
-      packageType: (val.packageType as PackageType) || 'Basic',
-      amount: val.amount || packagePrices[val.packageType] || 250000,
+      packageId: matchedPkg?.id || val.packageId || '',
+      packageType: matchedPkg?.name || val.packageType || 'Basic',
+      amount: val.amount !== undefined ? val.amount : (matchedPkg?.price ?? 250000),
       notes: val.notes || '',
       paymentMethod: val.paymentMethod || 'Transfer BCA (PT PUNDI MAS BERKAH)',
       paymentDate: new Date().toISOString().substring(0, 10),
@@ -106,7 +124,17 @@ watch(() => props.customerToEdit, (val) => {
   }
 }, { immediate: true })
 
+watch(availablePackages, (newPkgs) => {
+  if (!props.customerToEdit && newPkgs.length > 0 && !formData.value.packageId) {
+    const p = newPkgs[0]
+    formData.value.packageId = p.id
+    formData.value.packageType = p.name
+    formData.value.amount = p.price ?? 250000
+  }
+}, { immediate: true })
+
 function resetForm() {
+  const initialPkg = availablePackages.value[0]
   formData.value = {
     name: '',
     businessName: '',
@@ -115,8 +143,9 @@ function resetForm() {
     email: '',
     password: '',
     address: '',
-    packageType: 'Basic',
-    amount: 250000,
+    packageId: initialPkg?.id || '',
+    packageType: initialPkg?.name || 'Basic',
+    amount: initialPkg?.price ?? 250000,
     notes: '',
     paymentMethod: 'Transfer BCA (PT PUNDI MAS BERKAH)',
     paymentDate: new Date().toISOString().substring(0, 10),
@@ -219,7 +248,9 @@ const handleSubmit = () => {
           appPassword: formData.value.password.trim(),
           appUsername: formData.value.email.trim(),
           address: formData.value.address.trim() || curr.address,
-          packageType: formData.value.packageType,
+          packageId: formData.value.packageId || curr.packageId,
+          packageType: formData.value.packageType || curr.packageType,
+          packageName: formData.value.packageType || curr.packageName,
           amount: Number(formData.value.amount) || curr.amount || 250000,
           paymentMethod: formData.value.paymentMethod,
           paymentProofUrl: formData.value.paymentProofUrl || curr.paymentProofUrl,
@@ -234,6 +265,7 @@ const handleSubmit = () => {
           email: savedCustomer.email,
           phone: savedCustomer.phone,
           address: savedCustomer.address,
+          packageId: formData.value.packageId || undefined,
           notes: savedCustomer.notes,
           paymentProofUrl: savedCustomer.paymentProofUrl,
           paymentMethod: savedCustomer.paymentMethod,
@@ -263,7 +295,9 @@ const handleSubmit = () => {
         appPassword: formData.value.password.trim(),
         appUsername: formData.value.email.trim(),
         address: formData.value.address.trim() || 'Indonesia',
+        packageId: formData.value.packageId,
         packageType: formData.value.packageType,
+        packageName: formData.value.packageType,
         amount: Number(formData.value.amount) || 250000,
         paymentMethod: formData.value.paymentMethod,
         paymentProofUrl: formData.value.paymentProofUrl || undefined,
@@ -284,6 +318,7 @@ const handleSubmit = () => {
         email: savedCustomer.email,
         phone: savedCustomer.phone,
         address: savedCustomer.address,
+        packageId: formData.value.packageId || undefined,
         billingCycleMonths: 1,
         paymentMethod: savedCustomer.paymentMethod,
         paymentAmount: savedCustomer.amount,
@@ -533,12 +568,12 @@ const handleSubmit = () => {
                 Paket Kasir
               </label>
               <select 
-                v-model="formData.packageType"
+                v-model="formData.packageId"
                 @change="handlePackageChange"
                 class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-slate-800 bg-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors cursor-pointer"
               >
-                <option v-for="pkg in packageOptions" :key="pkg" :value="pkg">
-                  Paket {{ pkg }} (Rp {{ Number(packagePrices[pkg] || 250000).toLocaleString('id-ID') }})
+                <option v-for="pkg in availablePackages" :key="pkg.id" :value="pkg.id">
+                  {{ pkg.name }} (Rp {{ Number(pkg.price || 0).toLocaleString('id-ID') }} {{ pkg.period || '/bulan' }})
                 </option>
               </select>
             </div>

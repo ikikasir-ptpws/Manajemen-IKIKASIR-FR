@@ -165,6 +165,14 @@ export class CustomerUseCases {
     }
 
     const updateData: any = { ...dto };
+    if (dto.packageId !== undefined) {
+      if (dto.packageId) {
+        const pkg = await this.packageRepository.findById(dto.packageId);
+        updateData.packageId = pkg ? pkg.id : null;
+      } else {
+        updateData.packageId = null;
+      }
+    }
     if (dto.paymentProofUrl !== undefined) {
       updateData.paymentProofUrl = saveProofFileToStorage(dto.paymentProofUrl);
     }

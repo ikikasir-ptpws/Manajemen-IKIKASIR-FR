@@ -18,7 +18,7 @@ export const createCustomerSchema = z.object({
     .trim()
     .min(6, 'Nomor telepon / WhatsApp minimal terdiri dari 6 karakter.'),
   address: z.string().trim().optional(),
-  packageId: z.string().uuid('ID Paket harus berupa format UUID yang valid.').optional().nullable(),
+  packageId: z.string().trim().optional().nullable(),
   billingCycleMonths: z
     .number()
     .int('Durasi bulan harus berupa bilangan bulat.')
@@ -57,7 +57,7 @@ export const updateCustomerSchema = z.object({
     .min(6, 'Nomor telepon / WhatsApp minimal terdiri dari 6 karakter.')
     .optional(),
   address: z.string().trim().optional(),
-  packageId: z.string().uuid('ID Paket harus berupa format UUID yang valid.').optional().nullable(),
+  packageId: z.string().trim().optional().nullable(),
   notes: z.string().trim().optional(),
   paymentMethod: z.string().trim().optional(),
   paymentAmount: z.number().min(0).optional(),

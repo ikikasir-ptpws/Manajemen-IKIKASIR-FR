@@ -53,6 +53,7 @@ const router = useRouter()
 // Connect to Centralized Lifecycle Store
 const { 
   leads: clients, 
+  packages,
   updateLead,
   updateLeadStatus: updateStatus, 
   addFollowUpLog,
@@ -70,6 +71,17 @@ const {
   SAMPLE_RECEIPT_QRIS,
   getCustomerWaUrl
 } = useAppData()
+
+const availablePackages = computed(() => {
+  const active = packages.value.filter(p => p.isActive !== false)
+  if (active.length > 0) return active
+  if (packages.value.length > 0) return packages.value
+  return [
+    { id: 'basic', name: 'Basic', price: 250000, period: '/bulan' },
+    { id: 'pro', name: 'Pro', price: 500000, period: '/bulan' },
+    { id: 'custom', name: 'Custom / IT One', price: 1500000, period: '/bulan' }
+  ]
+})
 
 onMounted(() => {
   syncWithBackend(true)
@@ -404,13 +416,10 @@ const openApprovalModal = (client: ClientLead) => {
 }
 
 const onApprovalPackageChange = () => {
-  const pkgPrices: Record<string, number> = {
-    'Basic': 250000,
-    'Pro': 500000,
-    'Add on': 150000,
-    'Custom / IT One': 1500000
+  const pkg = availablePackages.value.find(p => p.name === approvalForm.value.packageType || p.id === approvalForm.value.packageType)
+  if (pkg) {
+    approvalForm.value.amount = pkg.price ?? 250000
   }
-  approvalForm.value.amount = pkgPrices[approvalForm.value.packageType] || 250000
 }
 
 const isUploadingProof = ref(false)
@@ -1594,10 +1603,9 @@ const handleClientSaved = (client: ClientLead) => {
                     @change="onApprovalPackageChange"
                     class="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white font-semibold text-slate-800 text-xs focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 cursor-pointer"
                   >
-                    <option value="Basic">Basic (Rp 250.000 / bln)</option>
-                    <option value="Pro">Pro (Rp 500.000 / bln)</option>
-                    <option value="Add on">Add on (Rp 150.000 / bln)</option>
-                    <option value="Custom / IT One">Custom / IT One (Rp 1.500.000 / bln)</option>
+                    <option v-for="pkg in availablePackages" :key="pkg.id" :value="pkg.name">
+                      {{ pkg.name }} (Rp {{ Number(pkg.price || 0).toLocaleString('id-ID') }} {{ pkg.period || '/bulan' }})
+                    </option>
                   </select>
                 </div>
 

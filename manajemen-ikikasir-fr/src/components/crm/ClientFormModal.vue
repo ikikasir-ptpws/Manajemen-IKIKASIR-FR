@@ -31,10 +31,23 @@ const emit = defineEmits<{
   (e: 'saved', client: ClientLead): void
 }>()
 
-const { addRegistration, updateLead, customers } = useAppData()
+const { addRegistration, updateLead, customers, packages } = useAppData()
 const isSubmitting = ref(false)
 const submitError = ref<string | null>(null)
 const activeTab = ref<'contact' | 'business'>('contact')
+
+const defaultFallbackPackages = [
+  { id: 'basic', name: 'Basic', price: 250000, period: '/bulan' },
+  { id: 'pro', name: 'Pro', price: 500000, period: '/bulan' },
+  { id: 'custom', name: 'Custom / IT One', price: 1500000, period: '/bulan' }
+]
+
+const availablePackages = computed(() => {
+  const active = packages.value.filter(p => p.isActive !== false)
+  if (active.length > 0) return active
+  if (packages.value.length > 0) return packages.value
+  return defaultFallbackPackages
+})
 
 const formData = ref({
   name: '',
@@ -69,13 +82,11 @@ const statusColors: Record<LeadStatus, { bg: string, text: string }> = {
 }
 
 const handlePackageChange = () => {
-  const deals: Record<string, number> = {
-    'Basic': 250000,
-    'Pro': 500000,
-    'Add on': 150000,
-    'Custom / IT One': 1500000
+  const pkg = availablePackages.value.find(p => p.name === formData.value.packageInterest || p.id === formData.value.packageInterest)
+  if (pkg) {
+    formData.value.packageInterest = pkg.name
+    formData.value.estimatedDeal = pkg.price ?? 250000
   }
-  formData.value.estimatedDeal = deals[formData.value.packageInterest] || 250000
 }
 
 // Pencocokan otomatis kode referral dengan pelanggan terdaftar
@@ -451,10 +462,9 @@ const handleSubmit = () => {
                   @change="handlePackageChange"
                   class="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 font-medium bg-white"
                 >
-                  <option value="Basic">Paket Basic (Rp 250.000 / bln)</option>
-                  <option value="Pro">Paket Pro (Rp 500.000 / bln)</option>
-                  <option value="Add on">Paket Add on (Rp 150.000)</option>
-                  <option value="Custom / IT One">Paket Custom / IT One (Konsultasi)</option>
+                  <option v-for="pkg in availablePackages" :key="pkg.id" :value="pkg.name">
+                    {{ pkg.name }} (Rp {{ Number(pkg.price || 0).toLocaleString('id-ID') }} {{ pkg.period || '/bulan' }})
+                  </option>
                 </select>
               </div>
 

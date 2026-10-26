@@ -59,6 +59,7 @@ const {
   customers, 
   leads, 
   invoices, 
+  packages,
   technicianQueue, 
   getComputedCustomerStatus, 
   startTechnicianSetup, 
@@ -68,6 +69,17 @@ const {
   syncWithBackend,
   isSyncing
 } = useAppData()
+
+const availablePackages = computed(() => {
+  const active = packages.value.filter(p => p.isActive !== false)
+  if (active.length > 0) return active
+  if (packages.value.length > 0) return packages.value
+  return [
+    { id: 'basic', name: 'Basic' },
+    { id: 'pro', name: 'Pro' },
+    { id: 'custom', name: 'Custom / IT One' }
+  ]
+})
 
 onMounted(() => {
   syncWithBackend(true)
@@ -619,9 +631,9 @@ const openAgreementPreview = (user?: any) => {
           class="px-3 py-2 sm:py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 outline-none focus:border-indigo-500 cursor-pointer shadow-2xs"
         >
           <option value="Semua">Paket: Semua</option>
-          <option value="Basic">Basic</option>
-          <option value="Pro">Pro</option>
-          <option value="Custom / IT One">Custom / IT One</option>
+          <option v-for="pkg in availablePackages" :key="pkg.id" :value="pkg.name">
+            {{ pkg.name }}
+          </option>
         </select>
 
         <!-- Reset Button -->

@@ -57,15 +57,24 @@ export class PrismaPackageRepository implements IPackageRepository {
 
   public async findById(id: string): Promise<Package | null> {
     try {
-      const record = await prisma.package.findUnique({
-        where: { id },
-      });
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+      if (isUuid) {
+        const record = await prisma.package.findUnique({
+          where: { id },
+        });
+        if (record) return this.mapToDomain(record);
+      }
 
-      if (!record) return null;
-      return this.mapToDomain(record);
+      // Fallback: cari berdasarkan nama paket
+      const byName = await prisma.package.findFirst({
+        where: { name: { equals: id, mode: 'insensitive' } },
+      });
+      if (byName) return this.mapToDomain(byName);
+
+      return null;
     } catch (error) {
       console.error(`❌ [PrismaPackageRepository] Gagal mencari paket ID (${id}):`, error);
-      throw new InternalServerError('Gagal mengambil informasi detail paket.');
+      return null;
     }
   }
 
