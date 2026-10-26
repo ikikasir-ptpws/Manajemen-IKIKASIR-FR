@@ -53,6 +53,7 @@ import {
   getCustomerWaUrl, 
   getOrCreateCustomerReferralCode 
 } from '../../composables/useAppData'
+import { customersApi, leadsApi } from '../../api'
 
 const { 
   customers, 
@@ -116,23 +117,23 @@ const form = ref({ name: '', business: '', type: 'Basic' as 'Basic' | 'Pro' | 'C
 
 // Teknisi Metrics
 const pendingTeknisiCount = computed(() => {
-  return customers.value.filter(u => u.technicianStatus && u.technicianStatus !== 'completed').length
+  return customers.value.filter(u => u.technicianStatus && u.technicianStatus !== 'completed' && u.technicianStatus !== 'issue').length
 })
 
 const readyForSetupCount = computed(() => {
-  return customers.value.filter(u => u.technicianStatus === 'pending_setup' && !u.emailIssueReported).length
+  return customers.value.filter(u => u.technicianStatus === 'pending_setup' && !u.emailIssueReported && u.technicianStatus !== 'issue').length
 })
 
 const inProgressCount = computed(() => {
-  return customers.value.filter(u => u.technicianStatus === 'in_progress' && !u.emailIssueReported).length
+  return customers.value.filter(u => u.technicianStatus === 'in_progress' && !u.emailIssueReported && u.technicianStatus !== 'issue').length
 })
 
 const issueCount = computed(() => {
-  return customers.value.filter(u => u.emailIssueReported).length
+  return customers.value.filter(u => u.emailIssueReported || u.technicianStatus === 'issue').length
 })
 
 const completedCount = computed(() => {
-  return customers.value.filter(u => u.technicianStatus === 'completed').length
+  return customers.value.filter(u => u.technicianStatus === 'completed' && !u.emailIssueReported && u.technicianStatus !== 'issue').length
 })
 
 // Unified Filtered Customers List
@@ -157,13 +158,13 @@ const filteredCustomers = computed(() => {
 
   // Filter Status Teknisi
   if (filterTeknisiStatus.value === 'Siap Dikerjakan') {
-    list = list.filter(c => c.technicianStatus === 'pending_setup' && !c.emailIssueReported)
+    list = list.filter(c => c.technicianStatus === 'pending_setup' && !c.emailIssueReported && c.technicianStatus !== 'issue')
   } else if (filterTeknisiStatus.value === 'Sedang Dikerjakan') {
-    list = list.filter(c => c.technicianStatus === 'in_progress' && !c.emailIssueReported)
+    list = list.filter(c => c.technicianStatus === 'in_progress' && !c.emailIssueReported && c.technicianStatus !== 'issue')
   } else if (filterTeknisiStatus.value === 'Ada Kendala') {
-    list = list.filter(c => c.emailIssueReported)
+    list = list.filter(c => c.emailIssueReported || c.technicianStatus === 'issue')
   } else if (filterTeknisiStatus.value === 'Selesai') {
-    list = list.filter(c => c.technicianStatus === 'completed')
+    list = list.filter(c => c.technicianStatus === 'completed' && !c.emailIssueReported && c.technicianStatus !== 'issue')
   }
 
   // Search
@@ -361,7 +362,7 @@ const rentalAgreementData = ref<any>(null)
 
 const openSetupModal = (user: any) => {
   selectedSetupUser.value = user
-  if (user.emailIssueReported) {
+  if (user.emailIssueReported || user.technicianStatus === 'issue') {
     selectedTechStatus.value = 'issue'
     techIssueNotes.value = user.emailIssueNotes || 'Kendala konfirmasi data / kontak pelanggan'
   } else if (user.technicianStatus === 'completed') {
@@ -377,7 +378,7 @@ const openSetupModal = (user: any) => {
   isSetupModalOpen.value = true
 }
 
-const saveSetupStatus = () => {
+const saveSetupStatus = async () => {
   if (!selectedSetupUser.value) return
   const id = selectedSetupUser.value.id
   const target = customers.value.find(c => c.id === id)
@@ -387,7 +388,9 @@ const saveSetupStatus = () => {
   const isCompleted = selectedTechStatus.value === 'completed'
   const isPending = selectedTechStatus.value === 'pending_setup'
 
-  target.technicianStatus = isCompleted ? 'completed' : (isPending ? 'pending_setup' : 'in_progress')
+  const finalTechStatus = isIssue ? 'issue' : (isCompleted ? 'completed' : (isPending ? 'pending_setup' : 'in_progress'))
+
+  target.technicianStatus = finalTechStatus
   target.emailIssueReported = isIssue
   target.emailIssueNotes = isIssue ? (techIssueNotes.value || 'Ada kendala teknis / verifikasi data.') : undefined
 
@@ -397,9 +400,9 @@ const saveSetupStatus = () => {
   }
 
   // Update lead matching
-  const lead = leads.value?.find(l => l.id === id || l.phone === target.phone)
+  const lead = leads.value?.find(l => l.id === id || l.phone === target.phone || (target.notes && target.notes.includes(l.id)))
   if (lead) {
-    lead.technicianStatus = target.technicianStatus
+    lead.technicianStatus = finalTechStatus
     lead.emailIssueReported = isIssue
     lead.emailIssueNotes = target.emailIssueNotes
   }
@@ -407,6 +410,27 @@ const saveSetupStatus = () => {
   if (typeof localStorage !== 'undefined') {
     localStorage.setItem('ikikasir_customers_v4', JSON.stringify(customers.value))
     if (leads.value) localStorage.setItem('ikikasir_leads_v4', JSON.stringify(leads.value))
+  }
+
+  // Simpan permanen ke Backend Database PostgreSQL
+  try {
+    await customersApi.update(target.id, {
+      technicianStatus: finalTechStatus,
+    })
+  } catch (err) {
+    console.warn('Backend customersApi.update warning:', err)
+  }
+
+  if (lead) {
+    try {
+      await leadsApi.update(lead.id, {
+        technicianStatus: finalTechStatus,
+        emailIssueReported: isIssue,
+        emailIssueNotes: target.emailIssueNotes
+      })
+    } catch (err) {
+      console.warn('Backend leadsApi.update warning:', err)
+    }
   }
 
   const statusLabel = isIssue 
@@ -643,7 +667,7 @@ const openAgreementPreview = (user?: any) => {
               v-for="(cust, index) in paginatedCustomers" 
               :key="cust.id" 
               class="hover:bg-slate-50/80 transition-colors group cursor-pointer"
-              :class="cust.technicianStatus === 'pending_setup' ? 'bg-cyan-50/20' : (cust.emailIssueReported ? 'bg-rose-50/20' : '')"
+              :class="cust.technicianStatus === 'pending_setup' ? 'bg-cyan-50/20' : (cust.emailIssueReported || cust.technicianStatus === 'issue' ? 'bg-rose-50/20' : '')"
               @click="openDetail(cust)"
             >
               <!-- No -->
@@ -675,14 +699,14 @@ const openAgreementPreview = (user?: any) => {
                 </div>
                 
                 <!-- Email Issue flag -->
-                <div v-if="cust.emailIssueReported" class="mt-1" @click.stop>
+                <div v-if="cust.emailIssueReported || cust.technicianStatus === 'issue'" class="mt-1" @click.stop>
                   <button 
                     @click="redirectToWa(cust, 'issue')"
                     class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-100 text-rose-700 border border-rose-200 hover:bg-rose-200 transition-colors animate-pulse cursor-pointer"
                     title="Hubungi Pelanggan via WhatsApp"
                   >
                     <AlertTriangle class="w-3 h-3 text-rose-600 shrink-0" />
-                    <span>Kendala Email (Chat WA)</span>
+                    <span>Ada Kendala (Chat WA)</span>
                   </button>
                 </div>
                 <div v-else class="text-[11px] text-slate-400 flex items-center gap-1.5 mt-0.5">
@@ -708,7 +732,7 @@ const openAgreementPreview = (user?: any) => {
               <!-- Status Teknisi -->
               <td class="py-3.5 px-3.5 whitespace-nowrap">
                 <span 
-                  v-if="cust.emailIssueReported"
+                  v-if="cust.emailIssueReported || cust.technicianStatus === 'issue'"
                   class="px-2.5 py-1 rounded-xl text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-200 inline-flex items-center gap-1"
                 >
                   <AlertTriangle class="w-3.5 h-3.5 text-rose-600" />
@@ -757,7 +781,7 @@ const openAgreementPreview = (user?: any) => {
 
                   <!-- Tombol Redirect ke WA jika Ada Kendala -->
                   <button 
-                    v-if="cust.emailIssueReported"
+                    v-if="cust.emailIssueReported || cust.technicianStatus === 'issue'"
                     @click="redirectToWa(cust, 'issue')"
                     class="px-2.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs flex items-center gap-1 shadow-sm shadow-rose-200 transition-colors cursor-pointer whitespace-nowrap"
                     title="Hubungi Pelanggan via WhatsApp (Ada Kendala)"
@@ -876,7 +900,7 @@ const openAgreementPreview = (user?: any) => {
             <span class="text-slate-400">Masa Aktif:</span>
             <span class="font-mono text-slate-700">{{ cust.expiredDate || '-' }}</span>
           </div>
-          <div v-if="cust.emailIssueReported" class="pt-1 border-t border-slate-200 flex justify-between items-center text-rose-600 font-bold">
+          <div v-if="cust.emailIssueReported || cust.technicianStatus === 'issue'" class="pt-1 border-t border-slate-200 flex justify-between items-center text-rose-600 font-bold">
             <span>Ada Kendala!</span>
             <button @click.stop="redirectToWa(cust, 'issue')" class="text-rose-600 flex items-center gap-1 font-bold">
               <MessageSquare class="w-3 h-3" /> Hubungi WA
@@ -892,7 +916,7 @@ const openAgreementPreview = (user?: any) => {
             <Wrench class="w-3.5 h-3.5" /> Setup Status
           </button>
           <button 
-            v-if="cust.emailIssueReported"
+            v-if="cust.emailIssueReported || cust.technicianStatus === 'issue'"
             @click="redirectToWa(cust, 'issue')"
             class="py-2 px-3 rounded-xl bg-rose-600 text-white font-bold text-xs flex items-center justify-center gap-1 shadow-md shadow-rose-200 cursor-pointer"
           >
@@ -1201,7 +1225,7 @@ const openAgreementPreview = (user?: any) => {
             <div class="flex items-center flex-wrap gap-2 pt-0.5">
               <!-- Hubungi WhatsApp -->
               <button 
-                @click="redirectToWa(selectedCustomer, selectedCustomer.emailIssueReported ? 'issue' : (selectedCustomer.technicianStatus === 'completed' ? 'completed' : 'custom'))"
+                @click="redirectToWa(selectedCustomer, (selectedCustomer.emailIssueReported || selectedCustomer.technicianStatus === 'issue') ? 'issue' : (selectedCustomer.technicianStatus === 'completed' ? 'completed' : 'custom'))"
                 class="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95"
               >
                 <MessageSquare class="w-3.5 h-3.5" />
@@ -1282,7 +1306,7 @@ const openAgreementPreview = (user?: any) => {
 
                   <!-- Status Teknisi Badge -->
                   <span 
-                    v-if="selectedCustomer.emailIssueReported"
+                    v-if="selectedCustomer.emailIssueReported || selectedCustomer.technicianStatus === 'issue'"
                     class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200 inline-flex items-center gap-1"
                   >
                     <AlertTriangle class="w-3 h-3 text-rose-600" />
@@ -1409,7 +1433,7 @@ const openAgreementPreview = (user?: any) => {
                     <span>Akun Kasir & Teknisi</span>
                     <!-- Dot indicator if issue -->
                     <span 
-                      v-if="selectedCustomer.emailIssueReported" 
+                      v-if="selectedCustomer.emailIssueReported || selectedCustomer.technicianStatus === 'issue'" 
                       class="w-2 h-2 rounded-full bg-rose-500 absolute top-2 right-2 ring-2 ring-white animate-pulse"
                     ></span>
                   </button>
@@ -1422,7 +1446,7 @@ const openAgreementPreview = (user?: any) => {
                   
                   <!-- Alert Status Penyiapan Kasir -->
                   <div 
-                    v-if="selectedCustomer.emailIssueReported"
+                    v-if="selectedCustomer.emailIssueReported || selectedCustomer.technicianStatus === 'issue'"
                     class="bg-rose-50/80 border border-rose-200 rounded-2xl p-4 flex items-start gap-3"
                   >
                     <AlertTriangle class="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
@@ -1849,7 +1873,7 @@ const openAgreementPreview = (user?: any) => {
                         <span class="text-slate-400 block text-[11px]">Status Saat Ini:</span>
                         <div class="mt-1">
                           <span 
-                            v-if="selectedCustomer.emailIssueReported"
+                            v-if="selectedCustomer.emailIssueReported || selectedCustomer.technicianStatus === 'issue'"
                             class="px-2.5 py-1 rounded-xl text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200 inline-flex items-center gap-1"
                           >
                             <AlertTriangle class="w-3.5 h-3.5 text-rose-600" />
@@ -1888,7 +1912,7 @@ const openAgreementPreview = (user?: any) => {
                     </div>
 
                     <!-- Catatan Kendala jika ada -->
-                    <div v-if="selectedCustomer.emailIssueReported" class="p-3 bg-rose-50/80 rounded-xl border border-rose-200 text-xs">
+                    <div v-if="selectedCustomer.emailIssueReported || selectedCustomer.technicianStatus === 'issue'" class="p-3 bg-rose-50/80 rounded-xl border border-rose-200 text-xs">
                       <div class="flex items-center justify-between">
                         <span class="font-bold text-rose-800">Catatan Kendala Teknisi:</span>
                         <button 

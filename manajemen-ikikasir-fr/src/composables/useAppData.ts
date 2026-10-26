@@ -649,6 +649,10 @@ function mapBackendCustomerToFrontend(c: any, index: number): Customer {
 
   const isExpired = c.computedStatus === 'EXPIRED' || c.status === 'EXPIRED' || Boolean(c.isExpired)
 
+  // Status kendala bisa dari technicianStatus === 'issue', emailIssueReported, atau leadMatch
+  const isIssue = c.technicianStatus === 'issue' || Boolean(c.emailIssueReported) || Boolean(leadMatch?.emailIssueReported) || leadMatch?.technicianStatus === 'issue'
+  const techStatus = isIssue ? 'issue' : (c.technicianStatus || leadMatch?.technicianStatus || (isExpired ? 'completed' : 'pending_setup'))
+
   return {
     id: c.id,
     no: index + 1,
@@ -665,10 +669,10 @@ function mapBackendCustomerToFrontend(c: any, index: number): Customer {
     status: isExpired ? 'expired' : 'active',
     amount: c.paymentAmount || c.packagePrice || (pkgType === 'Pro' ? 500000 : (pkgType === 'Custom / IT One' ? 1500000 : 250000)),
     paymentMethod: c.paymentMethod || leadMatch?.paymentMethod || 'QRIS',
-    technicianStatus: c.technicianStatus || leadMatch?.technicianStatus || (isExpired ? 'completed' : 'completed'),
+    technicianStatus: techStatus,
     technicianAssignedTo: c.technicianAssignedTo || leadMatch?.technicianAssignedTo || 'Doni Teknisi',
-    emailIssueReported: Boolean(c.emailIssueReported ?? leadMatch?.emailIssueReported),
-    emailIssueNotes: c.emailIssueNotes || leadMatch?.emailIssueNotes || undefined,
+    emailIssueReported: isIssue,
+    emailIssueNotes: c.emailIssueNotes || leadMatch?.emailIssueNotes || (isIssue ? 'Ada kendala teknis / verifikasi data.' : undefined),
     appUsername: c.appUsername || leadMatch?.appUsername || undefined,
     appPassword: c.appPassword || leadMatch?.appPassword || undefined,
     paymentProofUrl: c.paymentProofUrl || leadMatch?.paymentProofUrl || undefined,
@@ -1626,12 +1630,14 @@ export function useAppData() {
       lead.technicianStatus = 'in_progress'
       lead.technicianAssignedTo = teknisiName
       saveStorage(STORAGE_KEY_LEADS, leads.value)
+      leadsApi.update(lead.id, { technicianStatus: 'in_progress', technicianAssignedTo: teknisiName }).catch(err => console.warn('Backend leadsApi.update warning:', err))
     }
     const cust = customers.value.find(c => c.id === id || c.id === 'cust-' + id || (lead && (c.phone === lead.phone || c.email === lead.email)))
     if (cust) {
       cust.technicianStatus = 'in_progress'
       cust.technicianAssignedTo = teknisiName
       saveStorage(STORAGE_KEY_CUSTOMERS, customers.value)
+      customersApi.update(cust.id, { technicianStatus: 'in_progress' }).catch(err => console.warn('Backend customersApi.update warning:', err))
     }
   }
 
@@ -1642,12 +1648,22 @@ export function useAppData() {
     if (lead) {
       lead.emailIssueReported = true
       lead.emailIssueNotes = issueNotes
+      lead.technicianStatus = 'issue'
       saveStorage(STORAGE_KEY_LEADS, leads.value)
+      leadsApi.update(lead.id, { 
+        technicianStatus: 'issue', 
+        emailIssueReported: true, 
+        emailIssueNotes: issueNotes 
+      }).catch(err => console.warn('Backend leadsApi.update warning:', err))
     }
     if (cust) {
       cust.emailIssueReported = true
       cust.emailIssueNotes = issueNotes
+      cust.technicianStatus = 'issue'
       saveStorage(STORAGE_KEY_CUSTOMERS, customers.value)
+      customersApi.update(cust.id, { 
+        technicianStatus: 'issue' 
+      }).catch(err => console.warn('Backend customersApi.update warning:', err))
     }
 
     const name = lead?.name || cust?.name || 'Pelanggan'
@@ -1671,6 +1687,7 @@ export function useAppData() {
       lead.email = newEmail
       lead.emailIssueReported = false
       lead.emailIssueNotes = undefined
+      lead.technicianStatus = 'in_progress'
       lead.followUpHistory.unshift({
         id: 'fh-' + Date.now(),
         date: getTodayFormatted(),
@@ -1679,13 +1696,24 @@ export function useAppData() {
         notes: `Alamat email klien berhasil diperbarui menjadi ${newEmail} (Kendala terselesaikan).`
       })
       saveStorage(STORAGE_KEY_LEADS, leads.value)
+      leadsApi.update(lead.id, { 
+        email: newEmail, 
+        emailIssueReported: false, 
+        emailIssueNotes: '', 
+        technicianStatus: 'in_progress' 
+      }).catch(err => console.warn('Backend leadsApi.update warning:', err))
     }
 
     if (cust) {
       cust.email = newEmail
       cust.emailIssueReported = false
       cust.emailIssueNotes = undefined
+      cust.technicianStatus = 'in_progress'
       saveStorage(STORAGE_KEY_CUSTOMERS, customers.value)
+      customersApi.update(cust.id, { 
+        email: newEmail, 
+        technicianStatus: 'in_progress' 
+      }).catch(err => console.warn('Backend customersApi.update warning:', err))
     }
   }
 
@@ -1734,6 +1762,17 @@ export function useAppData() {
         notes: `Aplikasi selesai disiapkan oleh Teknisi (${teknisi}). Kredensial, panduan, dan surat sewa diserahkan ke klien.`
       })
       saveStorage(STORAGE_KEY_LEADS, leads.value)
+      leadsApi.update(lead.id, {
+        technicianStatus: 'completed',
+        technicianAssignedTo: teknisi,
+        appUsername: setupData.appUsername,
+        appPassword: setupData.appPassword,
+        appDownloadUrl,
+        guideBookUrl,
+        rentalAgreementNumber,
+        rentalAgreementDate: setupData.rentalAgreementDate || today,
+        emailIssueReported: false
+      }).catch(err => console.warn('Backend leadsApi.update warning:', err))
     }
 
     if (cust) {
@@ -1750,6 +1789,12 @@ export function useAppData() {
       cust.status = 'active'
       cust.emailIssueReported = false
       saveStorage(STORAGE_KEY_CUSTOMERS, customers.value)
+      customersApi.update(cust.id, {
+        technicianStatus: 'completed',
+        appUsername: setupData.appUsername,
+        appPassword: setupData.appPassword,
+        status: 'ACTIVE'
+      }).catch(err => console.warn('Backend customersApi.update warning:', err))
     }
 
     const clientName = lead?.name || cust?.name || 'Pelanggan'
