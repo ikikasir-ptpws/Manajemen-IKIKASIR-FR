@@ -44,7 +44,7 @@ const categories = ['Retail', 'F&B / Kuliner', 'Fashion & Butik', 'Jasa & Servis
 const packageOptions: PackageType[] = ['Basic', 'Pro', 'Add on', 'Custom / IT One']
 
 const paymentMethods = [
-  { id: 'Transfer BCA (PT PUNDI MAS BERKAH)', name: 'Transfer BCA (PT PUNDI MAS BERKAH)' },
+  { id: 'Transfer BCA', name: 'Transfer BCA' },
   { id: 'Transfer Mandiri', name: 'Transfer Mandiri' },
   { id: 'Transfer BRI', name: 'Transfer BRI' },
   { id: 'QRIS', name: 'QRIS' },

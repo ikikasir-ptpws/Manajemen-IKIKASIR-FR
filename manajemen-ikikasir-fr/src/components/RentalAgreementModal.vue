@@ -68,9 +68,9 @@ const printAgreement = () => {
           <div class="flex items-center gap-3">
             <IkiKasirLogo size="md" />
             <div>
-              <h2 class="text-base sm:text-lg font-black tracking-tight text-slate-900 dark:text-white uppercase">PT PUNDI MAS BERKAH</h2>
+              <h2 class="text-base sm:text-lg font-black tracking-tight text-slate-900 dark:text-white uppercase">PT PUTRA WISANGGENI SATU</h2>
               <p class="text-[11px] text-slate-500">Divisi Penyedia Sistem Kasir Digital & Cloud IKI KASIR</p>
-              <p class="text-[10px] text-slate-400">Jl. Gatot Subroto No. 42, Jakarta Pusat • Telp: (021) 8872-9102 • info@ikikasir.com</p>
+              <p class="text-[10px] text-slate-400">Jl. Wonosari Kec,Gondang Wetan Kab, Pasuruan, Jawa Timur • Telp: (021) 8872-9102</p>
             </div>
           </div>
           <div class="text-right">

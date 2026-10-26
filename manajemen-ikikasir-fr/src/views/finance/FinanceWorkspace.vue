@@ -638,7 +638,7 @@ const openWhatsAppConfirm = () => {
 
               <label class="flex items-center gap-2.5 cursor-pointer">
                 <input v-model="checkProof" type="checkbox" class="w-4 h-4 rounded text-indigo-600 focus:ring-0 cursor-pointer" />
-                <span class="text-slate-700 dark:text-slate-300">Struk / mutasi bank asli, valid, dan rekening tujuan terkonfirmasi (PT Pundi Mas Berkah).</span>
+                <span class="text-slate-700 dark:text-slate-300">Struk / mutasi bank asli, valid, dan rekening tujuan terkonfirmasi</span>
               </label>
 
               <label class="flex items-center gap-2.5 cursor-pointer">
