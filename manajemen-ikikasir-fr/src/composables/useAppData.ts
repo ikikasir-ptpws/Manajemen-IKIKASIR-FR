@@ -11,6 +11,9 @@ export interface PricingPackage {
   isConsultation: boolean
   price: number
   period: string
+  periodType?: 'bulanan' | 'tahunan' | 'custom'
+  startDate?: string
+  endDate?: string
   features: string[]
   isActive: boolean
   badge?: string

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import {
+  Calendar,
   CheckCircle2,
   Edit2,
   Package,
@@ -16,6 +17,7 @@ import type { PricingPackage } from '../../composables/useAppData'
 import { useAppData } from '../../composables/useAppData'
 import { usePagination } from '../../composables/usePagination'
 import GlobalPagination from '../../components/common/GlobalPagination.vue'
+import DateRangePicker from '../../components/common/DateRangePicker.vue'
 
 const {
   packages,
@@ -48,7 +50,10 @@ const form = ref<{
   cardSub: string
   isConsultation: boolean
   price: number
+  periodType: 'bulanan' | 'tahunan' | 'custom'
   period: string
+  startDate: string
+  endDate: string
   featuresText: string
   isActive: boolean
 }>({
@@ -57,10 +62,90 @@ const form = ref<{
   cardSub: '',
   isConsultation: false,
   price: 0,
+  periodType: 'bulanan',
   period: '/bulan',
+  startDate: '',
+  endDate: '',
   featuresText: '',
   isActive: true
 })
+
+// Auto-generate period label when custom dates change
+const autoGeneratePeriodText = () => {
+  if (form.value.periodType !== 'custom') return
+  if (!form.value.startDate && !form.value.endDate) {
+    form.value.period = '/custom'
+    return
+  }
+
+  if (form.value.startDate && !form.value.endDate) {
+    const d1 = new Date(form.value.startDate)
+    if (!isNaN(d1.getTime())) {
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
+      form.value.period = `/mulai ${months[d1.getMonth()]} ${d1.getFullYear()}`
+    }
+    return
+  }
+
+  if (!form.value.startDate && form.value.endDate) {
+    const d2 = new Date(form.value.endDate)
+    if (!isNaN(d2.getTime())) {
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
+      form.value.period = `/s.d ${months[d2.getMonth()]} ${d2.getFullYear()}`
+    }
+    return
+  }
+
+  const d1 = new Date(form.value.startDate)
+  const d2 = new Date(form.value.endDate)
+  if (isNaN(d1.getTime()) || isNaN(d2.getTime())) {
+    form.value.period = '/custom'
+    return
+  }
+
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
+  const m1 = months[d1.getMonth()]
+  const y1 = d1.getFullYear()
+  const m2 = months[d2.getMonth()]
+  const y2 = d2.getFullYear()
+
+  if (y1 === y2 && d1.getMonth() === d2.getMonth()) {
+    form.value.period = `/${m1} ${y1}`
+  } else if (y1 === y2) {
+    form.value.period = `/${m1} - ${m2} ${y1}`
+  } else {
+    form.value.period = `/${m1} ${y1} - ${m2} ${y2}`
+  }
+}
+
+watch(
+  [() => form.value.startDate, () => form.value.endDate],
+  ([newStart, newEnd]) => {
+    if (form.value.periodType === 'custom' && (newStart || newEnd)) {
+      autoGeneratePeriodText()
+    }
+  }
+)
+
+const handlePeriodTypeChange = () => {
+  if (form.value.periodType === 'bulanan') {
+    form.value.period = '/bulan'
+  } else if (form.value.periodType === 'tahunan') {
+    form.value.period = '/tahun'
+  } else if (form.value.periodType === 'custom') {
+    if (!form.value.startDate || !form.value.endDate) {
+      const today = new Date()
+      const end = new Date()
+      end.setMonth(end.getMonth() + 2) // default 3 bulan
+      const pad = (n: number) => String(n).padStart(2, '0')
+
+      form.value.startDate = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-01`
+      const lastDay = new Date(end.getFullYear(), end.getMonth() + 1, 0).getDate()
+      form.value.endDate = `${end.getFullYear()}-${pad(end.getMonth() + 1)}-${pad(lastDay)}`
+    }
+    autoGeneratePeriodText()
+  }
+}
 
 // Delete confirmation modal states
 const packageToDelete = ref<PricingPackage | null>(null)
@@ -130,7 +215,10 @@ const openAddModal = () => {
     cardSub: '',
     isConsultation: false,
     price: 0,
+    periodType: 'bulanan',
     period: '/bulan',
+    startDate: '',
+    endDate: '',
     featuresText: '',
     isActive: true
   }
@@ -139,13 +227,29 @@ const openAddModal = () => {
 
 const openEditModal = (pkg: PricingPackage) => {
   isEditing.value = true
+  let pType: 'bulanan' | 'tahunan' | 'custom' = pkg.periodType || 'bulanan'
+  const rawPeriod = (pkg.period || '').trim().toLowerCase()
+
+  if (!pkg.periodType) {
+    if (rawPeriod === '/bulan' || rawPeriod === 'bulan' || rawPeriod === '/bln') {
+      pType = 'bulanan'
+    } else if (rawPeriod === '/tahun' || rawPeriod === 'tahun' || rawPeriod === '/thn') {
+      pType = 'tahunan'
+    } else if (rawPeriod) {
+      pType = 'custom'
+    }
+  }
+
   form.value = {
     id: pkg.id,
     name: pkg.name,
     cardSub: pkg.description || pkg.cardSub || '',
     isConsultation: pkg.isConsultation ?? false,
     price: pkg.price ?? 0,
+    periodType: pType,
     period: pkg.period || '/bulan',
+    startDate: pkg.startDate || '',
+    endDate: pkg.endDate || '',
     featuresText: (pkg.features || []).join('\n'),
     isActive: pkg.isActive ?? true
   }
@@ -163,13 +267,28 @@ const savePackage = () => {
     .map((f) => f.trim())
     .filter((f) => f)
 
-  const packageData = {
+  // Determine final period string
+  let finalPeriod = ''
+  if (!form.value.isConsultation) {
+    if (form.value.periodType === 'bulanan') {
+      finalPeriod = '/bulan'
+    } else if (form.value.periodType === 'tahunan') {
+      finalPeriod = '/tahun'
+    } else {
+      finalPeriod = form.value.period.trim() || '/custom'
+    }
+  }
+
+  const packageData: Omit<PricingPackage, 'id'> = {
     name: form.value.name.trim(),
     cardSub: form.value.cardSub.trim(),
     description: form.value.cardSub.trim(),
     isConsultation: form.value.isConsultation,
     price: form.value.isConsultation ? 0 : form.value.price,
-    period: form.value.isConsultation ? '' : form.value.period,
+    period: finalPeriod,
+    periodType: form.value.periodType,
+    startDate: form.value.startDate,
+    endDate: form.value.endDate,
     features: features,
     isActive: form.value.isActive
   }
@@ -624,28 +743,112 @@ const executeDelete = () => {
               </label>
             </div>
 
-            <div v-if="!form.isConsultation" class="grid grid-cols-2 gap-3 pt-2">
-              <div>
-                <label class="block text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-1">
-                  Harga Paket (Rp)
-                </label>
-                <input
-                  v-model.number="form.price"
-                  type="number"
-                  class="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-sm font-semibold focus:outline-none focus:border-indigo-500"
-                  placeholder="250000"
-                />
+            <div v-if="!form.isConsultation" class="space-y-3 pt-2">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-1">
+                    Harga Paket (Rp)
+                  </label>
+                  <input
+                    v-model.number="form.price"
+                    type="number"
+                    class="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-sm font-semibold focus:outline-none focus:border-indigo-500"
+                    placeholder="250000"
+                  />
+                </div>
+                <div>
+                  <label class="block text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-1">
+                    Periode / Satuan
+                  </label>
+                  <select
+                    v-model="form.periodType"
+                    @change="handlePeriodTypeChange"
+                    class="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-sm font-semibold focus:outline-none focus:border-indigo-500 cursor-pointer"
+                  >
+                    <option value="bulanan">Bulanan (/bulan)</option>
+                    <option value="tahunan">Tahunan (/tahun)</option>
+                    <option value="custom">Custom (Rentang Bulan/Tanggal)</option>
+                  </select>
+                </div>
               </div>
-              <div>
-                <label class="block text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-1">
-                  Periode / Satuan
-                </label>
-                <input
-                  v-model="form.period"
-                  type="text"
-                  class="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:border-indigo-500"
-                  placeholder="/bulan atau /tahun"
-                />
+
+              <!-- Field Custom Range Date Picker (Mulai Bulan Ini s/d Bulan Ini) -->
+              <div
+                v-if="form.periodType === 'custom'"
+                class="p-4 bg-indigo-50/70 dark:bg-indigo-950/30 rounded-2xl border border-indigo-100 dark:border-indigo-900/40 space-y-3 animate-in fade-in duration-200"
+              >
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-bold text-indigo-900 dark:text-indigo-300 flex items-center gap-1.5">
+                    <Calendar class="w-4 h-4 text-indigo-600" />
+                    Rentang Periode Custom
+                  </span>
+                  <span class="text-[10px] text-slate-500 dark:text-slate-400">Pilih rentang bulan / tanggal aktif</span>
+                </div>
+
+                <!-- Range Date Picker Dropdown Kalender -->
+                <div>
+                  <label class="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
+                    Pilih Cepat via Kalender
+                  </label>
+                  <DateRangePicker
+                    v-model:startDate="form.startDate"
+                    v-model:endDate="form.endDate"
+                    placeholder="Klik untuk pilih rentang tanggal pada kalender"
+                  />
+                </div>
+
+                <!-- Input Tanggal/Bulan Mulai & Selesai -->
+                <div class="grid grid-cols-2 gap-3 pt-1">
+                  <div>
+                    <label class="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
+                      Mulai (Bulan / Tanggal)
+                    </label>
+                    <input
+                      v-model="form.startDate"
+                      type="date"
+                      class="w-full px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-xs font-semibold focus:outline-none focus:border-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label class="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
+                      Sampai (Bulan / Tanggal)
+                    </label>
+                    <input
+                      v-model="form.endDate"
+                      type="date"
+                      class="w-full px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-xs font-semibold focus:outline-none focus:border-indigo-500"
+                    />
+                  </div>
+                </div>
+
+                <!-- Teks Satuan Periode & Live Preview -->
+                <div class="pt-2 border-t border-indigo-100/80 dark:border-indigo-900/50">
+                  <div class="flex items-center justify-between mb-1">
+                    <label class="block text-[10px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
+                      Teks Satuan Periode (Tampil di Web & Landing Page)
+                    </label>
+                    <button
+                      type="button"
+                      @click="autoGeneratePeriodText"
+                      class="text-[10px] text-indigo-600 dark:text-indigo-400 hover:underline font-bold cursor-pointer"
+                    >
+                      Format Otomatis
+                    </button>
+                  </div>
+                  <input
+                    v-model="form.period"
+                    type="text"
+                    class="w-full px-3.5 py-2 rounded-xl border border-indigo-200 dark:border-indigo-800 bg-white dark:bg-slate-700 text-indigo-900 dark:text-indigo-200 text-xs font-bold focus:outline-none focus:border-indigo-500"
+                    placeholder="Contoh: /Okt - Des 2026"
+                  />
+                  <div class="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 mt-1.5">
+                    <span>Tampilan harga di kartu:</span>
+                    <span class="font-extrabold text-slate-800 dark:text-slate-200">
+                      Rp {{ (form.price || 0).toLocaleString('id-ID') }}
+                      <span class="text-indigo-600 dark:text-indigo-400 font-bold">{{ form.period }}</span>
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
