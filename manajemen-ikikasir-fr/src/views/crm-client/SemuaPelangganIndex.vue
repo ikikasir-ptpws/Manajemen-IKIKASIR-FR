@@ -1881,27 +1881,28 @@ const openAgreementPreview = (user?: any) => {
                     </div>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
-                      <!-- Username -->
-                      <div class="p-3 bg-slate-50/80 rounded-xl border border-slate-100 flex items-center justify-between">
-                        <div>
-                          <span class="text-slate-400 block text-[11px] font-semibold">Username Login Kasir:</span>
-                          <span class="font-mono font-bold text-slate-800 text-sm mt-0.5 block">
-                            {{ getCustomerCredentials(selectedCustomer).username }}
+                      <!-- Email Akun (Firebase Auth) -->
+                      <div class="p-3 bg-slate-50/80 rounded-xl border border-slate-100 flex items-center justify-between sm:col-span-2">
+                        <div class="min-w-0 flex-1">
+                          <span class="text-slate-400 block text-[11px] font-semibold">Email Akun Pelanggan (Firebase Auth):</span>
+                          <span class="font-mono font-bold text-slate-800 text-sm mt-0.5 block truncate">
+                            {{ selectedCustomer.email || '-' }}
                           </span>
                         </div>
                         <button 
-                          @click="copyToClipboard(getCustomerCredentials(selectedCustomer).username, 'Username Kasir')"
-                          class="p-2 hover:bg-slate-200 rounded-lg text-slate-500 transition-colors cursor-pointer"
-                          title="Salin Username"
+                          v-if="selectedCustomer.email"
+                          @click="copyToClipboard(selectedCustomer.email, 'Email Akun Firebase')"
+                          class="p-2 hover:bg-slate-200 rounded-lg text-slate-500 transition-colors cursor-pointer shrink-0 ml-2"
+                          title="Salin Email Firebase"
                         >
                           <Copy class="w-4 h-4" />
                         </button>
                       </div>
 
-                      <!-- Password -->
+                      <!-- Password Akun -->
                       <div class="p-3 bg-slate-50/80 rounded-xl border border-slate-100 flex items-center justify-between">
                         <div>
-                          <span class="text-slate-400 block text-[11px] font-semibold">Password Akun:</span>
+                          <span class="text-slate-400 block text-[11px] font-semibold">Password Akun (Firebase / Kasir):</span>
                           <span class="font-mono font-bold text-slate-800 text-sm mt-0.5 block">
                             {{ isPasswordVisible ? getCustomerCredentials(selectedCustomer).password : '••••••••••••' }}
                           </span>
@@ -1924,10 +1925,27 @@ const openAgreementPreview = (user?: any) => {
                           </button>
                         </div>
                       </div>
+
+                      <!-- Username -->
+                      <div class="p-3 bg-slate-50/80 rounded-xl border border-slate-100 flex items-center justify-between">
+                        <div>
+                          <span class="text-slate-400 block text-[11px] font-semibold">Username Login Kasir:</span>
+                          <span class="font-mono font-bold text-slate-800 text-sm mt-0.5 block">
+                            {{ getCustomerCredentials(selectedCustomer).username }}
+                          </span>
+                        </div>
+                        <button 
+                          @click="copyToClipboard(getCustomerCredentials(selectedCustomer).username, 'Username Kasir')"
+                          class="p-2 hover:bg-slate-200 rounded-lg text-slate-500 transition-colors cursor-pointer"
+                          title="Salin Username"
+                        >
+                          <Copy class="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
 
-                    <p class="text-[11px] text-slate-500 leading-relaxed bg-indigo-50/50 p-2.5 rounded-xl border border-indigo-100/60">
-                      💡 <strong>Catatan Keamanan:</strong> Kredensial ini diserahkan kepada pemilik usaha saat serah terima aplikasi kasir. Pemilik dapat mengganti password melalui menu pengaturan akun di aplikasi kasir.
+                    <p class="text-[11px] text-slate-500 leading-relaxed bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                      <strong>Catatan:</strong> Kredensial ini diserahkan kepada pemilik usaha saat serah terima aplikasi kasir. Pemilik dapat mengganti password melalui menu pengaturan akun di aplikasi kasir.
                     </p>
                   </div>
 
