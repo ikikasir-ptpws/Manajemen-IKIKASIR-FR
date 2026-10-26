@@ -7,6 +7,7 @@ import userRoutes from './presentation/routes/user.routes.js';
 import packageRoutes from './presentation/routes/package.routes.js';
 import customerRoutes from './presentation/routes/customer.routes.js';
 import subscriptionRoutes from './presentation/routes/subscription.routes.js';
+import leadRoutes from './presentation/routes/lead.routes.js';
 import { errorHandler } from './presentation/middlewares/error.middleware.js';
 import { NotFoundError } from './domain/errors/AppError.js';
 
@@ -40,6 +41,8 @@ export function createApp(): Application {
   app.use('/api/packages', packageRoutes);
   app.use('/api/customers', customerRoutes);
   app.use('/api/subscriptions', subscriptionRoutes);
+  app.use('/api/leads', leadRoutes);
+  app.use('/api/calon-client', leadRoutes);
 
   // Penanganan rute 404 Not Found
   app.use((req: Request, _res: Response, next: NextFunction) => {

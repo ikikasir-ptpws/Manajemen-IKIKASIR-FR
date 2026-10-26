@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "b1a2c3d4-e5f6-7890-abcd-1234567890ef",
     "name": "IKIKASIR-Manajemen API",
-    "description": "Koleksi lengkap testing Postman untuk IKIKASIR Backend Manajemen: Autentikasi, Manajemen Role (switch boolean menu), Manajemen Pengguna (CRUD), dan Kelola Paket Langganan.",
+    "description": "Koleksi lengkap testing Postman untuk seluruh API IKIKASIR Backend Manajemen: Autentikasi, Manajemen Role (switch menu boolean), Manajemen Pengguna (CRUD), Kelola Paket Langganan, Calon Client (Leads CRM Lengkap), Pelanggan & Langganan (Customer CRM), serta Pengecekan Android & Testing Expired.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -39,6 +39,11 @@
     {
       "key": "testCustomerEmail",
       "value": "toko.berkah.jaya@ikikasir.com",
+      "type": "string"
+    },
+    {
+      "key": "testLeadId",
+      "value": "",
       "type": "string"
     }
   ],
@@ -90,8 +95,14 @@
             },
             "url": {
               "raw": "{{baseUrl}}/auth/login/superadmin",
-              "host": ["{{baseUrl}}"],
-              "path": ["auth", "login", "superadmin"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login",
+                "superadmin"
+              ]
             },
             "description": "Login khusus Super Admin. Script tes otomatis menyimpan JWT token ke variabel 'token' koleksi Postman."
           }
@@ -130,8 +141,14 @@
             },
             "url": {
               "raw": "{{baseUrl}}/auth/login/sales",
-              "host": ["{{baseUrl}}"],
-              "path": ["auth", "login", "sales"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login",
+                "sales"
+              ]
             },
             "description": "Login khusus akun Sales."
           }
@@ -169,8 +186,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/auth/login",
-              "host": ["{{baseUrl}}"],
-              "path": ["auth", "login"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
             },
             "description": "Login umum (mendeteksi semua role secara otomatis)."
           }
@@ -182,8 +204,13 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/auth/me",
-              "host": ["{{baseUrl}}"],
-              "path": ["auth", "me"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
             },
             "description": "Mengambil profil pengguna saat ini yang sedang login beserta role-nya."
           }
@@ -200,8 +227,14 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/roles/menus/list",
-              "host": ["{{baseUrl}}"],
-              "path": ["roles", "menus", "list"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "roles",
+                "menus",
+                "list"
+              ]
             },
             "description": "Mengambil katalog seluruh menu sistem untuk pembuatan switch toggle di UI frontend."
           }
@@ -213,8 +246,12 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/roles",
-              "host": ["{{baseUrl}}"],
-              "path": ["roles"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "roles"
+              ],
               "query": [
                 {
                   "key": "q",
@@ -258,8 +295,12 @@
             },
             "url": {
               "raw": "{{baseUrl}}/roles",
-              "host": ["{{baseUrl}}"],
-              "path": ["roles"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "roles"
+              ]
             },
             "description": "Membuat role baru beserta konfigurasi boolean switch menu."
           }
@@ -271,8 +312,13 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/roles/{{testRoleId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["roles", "{{testRoleId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "roles",
+                "{{testRoleId}}"
+              ]
             },
             "description": "Mengambil detail satu role beserta switch akses menunya."
           }
@@ -293,8 +339,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/roles/{{testRoleId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["roles", "{{testRoleId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "roles",
+                "{{testRoleId}}"
+              ]
             },
             "description": "Memperbarui nama role, deskripsi, atau switch boolean hak akses menu."
           }
@@ -306,8 +357,13 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/roles/{{testRoleId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["roles", "{{testRoleId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "roles",
+                "{{testRoleId}}"
+              ]
             },
             "description": "Menghapus role (terproteksi jika role adalah Super Admin atau masih digunakan user)."
           }
@@ -324,8 +380,12 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/users",
-              "host": ["{{baseUrl}}"],
-              "path": ["users"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users"
+              ],
               "query": [
                 {
                   "key": "search",
@@ -357,8 +417,12 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/users?role=Sales&status=Active",
-              "host": ["{{baseUrl}}"],
-              "path": ["users"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users"
+              ],
               "query": [
                 {
                   "key": "role",
@@ -380,8 +444,12 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/users?search=Budi",
-              "host": ["{{baseUrl}}"],
-              "path": ["users"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users"
+              ],
               "query": [
                 {
                   "key": "search",
@@ -423,8 +491,12 @@
             },
             "url": {
               "raw": "{{baseUrl}}/users",
-              "host": ["{{baseUrl}}"],
-              "path": ["users"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users"
+              ]
             },
             "description": "Menambahkan pengguna baru sesuai dengan form modal frontend (Nama, Email, Role, Status, Password, No Telepon opsional)."
           }
@@ -436,8 +508,13 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/users/{{testUserId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "{{testUserId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{testUserId}}"
+              ]
             },
             "description": "Mengambil detail satu pengguna berdasarkan ID."
           }
@@ -458,8 +535,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/users/{{testUserId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "{{testUserId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{testUserId}}"
+              ]
             },
             "description": "Memperbarui data profil pengguna, role, status, atau kata sandi baru (opsional)."
           }
@@ -480,8 +562,14 @@
             },
             "url": {
               "raw": "{{baseUrl}}/users/{{testUserId}}/status",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "{{testUserId}}", "status"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{testUserId}}",
+                "status"
+              ]
             },
             "description": "Mengubah status aktif/nonaktif akun pengguna secara cepat (tombol badge switch di tabel)."
           }
@@ -493,8 +581,13 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/users/{{testUserId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "{{testUserId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{testUserId}}"
+              ]
             },
             "description": "Menghapus akun pengguna dari sistem database."
           }
@@ -514,8 +607,12 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/packages",
-              "host": ["{{baseUrl}}"],
-              "path": ["packages"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "packages"
+              ],
               "query": [
                 {
                   "key": "isActive",
@@ -565,8 +662,12 @@
             },
             "url": {
               "raw": "{{baseUrl}}/packages",
-              "host": ["{{baseUrl}}"],
-              "path": ["packages"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "packages"
+              ]
             },
             "description": "Menambahkan paket langganan baru dengan field esensial (Nama, Deskripsi Singkat, Mode Konsultasi, Harga, Satuan Periode, Daftar Fitur, dan Status Tampil)."
           }
@@ -581,8 +682,13 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/packages/{{testPackageId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["packages", "{{testPackageId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "packages",
+                "{{testPackageId}}"
+              ]
             },
             "description": "Mengambil detail satu paket langganan berdasarkan ID."
           }
@@ -603,8 +709,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/packages/{{testPackageId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["packages", "{{testPackageId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "packages",
+                "{{testPackageId}}"
+              ]
             },
             "description": "Memperbarui isi data paket langganan (nama, deskripsi, harga, fitur, dll)."
           }
@@ -625,8 +736,14 @@
             },
             "url": {
               "raw": "{{baseUrl}}/packages/{{testPackageId}}/status",
-              "host": ["{{baseUrl}}"],
-              "path": ["packages", "{{testPackageId}}", "status"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "packages",
+                "{{testPackageId}}",
+                "status"
+              ]
             },
             "description": "Toggle tombol status Aktif / Nonaktif pada tabel Kelola Paket untuk menampilkan atau menyembunyikan paket dari Landing Page."
           }
@@ -638,8 +755,13 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/packages/{{testPackageId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["packages", "{{testPackageId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "packages",
+                "{{testPackageId}}"
+              ]
             },
             "description": "Menghapus paket langganan dari database."
           }
@@ -682,8 +804,12 @@
             },
             "url": {
               "raw": "{{baseUrl}}/customers",
-              "host": ["{{baseUrl}}"],
-              "path": ["customers"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "customers"
+              ]
             },
             "description": "Mendaftarkan pelanggan baru. Sistem otomatis mengambil durasi paket (misal /bulan = 1 bulan) dan menghitung tanggal kedaluwarsa (expiresAt). ID dan Email otomatis disimpan ke variabel Postman."
           }
@@ -695,8 +821,12 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/customers?search=Berkah",
-              "host": ["{{baseUrl}}"],
-              "path": ["customers"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "customers"
+              ],
               "query": [
                 {
                   "key": "search",
@@ -721,8 +851,13 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/customers/{{testCustomerId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["customers", "{{testCustomerId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "customers",
+                "{{testCustomerId}}"
+              ]
             },
             "description": "Mengambil informasi detail satu pelanggan berdasarkan ID."
           }
@@ -743,8 +878,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/customers/{{testCustomerId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["customers", "{{testCustomerId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "customers",
+                "{{testCustomerId}}"
+              ]
             },
             "description": "Memperbarui data profil pelanggan (nama, usaha, telepon, alamat, catatan)."
           }
@@ -765,8 +905,14 @@
             },
             "url": {
               "raw": "{{baseUrl}}/customers/{{testCustomerId}}/renew",
-              "host": ["{{baseUrl}}"],
-              "path": ["customers", "{{testCustomerId}}", "renew"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "customers",
+                "{{testCustomerId}}",
+                "renew"
+              ]
             },
             "description": "Memperpanjang masa aktif langganan pelanggan. Jika pelanggan belum expired, masa aktif ditambah dari tanggal expiresAt lama. Jika sudah expired, masa aktif dihitung mulai dari hari ini."
           }
@@ -778,8 +924,13 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/customers/expired",
-              "host": ["{{baseUrl}}"],
-              "path": ["customers", "expired"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "customers",
+                "expired"
+              ]
             },
             "description": "Mengambil khusus daftar pelanggan yang masa aktifnya telah habis (expiresAt < waktu server) untuk ditampilkan di halaman Expired Web Manajemen."
           }
@@ -791,8 +942,14 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/customers/{{testCustomerId}}/histories",
-              "host": ["{{baseUrl}}"],
-              "path": ["customers", "{{testCustomerId}}", "histories"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "customers",
+                "{{testCustomerId}}",
+                "histories"
+              ]
             },
             "description": "Mengambil seluruh riwayat pembayaran, paket, dan perpanjangan langganan untuk pelanggan tertentu."
           }
@@ -804,8 +961,13 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/customers/{{testCustomerId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["customers", "{{testCustomerId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "customers",
+                "{{testCustomerId}}"
+              ]
             },
             "description": "Menghapus data pelanggan dan riwayat langganannya dari sistem."
           }
@@ -842,8 +1004,13 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/subscriptions/check?email={{testCustomerEmail}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["subscriptions", "check"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "subscriptions",
+                "check"
+              ],
               "query": [
                 {
                   "key": "email",
@@ -889,8 +1056,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/subscriptions/simulate-expired",
-              "host": ["{{baseUrl}}"],
-              "path": ["subscriptions", "simulate-expired"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "subscriptions",
+                "simulate-expired"
+              ]
             },
             "description": "Helper endpoint khusus testing! Mengubah tanggal expiresAt pelanggan ke 2 hari yang lalu agar developer Android bisa langsung menguji tampilan dialog popup kadaluarsa di aplikasi HP."
           }
@@ -922,8 +1094,13 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/subscriptions/check?email={{testCustomerEmail}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["subscriptions", "check"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "subscriptions",
+                "check"
+              ],
               "query": [
                 {
                   "key": "email",
@@ -959,8 +1136,13 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/subscriptions/check?email=email.belum.terdaftar@gmail.com",
-              "host": ["{{baseUrl}}"],
-              "path": ["subscriptions", "check"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "subscriptions",
+                "check"
+              ],
               "query": [
                 {
                   "key": "email",
@@ -969,6 +1151,317 @@
               ]
             },
             "description": "Pengecekan akun email Firebase yang belum didaftarkan di Web Manajemen IKIKASIR."
+          }
+        }
+      ]
+    },
+    {
+      "name": "CALON CLIENT (LEADS CRM)",
+      "description": "Kumpulan endpoint lengkap untuk modul Calon Client / Prospek CRM: pendaftaran publik/admin, pencarian & filter, detail + riwayat follow-up, update data, update status prospek, tambah riwayat follow-up, persetujuan konversi ke pelanggan aktif, penolakan, serta metrik statistik.",
+      "item": [
+        {
+          "name": "POST Pendaftaran Calon Client Baru (Publik / Form Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var res = pm.response.json();",
+                  "if (res.success && res.data && res.data.id) {",
+                  "    pm.collectionVariables.set('testLeadId', res.data.id);",
+                  "    console.log('✅ Lead ID baru disimpan ke variabel: ' + res.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Budi Santoso\",\n  \"businessName\": \"Kopi Senja Utama\",\n  \"businessCategory\": \"F&B / Kuliner\",\n  \"businessType\": \"Kafe / Restoran\",\n  \"phone\": \"081298765432\",\n  \"email\": \"budi.santoso@kopisenja.com\",\n  \"address\": \"Jl. Sudirman No. 12, Jakarta Pusat\",\n  \"packageInterest\": \"Basic\",\n  \"source\": \"Website\",\n  \"estimatedDeal\": 250000,\n  \"city\": \"Jakarta Pusat\",\n  \"outletCount\": \"1\",\n  \"employeeAppCount\": \"2\",\n  \"currentRecordingMethod\": \"Buku/manual\",\n  \"neededFeatures\": [\n    \"Kasir Cepat\",\n    \"Laporan Penjualan\",\n    \"Manajemen Stok\"\n  ],\n  \"notes\": \"Tertarik demo aplikasi kasir tablet Android untuk usaha kopi.\",\n  \"referralCode\": \"REF-DEMO101\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/leads",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "leads"
+              ]
+            },
+            "description": "Mendaftarkan calon client baru. Bisa diakses publik (dari form registrasi website/landing page) maupun oleh staf admin CRM. Endpoint ini otomatis mencatat entri riwayat follow-up awal sistem."
+          }
+        },
+        {
+          "name": "GET Ambil Semua Calon Client (Search & Filter Lengkap)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var res = pm.response.json();",
+                  "if (res.success && Array.isArray(res.data) && res.data.length > 0) {",
+                  "    if (!pm.collectionVariables.get('testLeadId')) {",
+                  "        pm.collectionVariables.set('testLeadId', res.data[0].id);",
+                  "        console.log('✅ testLeadId diisi dari data pertama: ' + res.data[0].id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/leads?search=&status=Semua&source=Semua&packageInterest=Semua",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "leads"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Pencarian berdasarkan nama, nama bisnis, telepon, email, atau kode referral"
+                },
+                {
+                  "key": "status",
+                  "value": "Semua",
+                  "description": "Filter status: New, Contacted, Follow Up, Interested, Converted, Lost"
+                },
+                {
+                  "key": "source",
+                  "value": "Semua",
+                  "description": "Filter sumber lead: Website, Google Form, Instagram, WhatsApp, Referral, Direct / Walk-in"
+                },
+                {
+                  "key": "packageInterest",
+                  "value": "Semua",
+                  "description": "Filter minat paket: Basic, Pro, Add on, Custom / IT One"
+                },
+                {
+                  "key": "startDate",
+                  "value": "2026-01-01",
+                  "disabled": true,
+                  "description": "Filter tanggal registrasi awal (YYYY-MM-DD)"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2026-12-31",
+                  "disabled": true,
+                  "description": "Filter tanggal registrasi akhir (YYYY-MM-DD)"
+                }
+              ]
+            },
+            "description": "Mengambil seluruh daftar calon client dengan fitur search (nama, toko, kontak, referral) dan berbagai filter status/paket/sumber prospek."
+          }
+        },
+        {
+          "name": "GET Statistik & Metrik Calon Client",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/leads/statistics",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "leads",
+                "statistics"
+              ]
+            },
+            "description": "Mengambil metrik ringkasan calon client: total prospek, status (New, In Progress, Converted, Lost), breakdown per sumber pendaftaran (Website, Google Form, Instagram, Referral), serta minat paket kasir."
+          }
+        },
+        {
+          "name": "GET Detail Calon Client by ID (Beserta Riwayat Follow-Up)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/leads/{{testLeadId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "leads",
+                "{{testLeadId}}"
+              ]
+            },
+            "description": "Mengambil profil detail lengkap calon client termasuk data kuesioner, info paket, referal, verifikasi bukti transfer, dan seluruh riwayat log follow-up."
+          }
+        },
+        {
+          "name": "PUT Update Profil & Kuesioner Calon Client",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Budi Santoso, S.Kom\",\n  \"businessName\": \"Kopi Senja Bersama Group\",\n  \"businessCategory\": \"F&B / Kuliner\",\n  \"businessType\": \"Kafe / Restoran\",\n  \"phone\": \"081298765432\",\n  \"email\": \"budi.santoso@kopisenja.com\",\n  \"address\": \"Jl. Sudirman No. 15, Jakarta Pusat\",\n  \"packageInterest\": \"Pro\",\n  \"estimatedDeal\": 500000,\n  \"followUpSchedule\": \"Besok\",\n  \"notes\": \"Client ingin upgrade ke paket Pro karena ada rencana penambahan kasir di lantai 2.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/leads/{{testLeadId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "leads",
+                "{{testLeadId}}"
+              ]
+            },
+            "description": "Memperbarui data profil, estimasi biaya deal, kuesioner, jadwal follow up, dan catatan prospek calon client."
+          }
+        },
+        {
+          "name": "PATCH Update Status Prospek (New -> Follow Up -> Interested, dll)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"Interested\",\n  \"notes\": \"Client menyatakan tertarik setelah melihat demo kasir dan meminta detail invoice & nomor rekening transfer.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/leads/{{testLeadId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "leads",
+                "{{testLeadId}}",
+                "status"
+              ]
+            },
+            "description": "Mengubah status prospek calon client (New, Contacted, Follow Up, Interested, Converted, Lost). Endpoint ini otomatis mencatat catatan sistem di riwayat follow-up."
+          }
+        },
+        {
+          "name": "POST Tambah Catatan Riwayat Follow-Up (WhatsApp, Telepon, Meeting)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"channel\": \"WhatsApp\",\n  \"notes\": \"Menghubungi client via WhatsApp untuk mengirimkan penawaran paket Pro dan panduan aktivasi sistem.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/leads/{{testLeadId}}/follow-up",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "leads",
+                "{{testLeadId}}",
+                "follow-up"
+              ]
+            },
+            "description": "Menambahkan entri riwayat follow-up baru ke timeline prospek calon client (Channel: WhatsApp, Telepon, Email, Meeting, atau Sistem)."
+          }
+        },
+        {
+          "name": "POST Setujui Calon Client (Konversi ke Pelanggan Aktif + Buat Invoice)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 250000,\n  \"paymentMethod\": \"Transfer BCA\",\n  \"paymentProofUrl\": \"https://ikikasir.com/receipts/sample-bca.jpg\",\n  \"notes\": \"Pembayaran aktivasi berhasil dikonfirmasi dan diverifikasi oleh tim Finance.\",\n  \"billingCycleMonths\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/leads/{{testLeadId}}/approve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "leads",
+                "{{testLeadId}}",
+                "approve"
+              ]
+            },
+            "description": "Menyetujui calon client: mengubah status prospek menjadi 'Converted', status pembayaran menjadi 'verified', serta otomatis membuatkan record Customer di menu Semua Pelanggan beserta invoice pembayarannya."
+          }
+        },
+        {
+          "name": "POST Tolak Calon Client (Ubah Status ke Lost)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Client tidak merespons setelah 5x follow up atau memutuskan menggunakan sistem kasir internal.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/leads/{{testLeadId}}/reject",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "leads",
+                "{{testLeadId}}",
+                "reject"
+              ]
+            },
+            "description": "Menolak pendaftaran calon client: mengubah status prospek menjadi 'Lost' dan mencatat alasan penolakan di riwayat aktivitas."
+          }
+        },
+        {
+          "name": "DELETE Hapus Data Calon Client",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/leads/{{testLeadId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "leads",
+                "{{testLeadId}}"
+              ]
+            },
+            "description": "Menghapus data calon client secara permanen dari sistem CRM."
           }
         }
       ]

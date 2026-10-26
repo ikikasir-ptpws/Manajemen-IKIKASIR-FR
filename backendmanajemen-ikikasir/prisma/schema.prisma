@@ -77,6 +77,7 @@ model Package {
 
   customers             Customer[]
   subscriptionHistories SubscriptionHistory[]
+  leads                 Lead[]
 
   @@index([name])
   @@index([isActive])
@@ -125,5 +126,95 @@ model SubscriptionHistory {
   @@index([customerId])
   @@index([packageId])
   @@map("subscription_histories")
+}
+
+model Lead {
+  id                     String         @id @default(uuid())
+  no                     Int            @default(autoincrement())
+  name                   String
+  businessName           String
+  businessCategory       String?        @default("")
+  businessType           String?        @default("")
+  phone                  String
+  email                  String
+  address                String?        @default("")
+  status                 String         @default("New") // New, Contacted, Follow Up, Interested, Converted, Lost
+  source                 String         @default("Website") // Website, Google Form, Instagram, WhatsApp, Facebook Ads, Referral, Direct / Walk-in
+  registrationDate       DateTime       @default(now())
+  lastFollowUp           DateTime       @default(now())
+  packageInterest        String?        @default("Basic") // Basic, Pro, Add on, Custom / IT One
+  packageId              String?
+  package                Package?       @relation(fields: [packageId], references: [id], onDelete: SetNull)
+  estimatedDeal          Float          @default(250000)
+  notes                  String?        @default("")
+  followUpSchedule       String?        @default("Hari ini")
+
+  // Referral
+  referralCode           String?
+  referredByCustomerId   String?
+  referredByCustomerName String?
+  referredByBusinessName String?
+
+  // Survey / Kuesioner
+  city                   String?        @default("")
+  outletCount            String?        @default("")
+  employeeAppCount       String?        @default("")
+  employeeCount          String?        @default("")
+  currentRecordingMethod String?        @default("")
+  neededFeatures         String[]       @default([])
+  otherNeededFeature     String?        @default("")
+  specialNeed            String?        @default("")
+  knownFrom              String?        @default("")
+  otherKnownFrom         String?        @default("")
+  consentAgreed          Boolean        @default(true)
+
+  // Workflow Finance
+  paymentProofUrl        String?        @default("")
+  paymentStatus          String         @default("unpaid") // unpaid, pending_verification, verified, rejected
+  paymentAmount          Float?         @default(0)
+  paymentDate            DateTime?
+  paymentMethod          String?        @default("")
+  paymentVerifiedAt      DateTime?
+  paymentVerifiedBy      String?        @default("")
+  paymentNotes           String?        @default("")
+
+  // Workflow Teknisi
+  technicianStatus       String?        @default("") // pending_setup, in_progress, completed
+  technicianAssignedTo   String?        @default("")
+  appUsername            String?        @default("")
+  appPassword            String?        @default("")
+  appDownloadUrl         String?        @default("")
+  guideBookUrl           String?        @default("")
+  rentalAgreementNumber  String?        @default("")
+  rentalAgreementDate    String?        @default("")
+  emailIssueReported     Boolean        @default(false)
+  emailIssueNotes        String?        @default("")
+  setupCompletedAt       DateTime?
+  appExpiredDate         DateTime?
+
+  createdAt              DateTime       @default(now())
+  updatedAt              DateTime       @updatedAt
+
+  followUps              LeadFollowUp[]
+
+  @@index([phone])
+  @@index([email])
+  @@index([status])
+  @@index([source])
+  @@index([createdAt])
+  @@map("leads")
+}
+
+model LeadFollowUp {
+  id        String   @id @default(uuid())
+  leadId    String
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  date      DateTime @default(now())
+  channel   String   @default("Sistem") // WhatsApp, Telepon, Email, Meeting, Sistem
+  notes     String
+  createdAt DateTime @default(now())
+
+  @@index([leadId])
+  @@map("lead_follow_ups")
 }
 
