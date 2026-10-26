@@ -514,6 +514,32 @@ const sendWhatsAppDirect = (client: ClientLead) => {
   const message = encodeURIComponent(`Halo Kak ${client.name}, salam dari IKI KASIR. Kami ingin mengonfirmasi pendaftaran sistem kasir Anda (Paket: ${client.packageInterest || 'Basic'}).`)
   window.open(`https://wa.me/${cleanPhone}?text=${message}`, '_blank')
 }
+
+const handleStatusChange = (id: string, status: LeadStatus) => {
+  updateStatus(id, status)
+  showToast(`Status calon client diperbarui menjadi "${status}".`)
+}
+
+const handleDeleteClient = (id: string, name: string) => {
+  if (confirm(`Yakin ingin menghapus calon client "${name}"?`)) {
+    deleteLead(id)
+    showToast(`Data "${name}" berhasil dihapus.`)
+  }
+}
+
+const handleAddFollowUp = (clientId: string, note: string, channel: 'WhatsApp' | 'Telepon' | 'Meeting' | 'Sistem') => {
+  addFollowUpLog(clientId, note, channel)
+  if (selectedClient.value && selectedClient.value.id === clientId) {
+    const updated = clients.value.find(c => c.id === clientId)
+    if (updated) selectedClient.value = { ...updated }
+  }
+  showToast('Catatan follow up berhasil disimpan.')
+}
+
+const handleClientSaved = (client: ClientLead) => {
+  showToast(`Data "${client.name}" berhasil disimpan.`)
+  isFormModalOpen.value = false
+}
 </script>
 
 <template>
