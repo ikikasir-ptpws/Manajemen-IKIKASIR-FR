@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import IkiKasirLogo from '../../components/IkiKasirLogo.vue'
+import { authApi } from '../../api'
 import { 
   Mail, 
   Lock, 
@@ -49,7 +50,7 @@ const validateEmail = (val: string) => {
 }
 
 // Handle Form Submit
-const handleLogin = () => {
+const handleLogin = async () => {
   errorMessage.value = ''
   successMessage.value = ''
 
@@ -75,15 +76,37 @@ const handleLogin = () => {
 
   isLoading.value = true
 
-  // Simulate authentication call
-  setTimeout(() => {
-    isLoading.value = false
-    successMessage.value = `Login berhasil! Mengalihkan (${email.value})...`
-    
+  try {
+    const cleanEmail = email.value.trim().toLowerCase()
+    const pass = password.value
+
+    let res
+    try {
+      res = await authApi.loginSuperAdmin({ email: cleanEmail, password: pass })
+    } catch (err: any) {
+      // If superadmin login failed, try sales login
+      try {
+        res = await authApi.loginSales({ email: cleanEmail, password: pass })
+      } catch {
+        throw err
+      }
+    }
+
+    if (res?.data?.user) {
+      const user = res.data.user
+      successMessage.value = `Login berhasil! Selamat datang kembali, ${user.name} (${user.role}).`
+    } else {
+      successMessage.value = `Login berhasil! Mengalihkan (${cleanEmail})...`
+    }
+
     setTimeout(() => {
       router.push('/')
-    }, 1000)
-  }, 1000)
+    }, 800)
+  } catch (err: any) {
+    errorMessage.value = err.message || 'Login gagal. Periksa kembali email dan kata sandi Anda.'
+  } finally {
+    isLoading.value = false
+  }
 }
 
 // Open Forgot Password Modal

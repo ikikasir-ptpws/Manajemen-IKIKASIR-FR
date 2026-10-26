@@ -14,6 +14,7 @@ import {
   ArrowRight
 } from 'lucide-vue-next'
 import type { Customer, PackageType } from '../../types/dashboard'
+import { customersApi } from '../../api'
 import { 
   useAppData, 
   getOrCreateCustomerReferralCode, 
@@ -216,6 +217,16 @@ const handleSubmit = () => {
           notes: formData.value.notes || curr.notes
         }
         customers.value[idx] = savedCustomer
+
+        // Sync update to backend
+        customersApi.update(curr.id, {
+          name: savedCustomer.name,
+          businessName: savedCustomer.businessName,
+          email: savedCustomer.email,
+          phone: savedCustomer.phone,
+          address: savedCustomer.address,
+          notes: savedCustomer.notes
+        }).catch(err => console.warn('Backend customersApi.update warning:', err))
       } else {
         throw new Error('Data pelanggan tidak ditemukan.')
       }
@@ -250,6 +261,25 @@ const handleSubmit = () => {
       }
 
       customers.value.unshift(savedCustomer)
+
+      // Sync create to backend
+      customersApi.create({
+        name: savedCustomer.name,
+        businessName: savedCustomer.businessName || '',
+        email: savedCustomer.email,
+        phone: savedCustomer.phone,
+        address: savedCustomer.address,
+        billingCycleMonths: 1,
+        paymentMethod: savedCustomer.paymentMethod,
+        notes: savedCustomer.notes
+      }).then(res => {
+        if (res.data?.id) {
+          savedCustomer.id = res.data.id
+          if (typeof localStorage !== 'undefined') {
+            localStorage.setItem('ikikasir_customers', JSON.stringify(customers.value))
+          }
+        }
+      }).catch(err => console.warn('Backend customersApi.create warning:', err))
 
       const newInvoice = {
         id: 'INV-' + Date.now().toString().slice(-8),

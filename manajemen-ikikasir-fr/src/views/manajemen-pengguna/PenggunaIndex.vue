@@ -19,6 +19,7 @@ import {
 } from 'lucide-vue-next'
 import { usePagination } from '../../composables/usePagination'
 import GlobalPagination from '../../components/common/GlobalPagination.vue'
+import { usersApi, rolesApi } from '../../api'
 
 export interface AppUser {
   id: string
@@ -55,6 +56,9 @@ const selectedUser = ref<AppUser | null>(null)
 const userToDelete = ref<AppUser | null>(null)
 const isDeleteConfirmOpen = ref(false)
 const toastMessage = ref<string | null>(null)
+const isLoadingUsers = ref(false)
+const isSaving = ref(false)
+const availableRoles = ref<string[]>(['Super Admin', 'Finance', 'Teknisi', 'Admin', 'Staff', 'Kasir'])
 
 const showToast = (msg: string) => {
   toastMessage.value = msg
@@ -74,36 +78,54 @@ const form = ref({
 })
 const formErrors = ref<Record<string, string>>({})
 
-const loadUsers = () => {
-  if (typeof localStorage === 'undefined') {
-    users.value = [...initialUsers]
-    return
+const loadUsers = async () => {
+  if (typeof localStorage !== 'undefined') {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_USERS)
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          users.value = parsed
+        }
+      }
+    } catch {
+      users.value = [...initialUsers]
+    }
   }
+
+  isLoadingUsers.value = true
   try {
-    const saved = localStorage.getItem(STORAGE_KEY_USERS)
-    if (saved) {
-      const parsed = JSON.parse(saved)
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        users.value = parsed
-        return
+    const [usersRes, rolesRes] = await Promise.allSettled([
+      usersApi.getAll(),
+      rolesApi.getAll()
+    ])
+
+    if (rolesRes.status === 'fulfilled' && rolesRes.value.data) {
+      const rolesList = rolesRes.value.data.map((r: any) => r.name)
+      if (rolesList.length > 0) {
+        availableRoles.value = rolesList
       }
     }
-    // Also check older key v2 if v3 not present
-    const oldSaved = localStorage.getItem('ikikasir_users_v2')
-    if (oldSaved) {
-      const parsedOld = JSON.parse(oldSaved)
-      if (Array.isArray(parsedOld) && parsedOld.length >= 6) {
-        const existingIds = new Set(parsedOld.map(u => u.id))
-        const merged = [...parsedOld, ...initialUsers.filter(u => !existingIds.has(u.id))]
-        users.value = merged
-        localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(users.value))
-        return
+
+    if (usersRes.status === 'fulfilled' && Array.isArray(usersRes.value.data)) {
+      const apiUsers: AppUser[] = usersRes.value.data.map((u: any) => ({
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        role: (u.role || u.roleDetail?.name || 'Admin') as any,
+        status: (u.status || (u.isActive ? 'Active' : 'Inactive')) as any,
+        lastLogin: u.lastLogin ? new Date(u.lastLogin).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'Belum pernah'
+      }))
+
+      if (apiUsers.length > 0) {
+        users.value = apiUsers
+        saveUsersToStorage()
       }
     }
-    users.value = [...initialUsers]
-    localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(users.value))
-  } catch {
-    users.value = [...initialUsers]
+  } catch (e) {
+    console.warn('Backend users API not accessible, using cached users:', e)
+  } finally {
+    isLoadingUsers.value = false
   }
 }
 
@@ -212,34 +234,67 @@ const validateForm = () => {
   return Object.keys(errs).length === 0
 }
 
-const handleSaveUser = () => {
+const handleSaveUser = async () => {
   if (!validateForm()) return
 
-  if (isEditing.value && form.value.id) {
-    const target = users.value.find(u => u.id === form.value.id)
-    if (target) {
-      target.name = form.value.name.trim()
-      target.email = form.value.email.trim()
-      target.role = form.value.role
-      target.status = form.value.status
-      saveUsersToStorage()
-      showToast(`Pengguna "${form.value.name}" berhasil diperbarui!`)
-    }
-  } else {
-    const newUser: AppUser = {
-      id: 'usr-' + Date.now(),
-      name: form.value.name.trim(),
-      email: form.value.email.trim(),
-      role: form.value.role,
-      status: form.value.status,
-      lastLogin: 'Baru saja'
-    }
-    users.value.unshift(newUser)
-    saveUsersToStorage()
-    showToast(`Pengguna baru "${newUser.name}" berhasil ditambahkan!`)
-  }
+  isSaving.value = true
+  try {
+    if (isEditing.value && form.value.id) {
+      try {
+        await usersApi.update(form.value.id, {
+          name: form.value.name.trim(),
+          email: form.value.email.trim(),
+          role: form.value.role,
+          status: form.value.status,
+          password: form.value.password ? form.value.password : undefined
+        })
+      } catch (err: any) {
+        console.warn('API update failed, updating locally:', err)
+      }
 
-  isModalOpen.value = false
+      const target = users.value.find(u => u.id === form.value.id)
+      if (target) {
+        target.name = form.value.name.trim()
+        target.email = form.value.email.trim()
+        target.role = form.value.role
+        target.status = form.value.status
+        saveUsersToStorage()
+        showToast(`Pengguna "${form.value.name}" berhasil diperbarui!`)
+      }
+    } else {
+      let createdId = 'usr-' + Date.now()
+      try {
+        const res = await usersApi.create({
+          name: form.value.name.trim(),
+          email: form.value.email.trim(),
+          password: form.value.password || 'Ikikasir#2026',
+          role: form.value.role,
+          status: form.value.status
+        })
+        if (res.data?.id) createdId = res.data.id
+      } catch (err: any) {
+        console.warn('API create failed, saving locally:', err)
+      }
+
+      const newUser: AppUser = {
+        id: createdId,
+        name: form.value.name.trim(),
+        email: form.value.email.trim(),
+        role: form.value.role,
+        status: form.value.status,
+        lastLogin: 'Baru saja'
+      }
+      users.value.unshift(newUser)
+      saveUsersToStorage()
+      showToast(`Pengguna baru "${newUser.name}" berhasil ditambahkan!`)
+    }
+
+    isModalOpen.value = false
+  } catch (err: any) {
+    showToast(err.message || 'Gagal menyimpan pengguna.')
+  } finally {
+    isSaving.value = false
+  }
 }
 
 const confirmDelete = (u: AppUser) => {
@@ -247,10 +302,17 @@ const confirmDelete = (u: AppUser) => {
   isDeleteConfirmOpen.value = true
 }
 
-const executeDelete = () => {
+const executeDelete = async () => {
   if (userToDelete.value) {
+    const deletedId = userToDelete.value.id
     const deletedName = userToDelete.value.name
-    users.value = users.value.filter(u => u.id !== userToDelete.value!.id)
+    try {
+      await usersApi.delete(deletedId)
+    } catch (err: any) {
+      console.warn('API delete failed, removing locally:', err)
+    }
+
+    users.value = users.value.filter(u => u.id !== deletedId)
     saveUsersToStorage()
     showToast(`Pengguna "${deletedName}" berhasil dihapus.`)
   }
@@ -258,8 +320,14 @@ const executeDelete = () => {
   userToDelete.value = null
 }
 
-const toggleStatus = (u: AppUser) => {
-  u.status = u.status === 'Active' ? 'Inactive' : 'Active'
+const toggleStatus = async (u: AppUser) => {
+  const newStatus = u.status === 'Active' ? 'Inactive' : 'Active'
+  try {
+    await usersApi.toggleStatus(u.id, newStatus)
+  } catch (err: any) {
+    console.warn('API toggleStatus failed, toggling locally:', err)
+  }
+  u.status = newStatus
   saveUsersToStorage()
   showToast(`Status pengguna ${u.name} diubah menjadi ${u.status}.`)
 }

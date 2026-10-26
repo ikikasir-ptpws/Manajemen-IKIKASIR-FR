@@ -1,6 +1,7 @@
 import { ref, computed } from 'vue'
 import type { ClientLead, LeadStatus, LeadSource, FollowUpLog } from '../types/crm'
 import type { Customer, PackageType } from '../types/dashboard'
+import { leadsApi, customersApi, packagesApi } from '../api'
 
 export interface PricingPackage {
   id: string
@@ -41,7 +42,7 @@ export function getCustomerWaUrl(phone: string, text: string) {
 }
 
 // SAMPLE RECEIPT SVGS FOR VERIFICATION DEMO
-export const SAMPLE_RECEIPT_BCA = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="360" height="480" viewBox="0 0 360 480"><rect width="360" height="480" rx="16" fill="%23ffffff" stroke="%23cbd5e1" stroke-width="2"/><rect width="360" height="70" rx="16" fill="%23005baa"/><text x="180" y="44" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="%23ffffff" text-anchor="middle">m-Transfer BCA</text><circle cx="180" cy="115" r="26" fill="%23ecfdf5"/><path d="M170 115 l7 7 l14 -14" stroke="%23059669" stroke-width="3" fill="none" stroke-linecap="round"/><text x="180" y="155" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="%23059669" text-anchor="middle">TRANSFER BERHASIL</text><text x="180" y="175" font-family="Arial, sans-serif" font-size="11" fill="%2364748b" text-anchor="middle">20 Sep 2026 - 14:22:10 WIB</text><line x1="30" y1="195" x2="330" y2="195" stroke="%23e2e8f0" stroke-dasharray="4 4"/><text x="35" y="225" font-family="Arial, sans-serif" font-size="12" fill="%2364748b">No. Referensi</text><text x="325" y="225" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="%231e293b" text-anchor="end">202609201422891</text><text x="35" y="255" font-family="Arial, sans-serif" font-size="12" fill="%2364748b">Tujuan</text><text x="325" y="255" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="%231e293b" text-anchor="end">BCA 8735019283</text><text x="325" y="272" font-family="Arial, sans-serif" font-size="11" fill="%23005baa" text-anchor="end">PT PUTRA WISANGGENI SATU/text><text x="35" y="305" font-family="Arial, sans-serif" font-size="12" fill="%2364748b">Nominal Transfer</text><text x="325" y="305" font-family="Arial, sans-serif" font-size="15" font-weight="bold" fill="%230f172a" text-anchor="end">Rp 250.000,00</text><text x="35" y="335" font-family="Arial, sans-serif" font-size="12" fill="%2364748b">Berita / Catatan</text><text x="325" y="335" font-family="Arial, sans-serif" font-size="12" fill="%23334155" text-anchor="end">Paket Basic Toko ABC</text><line x1="30" y1="365" x2="330" y2="365" stroke="%23e2e8f0"/><text x="180" y="400" font-family="Arial, sans-serif" font-size="10" fill="%2394a3b8" text-anchor="middle">Simpan bukti transaksi ini sebagai bukti transfer yang sah.</text><text x="180" y="445" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="%23005baa" text-anchor="middle">IKIKASIR Official Payment</text></svg>'
+export const SAMPLE_RECEIPT_BCA = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="360" height="480" viewBox="0 0 360 480"><rect width="360" height="480" rx="16" fill="%23ffffff" stroke="%23cbd5e1" stroke-width="2"/><rect width="360" height="70" rx="16" fill="%23005baa"/><text x="180" y="44" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="%23ffffff" text-anchor="middle">m-Transfer BCA</text><circle cx="180" cy="115" r="26" fill="%23ecfdf5"/><path d="M170 115 l7 7 l14 -14" stroke="%23059669" stroke-width="3" fill="none" stroke-linecap="round"/><text x="180" y="155" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="%23059669" text-anchor="middle">TRANSFER BERHASIL</text><text x="180" y="175" font-family="Arial, sans-serif" font-size="11" fill="%2364748b" text-anchor="middle">20 Sep 2026 - 14:22:10 WIB</text><line x1="30" y1="195" x2="330" y2="195" stroke="%23e2e8f0" stroke-dasharray="4 4"/><text x="35" y="225" font-family="Arial, sans-serif" font-size="12" fill="%2364748b">No. Referensi</text><text x="325" y="225" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="%231e293b" text-anchor="end">202609201422891</text><text x="35" y="255" font-family="Arial, sans-serif" font-size="12" fill="%2364748b">Tujuan</text><text x="325" y="255" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="%231e293b" text-anchor="end">BCA 8735019283</text><text x="325" y="272" font-family="Arial, sans-serif" font-size="11" fill="%23005baa" text-anchor="end">PT PUTRA WISANGGENI SATU</text><text x="35" y="305" font-family="Arial, sans-serif" font-size="12" fill="%2364748b">Nominal Transfer</text><text x="325" y="305" font-family="Arial, sans-serif" font-size="15" font-weight="bold" fill="%230f172a" text-anchor="end">Rp 250.000,00</text><text x="35" y="335" font-family="Arial, sans-serif" font-size="12" fill="%2364748b">Berita / Catatan</text><text x="325" y="335" font-family="Arial, sans-serif" font-size="12" fill="%23334155" text-anchor="end">Paket Basic Toko ABC</text><line x1="30" y1="365" x2="330" y2="365" stroke="%23e2e8f0"/><text x="180" y="400" font-family="Arial, sans-serif" font-size="10" fill="%2394a3b8" text-anchor="middle">Simpan bukti transaksi ini sebagai bukti transfer yang sah.</text><text x="180" y="445" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="%23005baa" text-anchor="middle">IKIKASIR Official Payment</text></svg>'
 
 export const SAMPLE_RECEIPT_QRIS = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="360" height="480" viewBox="0 0 360 480"><rect width="360" height="480" rx="16" fill="%23ffffff" stroke="%23cbd5e1" stroke-width="2"/><rect width="360" height="70" rx="16" fill="%23dc2626"/><text x="180" y="44" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="%23ffffff" text-anchor="middle">QRIS Pembayaran Sukses</text><circle cx="180" cy="115" r="26" fill="%23ecfdf5"/><path d="M170 115 l7 7 l14 -14" stroke="%23059669" stroke-width="3" fill="none" stroke-linecap="round"/><text x="180" y="155" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="%23059669" text-anchor="middle">TRANSAKSI BERHASIL</text><text x="180" y="175" font-family="Arial, sans-serif" font-size="11" fill="%2364748b" text-anchor="middle">21 Sep 2026 - 09:15:33 WIB</text><line x1="30" y1="195" x2="330" y2="195" stroke="%23e2e8f0" stroke-dasharray="4 4"/><text x="35" y="225" font-family="Arial, sans-serif" font-size="12" fill="%2364748b">Merchant</text><text x="325" y="225" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="%231e293b" text-anchor="end">IKI KASIR - PT PUNDI MAS</text><text x="35" y="255" font-family="Arial, sans-serif" font-size="12" fill="%2364748b">NMID</text><text x="325" y="255" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="%231e293b" text-anchor="end">ID1020091823901</text><text x="35" y="285" font-family="Arial, sans-serif" font-size="12" fill="%2364748b">ID Transaksi</text><text x="325" y="285" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="%23dc2626" text-anchor="end">QRIS-20260921-8819</text><text x="35" y="315" font-family="Arial, sans-serif" font-size="12" fill="%2364748b">Total Bayar</text><text x="325" y="315" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="%230f172a" text-anchor="end">Rp 500.000,00</text><line x1="30" y1="345" x2="330" y2="345" stroke="%23e2e8f0"/><text x="180" y="390" font-family="Arial, sans-serif" font-size="11" fill="%23475569" text-anchor="middle">Paket Pro POS IKI KASIR (1 Bulan)</text><text x="180" y="445" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="%23dc2626" text-anchor="middle">STANDAR PEMBAYARAN NASIONAL</text></svg>'
 
@@ -521,8 +522,159 @@ function saveStorage(key: string, data: any) {
 }
 
 
+// ==========================================
+// BACKEND DATA MAPPERS & SYNC ENGINE
+// ==========================================
+function mapBackendLeadToFrontend(b: any, index: number): ClientLead {
+  const regDate = b.registrationDate
+    ? new Date(b.registrationDate).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })
+    : (b.registration_date || 'Hari ini')
+  const lastFU = b.lastFollowUp
+    ? new Date(b.lastFollowUp).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })
+    : regDate
+
+  return {
+    id: b.id,
+    registration_id: b.id,
+    no: index + 1,
+    name: b.name || '',
+    nama_lengkap: b.name || '',
+    businessName: b.businessName || '',
+    nama_bisnis: b.businessName || '',
+    businessCategory: b.businessCategory || 'Retail',
+    kategori_bisnis: b.businessCategory || 'Retail',
+    phone: b.phone || '',
+    whatsapp: b.phone || '',
+    email: b.email || '',
+    address: b.address || '',
+    status: (b.status || 'New') as LeadStatus,
+    source: (b.source || 'Website') as LeadSource,
+    registrationDate: regDate,
+    tanggal_pendaftaran: regDate,
+    lastFollowUp: lastFU,
+    packageInterest: b.packageInterest || 'Basic',
+    paket: b.packageInterest || 'Basic',
+    harga_paket: b.packagePrice ?? 250000,
+    estimatedDeal: b.estimatedDeal ?? 250000,
+    notes: b.notes || '',
+    followUpSchedule: b.followUpSchedule || 'Hari ini',
+    created_at: b.createdAt ? new Date(b.createdAt).toISOString() : new Date().toISOString(),
+    updated_at: b.updatedAt ? new Date(b.updatedAt).toISOString() : new Date().toISOString(),
+    paymentProofUrl: b.paymentProofUrl || undefined,
+    paymentStatus: b.paymentStatus || 'none',
+    paymentAmount: b.paymentAmount ?? 0,
+    paymentMethod: b.paymentMethod || undefined,
+    paymentNotes: b.paymentNotes || undefined,
+    paymentDate: b.paymentDate || undefined,
+    paymentVerifiedAt: b.paymentVerifiedAt || undefined,
+    paymentVerifiedBy: b.paymentVerifiedBy || undefined,
+    technicianStatus: b.technicianStatus || undefined,
+    technicianAssignedTo: b.technicianAssignedTo || undefined,
+    appUsername: b.appUsername || undefined,
+    appPassword: b.appPassword || undefined,
+    appDownloadUrl: b.appDownloadUrl || undefined,
+    guideBookUrl: b.guideBookUrl || undefined,
+    rentalAgreementNumber: b.rentalAgreementNumber || undefined,
+    rentalAgreementDate: b.rentalAgreementDate || undefined,
+    emailIssueReported: Boolean(b.emailIssueReported),
+    emailIssueNotes: b.emailIssueNotes || undefined,
+    setupCompletedAt: b.setupCompletedAt || undefined,
+    appExpiredDate: b.appExpiredDate || undefined,
+    referralCode: b.referralCode || undefined,
+    referredByCustomerId: b.referredByCustomerId || undefined,
+    referredByCustomerName: b.referredByCustomerName || undefined,
+    referredByBusinessName: b.referredByBusinessName || undefined,
+    followUpHistory: Array.isArray(b.followUps) && b.followUps.length > 0
+      ? b.followUps.map((fu: any) => ({
+          id: fu.id,
+          date: fu.date || (fu.createdAt ? new Date(fu.createdAt).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Hari ini'),
+          time: fu.time || '12:00',
+          channel: fu.channel || 'Sistem',
+          notes: fu.notes || ''
+        }))
+      : []
+  }
+}
+
+function mapBackendCustomerToFrontend(c: any, index: number): Customer {
+  return {
+    id: c.id,
+    no: index + 1,
+    name: c.name,
+    businessName: c.businessName || '',
+    packageType: (c.packageName || 'Basic') as PackageType,
+    phone: c.phone || '',
+    email: c.email || '',
+    category: c.address || 'Retail',
+    expiredDate: c.expiresAt ? c.expiresAt.substring(0, 10) : new Date().toISOString().substring(0, 10),
+    status: c.computedStatus === 'EXPIRED' ? 'expired' : 'active',
+    amount: c.packagePrice || 250000,
+    paymentMethod: 'QRIS',
+    notes: c.notes || undefined
+  }
+}
+
+function mapBackendPackageToFrontend(p: any): PricingPackage {
+  const isConsultation = p.name === 'Custom / IT One' || p.price === 0
+  const feats = Array.isArray(p.features)
+    ? p.features
+    : (typeof p.features === 'string' ? p.features.split('\n').filter(Boolean) : [])
+
+  return {
+    id: p.id,
+    name: p.name,
+    description: p.description || '',
+    cardSub: p.description || '',
+    isConsultation,
+    price: p.price ?? 0,
+    period: p.period || '/bulan',
+    features: feats,
+    isActive: p.isActive ?? true
+  }
+}
+
+const isSyncing = ref(false)
+const syncError = ref<string | null>(null)
+
+async function syncWithBackend() {
+  if (isSyncing.value) return
+  isSyncing.value = true
+  syncError.value = null
+
+  try {
+    const [leadsRes, custsRes, pkgsRes] = await Promise.allSettled([
+      leadsApi.getAll(),
+      customersApi.getAll(),
+      packagesApi.getAll()
+    ])
+
+    if (leadsRes.status === 'fulfilled' && Array.isArray(leadsRes.value.data) && leadsRes.value.data.length > 0) {
+      leads.value = leadsRes.value.data.map(mapBackendLeadToFrontend)
+      saveStorage(STORAGE_KEY_LEADS, leads.value)
+    }
+
+    if (custsRes.status === 'fulfilled' && Array.isArray(custsRes.value.data) && custsRes.value.data.length > 0) {
+      customers.value = custsRes.value.data.map(mapBackendCustomerToFrontend)
+      saveStorage(STORAGE_KEY_CUSTOMERS, customers.value)
+    }
+
+    if (pkgsRes.status === 'fulfilled' && Array.isArray(pkgsRes.value.data) && pkgsRes.value.data.length > 0) {
+      packages.value = pkgsRes.value.data.map(mapBackendPackageToFrontend)
+      saveStorage(STORAGE_KEY_PACKAGES, packages.value)
+    }
+  } catch (err: any) {
+    syncError.value = err?.message || 'Gagal sinkronisasi data backend'
+    console.warn('syncWithBackend warning:', err)
+  } finally {
+    isSyncing.value = false
+  }
+}
+
 // Initial load
 loadAllFromStorage()
+if (typeof window !== 'undefined') {
+  syncWithBackend()
+}
 
 export function useAppData() {
 
@@ -735,6 +887,36 @@ export function useAppData() {
 
     leads.value.unshift(newLead)
     saveStorage(STORAGE_KEY_LEADS, leads.value)
+
+    // Sync to backend in background
+    leadsApi.create({
+      name: newLead.name,
+      businessName: newLead.businessName,
+      businessCategory: newLead.businessCategory,
+      phone: newLead.phone,
+      email: newLead.email,
+      address: newLead.address,
+      status: newLead.status,
+      source: newLead.source,
+      packageInterest: newLead.packageInterest,
+      packagePrice: newLead.harga_paket,
+      estimatedDeal: newLead.estimatedDeal,
+      notes: newLead.notes,
+      followUpSchedule: newLead.followUpSchedule,
+      referralCode: newLead.referralCode,
+      referredByCustomerId: newLead.referredByCustomerId,
+      referredByCustomerName: newLead.referredByCustomerName,
+      referredByBusinessName: newLead.referredByBusinessName
+    }).then(res => {
+      if (res.data?.id) {
+        newLead.id = res.data.id
+        newLead.registration_id = res.data.id
+        saveStorage(STORAGE_KEY_LEADS, leads.value)
+      }
+    }).catch(err => {
+      console.warn('Backend leadsApi.create warning:', err)
+    })
+
     return newLead
   }
 
@@ -754,6 +936,11 @@ export function useAppData() {
         notes: `Status pendaftaran diubah menjadi: ${newStatus}`
       })
       saveStorage(STORAGE_KEY_LEADS, leads.value)
+
+      // Sync status to backend
+      leadsApi.updateStatus(id, newStatus).catch(err => {
+        console.warn('Backend leadsApi.updateStatus warning:', err)
+      })
     }
   }
 
@@ -858,6 +1045,16 @@ export function useAppData() {
     invoices.value.unshift(newInvoice)
     saveStorage(STORAGE_KEY_INVOICES, invoices.value)
 
+    // Sync approval to backend (which converts Lead into Customer in DB)
+    leadsApi.approve(leadId, {
+      amount: finalAmount,
+      paymentMethod: finalMethod,
+      paymentProofUrl: finalProof,
+      notes: paymentData?.notes
+    }).catch(err => {
+      console.warn('Backend leadsApi.approve warning:', err)
+    })
+
     return targetCustomer
   }
 
@@ -867,6 +1064,20 @@ export function useAppData() {
     if (idx !== -1) {
       leads.value[idx] = { ...updatedLead, updated_at: new Date().toISOString() }
       saveStorage(STORAGE_KEY_LEADS, leads.value)
+
+      // Sync to backend
+      leadsApi.update(updatedLead.id, {
+        name: updatedLead.name,
+        businessName: updatedLead.businessName,
+        phone: updatedLead.phone,
+        email: updatedLead.email,
+        address: updatedLead.address,
+        status: updatedLead.status,
+        packageInterest: updatedLead.packageInterest,
+        notes: updatedLead.notes
+      }).catch(err => {
+        console.warn('Backend leadsApi.update warning:', err)
+      })
     }
   }
 
@@ -886,6 +1097,11 @@ export function useAppData() {
         notes: notes
       })
       saveStorage(STORAGE_KEY_LEADS, leads.value)
+
+      // Sync follow up log to backend
+      leadsApi.addFollowUp(clientId, { notes, channel }).catch(err => {
+        console.warn('Backend leadsApi.addFollowUp warning:', err)
+      })
     }
   }
 
@@ -903,6 +1119,11 @@ export function useAppData() {
         notes: 'Pendaftaran ditolak oleh Super Admin.'
       })
       saveStorage(STORAGE_KEY_LEADS, leads.value)
+
+      // Sync reject to backend
+      leadsApi.reject(leadId, 'Pendaftaran ditolak oleh Super Admin.').catch(err => {
+        console.warn('Backend leadsApi.reject warning:', err)
+      })
     }
   }
 
@@ -910,6 +1131,11 @@ export function useAppData() {
   const deleteLead = (id: string) => {
     leads.value = leads.value.filter(l => l.id !== id)
     saveStorage(STORAGE_KEY_LEADS, leads.value)
+
+    // Sync delete to backend
+    leadsApi.delete(id).catch(err => {
+      console.warn('Backend leadsApi.delete warning:', err)
+    })
   }
 
   // ==========================================
@@ -994,6 +1220,15 @@ export function useAppData() {
       customer.status = 'active'
 
       saveStorage(STORAGE_KEY_CUSTOMERS, customers.value)
+
+      // Sync renewal to backend
+      customersApi.renew(customer.id, {
+        billingCycleMonths: data.billingCycleMonths,
+        paymentMethod: data.paymentMethod,
+        customAmount: totalAmount
+      }).catch(err => {
+        console.warn('Backend customersApi.renew warning:', err)
+      })
     }
 
     return newInvoice
@@ -1448,6 +1683,23 @@ export function useAppData() {
     const newPackage: PricingPackage = { ...pkg, id: 'pkg-' + Date.now() }
     packages.value.push(newPackage)
     saveStorage(STORAGE_KEY_PACKAGES, packages.value)
+
+    packagesApi.create({
+      name: pkg.name,
+      price: pkg.price,
+      period: pkg.period || '/bulan',
+      features: pkg.features,
+      description: pkg.description || pkg.cardSub,
+      isActive: pkg.isActive
+    }).then(res => {
+      if (res.data?.id) {
+        newPackage.id = res.data.id
+        saveStorage(STORAGE_KEY_PACKAGES, packages.value)
+      }
+    }).catch(err => {
+      console.warn('Backend packagesApi.create warning:', err)
+    })
+
     return newPackage
   }
 
@@ -1456,12 +1708,27 @@ export function useAppData() {
     if (idx !== -1) {
       packages.value[idx] = { ...updatedPkg }
       saveStorage(STORAGE_KEY_PACKAGES, packages.value)
+
+      packagesApi.update(updatedPkg.id, {
+        name: updatedPkg.name,
+        price: updatedPkg.price,
+        period: updatedPkg.period,
+        features: updatedPkg.features,
+        description: updatedPkg.description || updatedPkg.cardSub,
+        isActive: updatedPkg.isActive
+      }).catch(err => {
+        console.warn('Backend packagesApi.update warning:', err)
+      })
     }
   }
 
   const deletePackage = (id: string) => {
     packages.value = packages.value.filter(p => p.id !== id)
     saveStorage(STORAGE_KEY_PACKAGES, packages.value)
+
+    packagesApi.delete(id).catch(err => {
+      console.warn('Backend packagesApi.delete warning:', err)
+    })
   }
 
   const togglePackageActive = (id: string) => {
@@ -1469,6 +1736,10 @@ export function useAppData() {
     if (pkg) {
       pkg.isActive = !pkg.isActive
       saveStorage(STORAGE_KEY_PACKAGES, packages.value)
+
+      packagesApi.toggleStatus(id).catch(err => {
+        console.warn('Backend packagesApi.toggleStatus warning:', err)
+      })
     }
   }
 
@@ -1485,6 +1756,9 @@ export function useAppData() {
     expiredCustomers,
     expiringCustomers,
     statistics,
+    isSyncing,
+    syncError,
+    syncWithBackend,
     setRole,
     addNotification,
     markNotificationRead,
