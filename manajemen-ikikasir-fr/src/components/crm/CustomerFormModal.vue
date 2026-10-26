@@ -276,7 +276,7 @@ const handleSubmit = () => {
         if (res.data?.id) {
           savedCustomer.id = res.data.id
           if (typeof localStorage !== 'undefined') {
-            localStorage.setItem('ikikasir_customers', JSON.stringify(customers.value))
+            localStorage.setItem('ikikasir_customers_v4', JSON.stringify(customers.value))
           }
         }
       }).catch(err => console.warn('Backend customersApi.create warning:', err))
@@ -300,8 +300,8 @@ const handleSubmit = () => {
     }
 
     if (typeof localStorage !== 'undefined') {
-      localStorage.setItem('ikikasir_customers', JSON.stringify(customers.value))
-      localStorage.setItem('ikikasir_invoices', JSON.stringify(invoices.value))
+      localStorage.setItem('ikikasir_customers_v4', JSON.stringify(customers.value))
+      localStorage.setItem('ikikasir_invoices_v4', JSON.stringify(invoices.value))
     }
 
     emit('saved', savedCustomer)

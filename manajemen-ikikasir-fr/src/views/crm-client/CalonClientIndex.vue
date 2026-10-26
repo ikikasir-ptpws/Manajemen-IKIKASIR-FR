@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { 
   Plus, 
@@ -64,10 +64,15 @@ const {
   financeQueue,
   confirmPaymentByFinance,
   rejectPaymentByFinance,
+  syncWithBackend,
   SAMPLE_RECEIPT_BCA,
   SAMPLE_RECEIPT_QRIS,
   getCustomerWaUrl
 } = useAppData()
+
+onMounted(() => {
+  syncWithBackend(true)
+})
 
 // Modals state
 const isFormModalOpen = ref(false)

@@ -33,6 +33,7 @@ const {
   statistics,
   expiringCustomers: rawExpiring,
   expiredCustomers: rawExpired,
+  syncWithBackend,
 } = useAppData();
 
 // State for Modals
@@ -56,6 +57,7 @@ const closeAllDropdowns = (e: MouseEvent) => {
 
 onMounted(() => {
   document.addEventListener("click", closeAllDropdowns);
+  syncWithBackend(true);
 });
 onUnmounted(() => {
   document.removeEventListener("click", closeAllDropdowns);

@@ -19,9 +19,72 @@ export class LeadUseCases {
     private packageRepository?: IPackageRepository
   ) {}
 
+  private async resolvePackage(packageId?: string | null, packageInterest?: string | null): Promise<{ packageId: string | null; packageName: string; packagePrice: number }> {
+    let finalId = packageId ?? null;
+    let finalName = packageInterest || 'Basic';
+    let finalPrice = 250000;
+
+    if (!this.packageRepository) {
+      return { packageId: finalId, packageName: finalName, packagePrice: finalPrice };
+    }
+
+    try {
+      const allPkgs = await this.packageRepository.findAll();
+      if (finalId) {
+        const found = allPkgs.find(p => p.id === finalId);
+        if (found) {
+          return { packageId: found.id, packageName: found.name, packagePrice: found.price };
+        }
+      }
+
+      // Lookup by package name if packageId not found or not given
+      if (finalName) {
+        const query = finalName.toLowerCase().trim();
+        const found = allPkgs.find(p => {
+          const pName = p.name.toLowerCase().trim();
+          return pName === query || query.includes(pName) || pName.includes(query);
+        });
+        if (found) {
+          return { packageId: found.id, packageName: found.name, packagePrice: found.price };
+        }
+      }
+    } catch (e) {
+      console.warn('resolvePackage error:', e);
+    }
+
+    return { packageId: finalId, packageName: finalName, packagePrice: finalPrice };
+  }
+
   public async getAllLeads(filter?: LeadFilter): Promise<any[]> {
     const leads = await this.leadRepository.findAll(filter);
-    return leads.map(l => l.toJSON());
+
+    let packagesCache: any[] | null = null;
+    if (this.packageRepository) {
+      try {
+        packagesCache = await this.packageRepository.findAll();
+      } catch {
+        packagesCache = null;
+      }
+    }
+
+    return leads.map(l => {
+      const json = l.toJSON();
+      if (!json.packageId && packagesCache && json.packageInterest) {
+        const q = json.packageInterest.toLowerCase().trim();
+        const found = packagesCache.find(p => {
+          const pName = p.name.toLowerCase().trim();
+          return pName === q || q.includes(pName) || pName.includes(q);
+        });
+        if (found) {
+          json.packageId = found.id;
+          json.packageName = found.name;
+          json.packagePrice = found.price;
+          // Perbarui di database agar tersimpan permanen
+          this.leadRepository.update(l.id, { packageId: found.id }).catch(() => {});
+        }
+      }
+      return json;
+    });
   }
 
   public async getLeadById(id: string): Promise<any> {
@@ -29,7 +92,24 @@ export class LeadUseCases {
     if (!lead) {
       throw new NotFoundError(`Calon client dengan ID '${id}' tidak ditemukan.`);
     }
-    return lead.toJSON();
+    const json = lead.toJSON();
+    if (!json.packageId && this.packageRepository && json.packageInterest) {
+      try {
+        const allPkgs = await this.packageRepository.findAll();
+        const q = json.packageInterest.toLowerCase().trim();
+        const found = allPkgs.find(p => {
+          const pName = p.name.toLowerCase().trim();
+          return pName === q || q.includes(pName) || pName.includes(q);
+        });
+        if (found) {
+          json.packageId = found.id;
+          json.packageName = found.name;
+          json.packagePrice = found.price;
+          this.leadRepository.update(lead.id, { packageId: found.id }).catch(() => {});
+        }
+      } catch {}
+    }
+    return json;
   }
 
   public async getStatistics(): Promise<LeadStatistics> {
@@ -53,27 +133,23 @@ export class LeadUseCases {
       throw new BadRequestError('Email calon client wajib diisi.');
     }
 
-    // Ambil harga paket jika ada packageId
-    let packageId = dto.packageId;
-    let packageName = dto.packageInterest || 'Basic';
-    let packagePrice = dto.estimatedDeal || 250000;
-
-    if (packageId && this.packageRepository) {
-      const pkg = await this.packageRepository.findById(packageId);
-      if (pkg) {
-        packageName = pkg.name;
-        packagePrice = pkg.price;
-      }
-    }
+    // Ambil packageId & harga paket dari packageRepository
+    const pkgInfo = await this.resolvePackage(dto.packageId, dto.packageInterest);
+    const estimatedDeal = dto.estimatedDeal && dto.estimatedDeal > 0 ? dto.estimatedDeal : pkgInfo.packagePrice;
 
     const newLead = await this.leadRepository.create({
       ...dto,
-      packageId,
-      packageInterest: packageName,
-      estimatedDeal: packagePrice,
+      packageId: pkgInfo.packageId,
+      packageInterest: pkgInfo.packageName,
+      estimatedDeal: estimatedDeal,
     });
 
-    return newLead.toJSON();
+    const json = newLead.toJSON();
+    json.packageId = pkgInfo.packageId ?? json.packageId;
+    json.packageName = pkgInfo.packageName ?? json.packageName;
+    json.packagePrice = pkgInfo.packagePrice ?? json.packagePrice;
+
+    return json;
   }
 
   public async updateLead(id: string, dto: UpdateLeadDto): Promise<any> {
@@ -82,12 +158,24 @@ export class LeadUseCases {
       throw new NotFoundError(`Calon client dengan ID '${id}' tidak ditemukan.`);
     }
 
+    let pkgInfo: { packageId: string | null; packageName: string; packagePrice: number } | null = null;
+    if (dto.packageId || dto.packageInterest) {
+      pkgInfo = await this.resolvePackage(dto.packageId ?? existing.packageId, dto.packageInterest ?? existing.packageInterest);
+    }
+
     const updated = await this.leadRepository.update(id, {
       ...dto,
+      packageId: pkgInfo ? pkgInfo.packageId : dto.packageId,
+      packageInterest: pkgInfo ? pkgInfo.packageName : dto.packageInterest,
+      estimatedDeal: dto.estimatedDeal ?? (pkgInfo ? pkgInfo.packagePrice : undefined),
       paymentDate: dto.paymentDate ? new Date(dto.paymentDate) : undefined,
     });
 
-    return updated.toJSON();
+    const json = updated.toJSON();
+    if (pkgInfo && pkgInfo.packageId && !json.packageId) {
+      json.packageId = pkgInfo.packageId;
+    }
+    return json;
   }
 
   public async updateLeadStatus(id: string, dto: UpdateLeadStatusDto): Promise<any> {

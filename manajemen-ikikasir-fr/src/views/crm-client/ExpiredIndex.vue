@@ -8,14 +8,18 @@ import {
   ShieldCheck,
   X,
 } from "lucide-vue-next";
-import { computed, ref, watch } from "vue";
+import { computed, ref, watch, onMounted } from "vue";
 import { getCustomerWaUrl, useAppData } from "../../composables/useAppData";
 import { usePagination } from "../../composables/usePagination";
 import GlobalPagination from "../../components/common/GlobalPagination.vue";
 import DateRangePicker from "../../components/common/DateRangePicker.vue";
 import type { PackageType } from "../../types/dashboard";
 
-const { expiredCustomers, renewCustomerSubscription } = useAppData();
+const { expiredCustomers, renewCustomerSubscription, syncWithBackend } = useAppData();
+
+onMounted(() => {
+  syncWithBackend(true);
+});
 
 const searchQuery = ref("");
 const startDate = ref("");

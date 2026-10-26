@@ -97,6 +97,9 @@ async function request<T = any>(endpoint: string, options: RequestOptions = {}):
     }
 
     if (!response.ok) {
+      if (response.status === 401) {
+        tokenStorage.remove();
+      }
       const errorMessage = resData?.message || `Request gagal dengan status ${response.status}`;
       throw new HttpError(errorMessage, response.status, resData);
     }

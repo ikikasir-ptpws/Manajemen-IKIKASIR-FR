@@ -1,12 +1,16 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { Receipt, Search, Download, CheckCircle2, XCircle, Clock, Eye, X, ChevronDown, Filter, Check, FileText } from 'lucide-vue-next'
 import { useAppData } from '../../composables/useAppData'
 import { usePagination } from '../../composables/usePagination'
 import GlobalPagination from '../../components/common/GlobalPagination.vue'
 import DateRangePicker from '../../components/common/DateRangePicker.vue'
 
-const { invoices, markInvoicePaid } = useAppData()
+const { invoices, markInvoicePaid, syncWithBackend } = useAppData()
+
+onMounted(() => {
+  syncWithBackend(true)
+})
 
 const searchQuery = ref('')
 const filterStatus = ref('Semua')

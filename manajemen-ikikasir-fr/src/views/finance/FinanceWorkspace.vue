@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { 
   CheckCircle2, 
   XCircle, 
@@ -38,8 +38,13 @@ const {
   rejectPaymentByFinance, 
   currentRole,
   setRole,
-  getCustomerWaUrl
+  getCustomerWaUrl,
+  syncWithBackend
 } = useAppData()
+
+onMounted(() => {
+  syncWithBackend(true)
+})
 
 // State
 const searchQuery = ref('')

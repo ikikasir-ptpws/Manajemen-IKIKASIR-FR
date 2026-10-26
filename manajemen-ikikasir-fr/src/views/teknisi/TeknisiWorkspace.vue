@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { 
   Wrench, 
   Clock, 
@@ -38,8 +38,13 @@ const {
   reportEmailIssue, 
   resolveEmailIssue, 
   completeTechnicianSetup,
-  getCustomerWaUrl
+  getCustomerWaUrl,
+  syncWithBackend
 } = useAppData()
+
+onMounted(() => {
+  syncWithBackend(true)
+})
 
 // State
 const searchQuery = ref('')

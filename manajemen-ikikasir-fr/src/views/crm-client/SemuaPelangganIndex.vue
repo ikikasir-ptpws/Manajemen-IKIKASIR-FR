@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { 
   Users, 
   Search, 
@@ -12,36 +12,36 @@ import {
   Filter, 
   X, 
   ChevronDown, 
-  Wrench,
-  Key,
-  Download,
-  BookOpen,
-  FileText,
-  CheckCircle2,
-  AlertTriangle,
-  Mail,
-  Phone,
-  ExternalLink,
-  Copy,
-  Sparkles,
-  RefreshCw,
-  CheckCheck,
-  Clock,
-  ArrowRight,
-  MessageSquare,
-  RotateCcw,
-  Store,
-  CreditCard,
-  Calendar,
-  Check,
-  EyeOff,
-  ZoomIn,
-  Receipt,
-  User,
-  AlertCircle,
-  Building2,
-  ChevronRight,
-  Share2
+  Wrench, 
+  Key, 
+  Download, 
+  BookOpen, 
+  FileText, 
+  CheckCircle2, 
+  AlertTriangle, 
+  Mail, 
+  Phone, 
+  ExternalLink, 
+  Copy, 
+  Sparkles, 
+  RefreshCw, 
+  CheckCheck, 
+  Clock, 
+  ArrowRight, 
+  MessageSquare, 
+  RotateCcw, 
+  Store, 
+  CreditCard, 
+  Calendar, 
+  Check, 
+  EyeOff, 
+  ZoomIn, 
+  Receipt, 
+  User, 
+  AlertCircle, 
+  Building2, 
+  ChevronRight, 
+  Share2 
 } from 'lucide-vue-next'
 import RentalAgreementModal from '../../components/RentalAgreementModal.vue'
 import GlobalPagination from '../../components/common/GlobalPagination.vue'
@@ -50,21 +50,27 @@ import {
   useAppData, 
   SAMPLE_RECEIPT_BCA, 
   SAMPLE_RECEIPT_QRIS, 
-  getCustomerWaUrl,
-  getOrCreateCustomerReferralCode
+  getCustomerWaUrl, 
+  getOrCreateCustomerReferralCode 
 } from '../../composables/useAppData'
 
 const { 
   customers, 
-  leads,
-  invoices,
+  leads, 
+  invoices, 
   technicianQueue, 
-  getComputedCustomerStatus,
-  startTechnicianSetup,
-  reportEmailIssue,
-  resolveEmailIssue,
-  completeTechnicianSetup
+  getComputedCustomerStatus, 
+  startTechnicianSetup, 
+  reportEmailIssue, 
+  resolveEmailIssue, 
+  completeTechnicianSetup,
+  syncWithBackend,
+  isSyncing
 } = useAppData()
+
+onMounted(() => {
+  syncWithBackend(true)
+})
 
 // Toast state
 const toastMessage = ref<string | null>(null)
@@ -323,8 +329,11 @@ const confirmDelete = (cust: any) => {
 }
 
 const deleteCustomer = () => {
-  customers.value = customers.value.filter(c => c.id !== selectedCustomer.value.id)
-  showToast(`Pelanggan "${selectedCustomer.value.name}" berhasil dihapus!`)
+  if (!selectedCustomer.value) return
+  const cust = selectedCustomer.value
+  customers.value = customers.value.filter(c => c.id !== cust.id)
+  customersApi.delete(cust.id).catch(err => console.warn('Backend customersApi.delete warning:', err))
+  showToast(`Pelanggan "${cust.name}" berhasil dihapus!`)
   showDeleteConfirm.value = false
   selectedCustomer.value = null
 }
@@ -387,8 +396,8 @@ const saveSetupStatus = () => {
   }
 
   if (typeof localStorage !== 'undefined') {
-    localStorage.setItem('ikikasir_customers', JSON.stringify(customers.value))
-    if (leads.value) localStorage.setItem('ikikasir_leads', JSON.stringify(leads.value))
+    localStorage.setItem('ikikasir_customers_v4', JSON.stringify(customers.value))
+    if (leads.value) localStorage.setItem('ikikasir_leads_v4', JSON.stringify(leads.value))
   }
 
   const statusLabel = isIssue 
@@ -590,6 +599,17 @@ const openAgreementPreview = (user?: any) => {
         >
           <RotateCcw class="w-3.5 h-3.5" />
           <span class="hidden sm:inline">Reset</span>
+        </button>
+
+        <!-- Sinkronkan Data Backend Button -->
+        <button 
+          @click="syncWithBackend(true)"
+          :disabled="isSyncing"
+          class="flex items-center justify-center gap-1.5 px-3 py-2 sm:py-2.5 rounded-xl border border-indigo-200 bg-indigo-50/50 text-indigo-600 hover:bg-indigo-100/60 font-semibold transition-colors cursor-pointer shadow-2xs disabled:opacity-50"
+          title="Sinkronkan dengan Database Backend"
+        >
+          <RefreshCw class="w-3.5 h-3.5" :class="isSyncing ? 'animate-spin' : ''" />
+          <span class="hidden sm:inline">{{ isSyncing ? 'Menyinkronkan...' : 'Sinkronkan' }}</span>
         </button>
       </div>
     </div>

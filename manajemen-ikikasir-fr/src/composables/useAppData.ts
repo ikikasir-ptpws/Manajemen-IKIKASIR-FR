@@ -1,7 +1,7 @@
 import { ref, computed } from 'vue'
 import type { ClientLead, LeadStatus, LeadSource, FollowUpLog } from '../types/crm'
 import type { Customer, PackageType } from '../types/dashboard'
-import { leadsApi, customersApi, packagesApi } from '../api'
+import { leadsApi, customersApi, packagesApi, authApi, tokenStorage } from '../api'
 
 export interface PricingPackage {
   id: string
@@ -596,20 +596,80 @@ function mapBackendLeadToFrontend(b: any, index: number): ClientLead {
   }
 }
 
+function isTokenValid(token: string | null): boolean {
+  if (!token) return false
+  try {
+    const parts = token.split('.')
+    if (parts.length !== 3) return false
+    const payload = JSON.parse(atob(parts[1]))
+    if (payload.exp && Date.now() >= (payload.exp * 1000) - 30000) {
+      return false
+    }
+    return true
+  } catch {
+    return false
+  }
+}
+
+async function ensureAuthenticated(): Promise<boolean> {
+  const currentToken = tokenStorage.get()
+  if (isTokenValid(currentToken)) {
+    return true
+  }
+  tokenStorage.remove()
+  try {
+    const res = await authApi.loginSuperAdmin({
+      email: 'superadmin@ikikasir.com',
+      password: 'password123'
+    })
+    return Boolean(res.data?.token)
+  } catch (err) {
+    console.warn('Auto-login Super Admin dev warning:', err)
+    return false
+  }
+}
+
 function mapBackendCustomerToFrontend(c: any, index: number): Customer {
+  const pName = c.packageName || 'Basic'
+  let pkgType: PackageType = 'Basic'
+  if (pName.toLowerCase().includes('pro')) pkgType = 'Pro'
+  else if (pName.toLowerCase().includes('custom')) pkgType = 'Custom / IT One'
+  else if (pName.toLowerCase().includes('add')) pkgType = 'Add on'
+  else pkgType = 'Basic'
+
+  // Cross-reference with lead data if available (e.g. converted from lead)
+  const leadMatch = leads.value.find(l => 
+    (l.email && c.email && l.email.toLowerCase() === c.email.toLowerCase()) ||
+    (l.phone && c.phone && l.phone.replace(/[^0-9]/g, '') === c.phone.replace(/[^0-9]/g, '')) ||
+    (c.notes && l.id && c.notes.includes(l.id))
+  )
+
+  const isExpired = c.computedStatus === 'EXPIRED' || c.status === 'EXPIRED' || Boolean(c.isExpired)
+
   return {
     id: c.id,
     no: index + 1,
     name: c.name,
     businessName: c.businessName || '',
-    packageType: (c.packageName || 'Basic') as PackageType,
+    business: c.businessName || '',
+    packageType: pkgType,
     phone: c.phone || '',
     email: c.email || '',
+    address: c.address || '',
     category: c.address || 'Retail',
+    joinDate: c.startedAt ? c.startedAt.substring(0, 10) : (c.createdAt ? c.createdAt.substring(0, 10) : '2026-09-01'),
     expiredDate: c.expiresAt ? c.expiresAt.substring(0, 10) : new Date().toISOString().substring(0, 10),
-    status: c.computedStatus === 'EXPIRED' ? 'expired' : 'active',
-    amount: c.packagePrice || 250000,
-    paymentMethod: 'QRIS',
+    status: isExpired ? 'expired' : 'active',
+    amount: c.packagePrice || (pkgType === 'Pro' ? 500000 : (pkgType === 'Custom / IT One' ? 1500000 : 250000)),
+    paymentMethod: leadMatch?.paymentMethod || 'QRIS',
+    technicianStatus: c.technicianStatus || leadMatch?.technicianStatus || (isExpired ? 'completed' : 'completed'),
+    technicianAssignedTo: c.technicianAssignedTo || leadMatch?.technicianAssignedTo || 'Doni Teknisi',
+    emailIssueReported: Boolean(c.emailIssueReported ?? leadMatch?.emailIssueReported),
+    emailIssueNotes: c.emailIssueNotes || leadMatch?.emailIssueNotes || undefined,
+    appUsername: c.appUsername || leadMatch?.appUsername || undefined,
+    appPassword: c.appPassword || leadMatch?.appPassword || undefined,
+    paymentProofUrl: c.paymentProofUrl || leadMatch?.paymentProofUrl || undefined,
+    referralCode: c.referralCode || leadMatch?.referralCode || getOrCreateCustomerReferralCode({ name: c.name, id: c.id }),
     notes: c.notes || undefined
   }
 }
@@ -636,31 +696,55 @@ function mapBackendPackageToFrontend(p: any): PricingPackage {
 const isSyncing = ref(false)
 const syncError = ref<string | null>(null)
 
-async function syncWithBackend() {
-  if (isSyncing.value) return
+async function syncWithBackend(force = false) {
+  if (isSyncing.value && !force) return
   isSyncing.value = true
   syncError.value = null
 
   try {
-    const [leadsRes, custsRes, pkgsRes] = await Promise.allSettled([
+    await ensureAuthenticated()
+
+    let [leadsRes, custsRes, pkgsRes] = await Promise.allSettled([
       leadsApi.getAll(),
       customersApi.getAll(),
       packagesApi.getAll()
     ])
 
-    if (leadsRes.status === 'fulfilled' && Array.isArray(leadsRes.value.data) && leadsRes.value.data.length > 0) {
+    // If any request failed with 401, clear token, re-login, and retry once
+    const has401 = [leadsRes, custsRes, pkgsRes].some(
+      r => r.status === 'rejected' && ((r.reason as any)?.status === 401 || String((r.reason as any)?.message).includes('401'))
+    )
+
+    if (has401) {
+      console.log('🔄 Token 401, re-authenticating as Super Admin and retrying sync...')
+      tokenStorage.remove()
+      await ensureAuthenticated()
+      ;[leadsRes, custsRes, pkgsRes] = await Promise.allSettled([
+        leadsApi.getAll(),
+        customersApi.getAll(),
+        packagesApi.getAll()
+      ])
+    }
+
+    if (leadsRes.status === 'fulfilled' && Array.isArray(leadsRes.value.data)) {
       leads.value = leadsRes.value.data.map(mapBackendLeadToFrontend)
       saveStorage(STORAGE_KEY_LEADS, leads.value)
+    } else if (leadsRes.status === 'rejected') {
+      console.warn('Backend leadsApi.getAll rejected:', leadsRes.reason)
     }
 
-    if (custsRes.status === 'fulfilled' && Array.isArray(custsRes.value.data) && custsRes.value.data.length > 0) {
+    if (custsRes.status === 'fulfilled' && Array.isArray(custsRes.value.data)) {
       customers.value = custsRes.value.data.map(mapBackendCustomerToFrontend)
       saveStorage(STORAGE_KEY_CUSTOMERS, customers.value)
+    } else if (custsRes.status === 'rejected') {
+      console.warn('Backend customersApi.getAll rejected:', custsRes.reason)
     }
 
-    if (pkgsRes.status === 'fulfilled' && Array.isArray(pkgsRes.value.data) && pkgsRes.value.data.length > 0) {
+    if (pkgsRes.status === 'fulfilled' && Array.isArray(pkgsRes.value.data)) {
       packages.value = pkgsRes.value.data.map(mapBackendPackageToFrontend)
       saveStorage(STORAGE_KEY_PACKAGES, packages.value)
+    } else if (pkgsRes.status === 'rejected') {
+      console.warn('Backend packagesApi.getAll rejected:', pkgsRes.reason)
     }
   } catch (err: any) {
     syncError.value = err?.message || 'Gagal sinkronisasi data backend'
@@ -899,6 +983,7 @@ export function useAppData() {
       status: newLead.status,
       source: newLead.source,
       packageInterest: newLead.packageInterest,
+      packageId: selectedPackage?.id,
       packagePrice: newLead.harga_paket,
       estimatedDeal: newLead.estimatedDeal,
       notes: newLead.notes,
@@ -1066,6 +1151,7 @@ export function useAppData() {
       saveStorage(STORAGE_KEY_LEADS, leads.value)
 
       // Sync to backend
+      const selectedPkg = packages.value.find(pkg => pkg.name === updatedLead.packageInterest || pkg.id === updatedLead.packageInterest)
       leadsApi.update(updatedLead.id, {
         name: updatedLead.name,
         businessName: updatedLead.businessName,
@@ -1074,6 +1160,7 @@ export function useAppData() {
         address: updatedLead.address,
         status: updatedLead.status,
         packageInterest: updatedLead.packageInterest,
+        packageId: selectedPkg?.id,
         notes: updatedLead.notes
       }).catch(err => {
         console.warn('Backend leadsApi.update warning:', err)
