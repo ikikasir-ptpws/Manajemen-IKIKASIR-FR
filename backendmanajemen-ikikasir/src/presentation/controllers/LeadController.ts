@@ -60,7 +60,7 @@ export const getStatistics = async (_req: Request, res: Response, next: NextFunc
 
 export const getById = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const lead = await leadUseCases.getLeadById(id);
 
     res.status(200).json({
@@ -88,7 +88,7 @@ export const create = async (req: Request, res: Response, next: NextFunction): P
 
 export const update = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const updated = await leadUseCases.updateLead(id, req.body);
 
     res.status(200).json({
@@ -103,7 +103,7 @@ export const update = async (req: Request, res: Response, next: NextFunction): P
 
 export const updateStatus = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const updated = await leadUseCases.updateLeadStatus(id, req.body);
 
     res.status(200).json({
@@ -118,7 +118,7 @@ export const updateStatus = async (req: Request, res: Response, next: NextFuncti
 
 export const addFollowUp = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const followUp = await leadUseCases.addFollowUp(id, req.body);
 
     res.status(201).json({
@@ -133,7 +133,7 @@ export const addFollowUp = async (req: Request, res: Response, next: NextFunctio
 
 export const approve = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const result = await leadUseCases.approveLead(id, req.body);
 
     res.status(200).json({
@@ -148,7 +148,7 @@ export const approve = async (req: Request, res: Response, next: NextFunction): 
 
 export const reject = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const result = await leadUseCases.rejectLead(id, req.body);
 
     res.status(200).json({
@@ -163,7 +163,7 @@ export const reject = async (req: Request, res: Response, next: NextFunction): P
 
 export const deleteLead = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     await leadUseCases.deleteLead(id);
 
     res.status(200).json({

@@ -7,7 +7,7 @@ export interface CreateCustomerData {
   email: string;
   phone: string;
   address?: string;
-  packageId?: string;
+  packageId?: string | null;
   packageName?: string;
   packagePrice?: number;
   packagePeriod?: string;
@@ -31,7 +31,7 @@ export interface UpdateCustomerData {
   email?: string;
   phone?: string;
   address?: string;
-  packageId?: string;
+  packageId?: string | null;
   packageName?: string;
   packagePrice?: number;
   packagePeriod?: string;
@@ -56,7 +56,7 @@ export interface CustomerFilter {
 
 export interface CreateSubscriptionHistoryData {
   customerId: string;
-  packageId?: string;
+  packageId?: string | null;
   packageName: string;
   amount: number;
   billingCycleMonths: number;

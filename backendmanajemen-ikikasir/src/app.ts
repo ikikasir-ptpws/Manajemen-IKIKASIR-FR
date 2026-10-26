@@ -55,6 +55,7 @@ export function createApp(): Application {
   app.use('/api/packages', packageRoutes);
   app.use('/api/customers', customerRoutes);
   app.use('/api/subscriptions', subscriptionRoutes);
+  app.use('/api/v1/subscriptions', subscriptionRoutes);
   app.use('/api/leads', leadRoutes);
   app.use('/api/calon-client', leadRoutes);
   app.use('/api/upload', uploadRoutes);

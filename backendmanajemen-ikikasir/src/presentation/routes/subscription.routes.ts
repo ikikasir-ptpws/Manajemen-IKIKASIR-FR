@@ -20,6 +20,9 @@ const router = Router();
  */
 router.get('/check', checkSubscription);
 router.post('/check', checkSubscription);
+router.get('/check/:email', checkSubscription);
+router.get('/me', checkSubscription);
+router.post('/me', checkSubscription);
 
 /**
  * Route: Simulasi Expired (Pengujian Android)

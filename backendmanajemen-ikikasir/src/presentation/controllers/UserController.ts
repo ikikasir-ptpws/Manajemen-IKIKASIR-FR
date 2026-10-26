@@ -50,7 +50,7 @@ export const getAll = async (req: Request, res: Response, next: NextFunction): P
  */
 export const getById = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const user = await getUserByIdUseCase.execute(id);
 
     res.status(200).json({
@@ -84,7 +84,7 @@ export const create = async (req: Request, res: Response, next: NextFunction): P
  */
 export const update = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const user = await updateUserUseCase.execute(id, req.body);
 
     res.status(200).json({
@@ -102,7 +102,7 @@ export const update = async (req: Request, res: Response, next: NextFunction): P
  */
 export const toggleStatus = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const status = req.body?.status as 'Active' | 'Inactive' | undefined;
     const user = await toggleUserStatusUseCase.execute(id, status);
 
@@ -121,7 +121,7 @@ export const toggleStatus = async (req: Request, res: Response, next: NextFuncti
  */
 export const deleteUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const currentUserId = req.user?.id;
     await deleteUserUseCase.execute(id, currentUserId);
 

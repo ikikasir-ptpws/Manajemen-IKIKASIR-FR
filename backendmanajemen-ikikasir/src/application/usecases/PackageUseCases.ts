@@ -66,13 +66,22 @@ export class CreatePackageUseCase {
     const features = parseFeatures(dto.features, dto.featuresText);
     const isConsultation = Boolean(dto.isConsultation);
     const price = isConsultation ? 0 : (typeof dto.price === 'number' ? dto.price : 0);
-    const period = isConsultation ? '' : (dto.period || '/bulan');
+    const period = isConsultation
+      ? ''
+      : (dto.periodType === 'tahunan'
+          ? (dto.period || '/tahun')
+          : dto.periodType === 'bulanan'
+            ? (dto.period || '/bulan')
+            : (dto.period || '/custom'));
 
     const created = await this.packageRepository.create({
       name,
       description,
       price,
       period,
+      periodType: dto.periodType,
+      startDate: dto.startDate,
+      endDate: dto.endDate,
       isConsultation,
       features,
       isActive: dto.isActive !== undefined ? dto.isActive : true,
@@ -122,6 +131,18 @@ export class UpdatePackageUseCase {
 
     if (dto.period !== undefined && !updateData.isConsultation) {
       updateData.period = dto.period;
+    }
+
+    if (dto.periodType !== undefined) {
+      updateData.periodType = dto.periodType;
+    }
+
+    if (dto.startDate !== undefined) {
+      updateData.startDate = dto.startDate;
+    }
+
+    if (dto.endDate !== undefined) {
+      updateData.endDate = dto.endDate;
     }
 
     if (dto.features !== undefined || dto.featuresText !== undefined) {

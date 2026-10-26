@@ -26,9 +26,11 @@ export const checkSubscription = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const emailQuery = (req.query.email as string) || (req.query.id as string);
-    const emailBody = req.body?.email || req.body?.id;
-    const targetEmailOrId = emailQuery || emailBody;
+    const emailQuery = (req.query.email as string) || (req.query.id as string) || (req.query.uid as string);
+    const emailBody = req.body?.email || req.body?.id || req.body?.uid;
+    const emailParams = req.params?.email || req.params?.id;
+    const emailHeader = (req.headers['x-user-email'] as string) || (req.headers['x-customer-email'] as string);
+    const targetEmailOrId = emailQuery || emailBody || emailParams || emailHeader;
 
     const result = await customerUseCases.checkSubscription(targetEmailOrId);
 

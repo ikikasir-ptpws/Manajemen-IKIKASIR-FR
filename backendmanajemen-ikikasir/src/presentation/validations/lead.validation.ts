@@ -104,16 +104,12 @@ export const updateLeadSchema = z.object({
 });
 
 export const updateLeadStatusSchema = z.object({
-  status: z.enum(['New', 'Contacted', 'Follow Up', 'Interested', 'Converted', 'Lost'], {
-    errorMap: () => ({ message: 'Status harus salah satu dari: New, Contacted, Follow Up, Interested, Converted, Lost.' }),
-  }),
+  status: z.enum(['New', 'Contacted', 'Follow Up', 'Interested', 'Converted', 'Lost']),
   notes: z.string().trim().optional(),
 });
 
 export const addFollowUpSchema = z.object({
-  channel: z.enum(['WhatsApp', 'Telepon', 'Email', 'Meeting', 'Sistem'], {
-    errorMap: () => ({ message: 'Channel harus salah satu dari: WhatsApp, Telepon, Email, Meeting, Sistem.' }),
-  }),
+  channel: z.enum(['WhatsApp', 'Telepon', 'Email', 'Meeting', 'Sistem']),
   notes: z.string().trim().min(1, 'Catatan follow-up tidak boleh kosong.'),
 });
 

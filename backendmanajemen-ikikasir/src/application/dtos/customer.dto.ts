@@ -78,14 +78,35 @@ export interface CustomerResponseDto {
 export interface SubscriptionCheckResponseDto {
   isActive: boolean;
   canAccess: boolean;
+  canUseCashier: boolean; // Alias untuk Android pembatasan kasir
   status: 'ACTIVE' | 'EXPIRED' | 'SUSPENDED' | 'NOT_FOUND';
+  subscriptionStatus: 'active' | 'expired' | 'suspended' | 'not_found';
   isExpired: boolean;
   customerName?: string;
   businessName?: string;
   email?: string;
+  packageId?: string | null;
   packageName?: string;
+  packagePeriod?: string;
+  packageDurationMonths?: number;
+  features?: string[];
+  startedAt?: string;
   expiresAt?: string;
   daysRemaining?: number;
+  daysExpired?: number;
+  contactAdminUrl?: string;
+  restriction?: {
+    isRestricted: boolean;
+    reason: 'EXPIRED' | 'SUSPENDED' | 'NOT_FOUND' | null;
+    title: string | null;
+    message: string | null;
+  };
+  plan?: {
+    name: string;
+    period: string;
+    durationMonths: number;
+    features: string[];
+  };
   message: string;
   serverTime: string;
 }

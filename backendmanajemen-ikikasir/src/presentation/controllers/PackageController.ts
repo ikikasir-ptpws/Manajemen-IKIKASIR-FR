@@ -50,7 +50,7 @@ export const getAll = async (req: Request, res: Response, next: NextFunction): P
  */
 export const getById = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const pkg = await getPackageByIdUseCase.execute(id);
 
     res.status(200).json({
@@ -84,7 +84,7 @@ export const create = async (req: Request, res: Response, next: NextFunction): P
  */
 export const update = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const pkg = await updatePackageUseCase.execute(id, req.body);
 
     res.status(200).json({
@@ -102,7 +102,7 @@ export const update = async (req: Request, res: Response, next: NextFunction): P
  */
 export const toggleStatus = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const isActive = req.body?.isActive !== undefined ? Boolean(req.body.isActive) : undefined;
     const pkg = await togglePackageStatusUseCase.execute(id, isActive);
 
@@ -121,7 +121,7 @@ export const toggleStatus = async (req: Request, res: Response, next: NextFuncti
  */
 export const deletePackage = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     await deletePackageUseCase.execute(id);
 
     res.status(200).json({

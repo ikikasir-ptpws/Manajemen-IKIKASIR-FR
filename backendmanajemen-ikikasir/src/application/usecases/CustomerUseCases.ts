@@ -24,7 +24,12 @@ export class CustomerUseCases {
 
   private calculateExpiryDate(startDate: Date, months: number): Date {
     const expiry = new Date(startDate);
-    expiry.setMonth(expiry.getMonth() + months);
+    const targetMonth = expiry.getMonth() + months;
+    expiry.setMonth(targetMonth);
+    const expectedMonth = ((startDate.getMonth() + months) % 12 + 12) % 12;
+    if (expiry.getMonth() !== expectedMonth) {
+      expiry.setDate(0);
+    }
     return expiry;
   }
 
@@ -54,16 +59,25 @@ export class CustomerUseCases {
       packagePeriod = selectedPackage.period;
 
       if (!dto.billingCycleMonths) {
-        if (selectedPackage.period.includes('tahun')) {
-          months = 12;
-        } else {
-          months = 1;
-        }
+        months = selectedPackage.getDurationMonths();
       }
     }
 
     const startedAt = new Date();
-    const expiresAt = this.calculateExpiryDate(startedAt, months);
+    let expiresAt: Date;
+
+    // Jika paket custom memiliki rentang tanggal (startDate & endDate)
+    if (selectedPackage?.endDate && !dto.billingCycleMonths && selectedPackage.periodType === 'custom') {
+      const customEnd = new Date(selectedPackage.endDate);
+      if (!isNaN(customEnd.getTime())) {
+        customEnd.setHours(23, 59, 59, 999);
+        expiresAt = customEnd;
+      } else {
+        expiresAt = this.calculateExpiryDate(startedAt, months);
+      }
+    } else {
+      expiresAt = this.calculateExpiryDate(startedAt, months);
+    }
     const totalAmount = dto.paymentAmount !== undefined ? dto.paymentAmount : packagePrice * months;
     const finalMethod = dto.paymentMethod || 'QRIS';
     const finalProof = saveProofFileToStorage(dto.paymentProofUrl);
@@ -177,6 +191,9 @@ export class CustomerUseCases {
       if (pkg) {
         packageName = pkg.name;
         packagePrice = pkg.price;
+        if (!dto.billingCycleMonths) {
+          months = pkg.getDurationMonths();
+        }
       }
     }
 
@@ -284,15 +301,49 @@ export class CustomerUseCases {
       return {
         isActive: false,
         canAccess: false,
+        canUseCashier: false,
         status: 'NOT_FOUND',
+        subscriptionStatus: 'not_found',
         isExpired: true,
         email: cleanInput,
         customerName: 'Belum Terdaftar',
         businessName: 'Belum Terdaftar',
         packageName: '-',
+        packagePeriod: '-',
+        packageDurationMonths: 0,
+        daysRemaining: 0,
+        daysExpired: 0,
+        contactAdminUrl: 'https://api.whatsapp.com/send?phone=6285669660865&text=Halo%20Admin%20IKIKASIR,%20akun%20saya%20belum%20terdaftar%20sebagai%20pelanggan%20aktif',
+        restriction: {
+          isRestricted: true,
+          reason: 'NOT_FOUND',
+          title: 'Akun Belum Terdaftar',
+          message: `Akun (${cleanInput}) belum terdaftar sebagai pelanggan aktif IKIKASIR. Silakan hubungi admin untuk aktivasi.`,
+        },
         message: `Akun (${cleanInput}) belum terdaftar sebagai pelanggan aktif IKIKASIR. Silakan hubungi admin untuk aktivasi.`,
         serverTime,
       };
+    }
+
+    // Ambil info paket jika ada
+    let durationMonths = 1;
+    let packageFeatures: string[] = [];
+
+    if (customer.packageId) {
+      try {
+        const pkg = await this.packageRepository.findById(customer.packageId);
+        if (pkg) {
+          durationMonths = pkg.getDurationMonths();
+          packageFeatures = pkg.features || [];
+        }
+      } catch (err) {
+        console.warn('Gagal memuat detail paket pelanggan:', err);
+      }
+    } else {
+      const p = (customer.packagePeriod || '').toLowerCase();
+      if (p.includes('tahun') || p.includes('/thn') || p.includes('12 bulan')) {
+        durationMonths = 12;
+      }
     }
 
     // 2. Kasus: Akun disuspend / ditangguhkan manual oleh admin
@@ -300,14 +351,35 @@ export class CustomerUseCases {
       return {
         isActive: false,
         canAccess: false,
+        canUseCashier: false,
         status: 'SUSPENDED',
+        subscriptionStatus: 'suspended',
         isExpired: false,
         customerName: customer.name,
         businessName: customer.businessName,
         email: customer.email,
+        packageId: customer.packageId,
         packageName: customer.packageName,
+        packagePeriod: customer.packagePeriod,
+        packageDurationMonths: durationMonths,
+        features: packageFeatures,
+        startedAt: customer.startedAt.toISOString(),
         expiresAt: customer.expiresAt.toISOString(),
         daysRemaining: 0,
+        daysExpired: 0,
+        contactAdminUrl: 'https://api.whatsapp.com/send?phone=6285669660865&text=Halo%20Admin%20IKIKASIR,%20akses%20toko%20saya%20ditangguhkan',
+        restriction: {
+          isRestricted: true,
+          reason: 'SUSPENDED',
+          title: 'Akses Kasir Ditangguhkan',
+          message: 'Akses toko Anda ditangguhkan sementara oleh manajemen. Silakan hubungi admin IKIKASIR.',
+        },
+        plan: {
+          name: customer.packageName,
+          period: customer.packagePeriod,
+          durationMonths,
+          features: packageFeatures,
+        },
         message: 'Akses toko Anda ditangguhkan sementara oleh manajemen. Silakan hubungi admin IKIKASIR.',
         serverTime,
       };
@@ -322,14 +394,35 @@ export class CustomerUseCases {
       return {
         isActive: false,
         canAccess: false,
+        canUseCashier: false,
         status: 'EXPIRED',
+        subscriptionStatus: 'expired',
         isExpired: true,
         customerName: customer.name,
         businessName: customer.businessName,
         email: customer.email,
+        packageId: customer.packageId,
         packageName: customer.packageName,
+        packagePeriod: customer.packagePeriod,
+        packageDurationMonths: durationMonths,
+        features: packageFeatures,
+        startedAt: customer.startedAt.toISOString(),
         expiresAt: customer.expiresAt.toISOString(),
         daysRemaining: 0,
+        daysExpired,
+        contactAdminUrl: `https://api.whatsapp.com/send?phone=6285669660865&text=Halo%20Admin%20IKIKASIR,%20masa%20langganan%20toko%20${encodeURIComponent(customer.businessName)}%20telah%20berakhir.%20Saya%20ingin%20melakukan%20perpanjangan`,
+        restriction: {
+          isRestricted: true,
+          reason: 'EXPIRED',
+          title: 'Masa Langganan Berakhir',
+          message: `Masa langganan IKIKASIR untuk toko '${customer.businessName}' telah berakhir ${daysExpired} hari yang lalu. Silakan lakukan perpanjangan paket agar dapat kembali bertransaksi di aplikasi kasir.`,
+        },
+        plan: {
+          name: customer.packageName,
+          period: customer.packagePeriod,
+          durationMonths,
+          features: packageFeatures,
+        },
         message: `Masa langganan IKIKASIR untuk toko '${customer.businessName}' telah berakhir ${daysExpired} hari yang lalu. Silakan lakukan perpanjangan paket agar dapat kembali bertransaksi.`,
         serverTime,
       };
@@ -339,14 +432,35 @@ export class CustomerUseCases {
     return {
       isActive: true,
       canAccess: true,
+      canUseCashier: true,
       status: 'ACTIVE',
+      subscriptionStatus: 'active',
       isExpired: false,
       customerName: customer.name,
       businessName: customer.businessName,
       email: customer.email,
+      packageId: customer.packageId,
       packageName: customer.packageName,
+      packagePeriod: customer.packagePeriod,
+      packageDurationMonths: durationMonths,
+      features: packageFeatures,
+      startedAt: customer.startedAt.toISOString(),
       expiresAt: customer.expiresAt.toISOString(),
       daysRemaining,
+      daysExpired: 0,
+      contactAdminUrl: 'https://api.whatsapp.com/send?phone=6285669660865',
+      restriction: {
+        isRestricted: false,
+        reason: null,
+        title: null,
+        message: null,
+      },
+      plan: {
+        name: customer.packageName,
+        period: customer.packagePeriod,
+        durationMonths,
+        features: packageFeatures,
+      },
       message: `Langganan aktif. Sisa masa aktif: ${daysRemaining} hari.`,
       serverTime,
     };
