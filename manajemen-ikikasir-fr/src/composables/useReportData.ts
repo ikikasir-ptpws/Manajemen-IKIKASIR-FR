@@ -1,4 +1,5 @@
 import { ref, computed } from 'vue'
+import { cashflowApi, CashTransactionItem } from '../api/cashflow.api'
 
 export interface TransactionItem {
   id: string
@@ -201,7 +202,68 @@ export function useReportData() {
     })
   }
 
-  // Add new Income Transaction
+  // State sinkronisasi dengan backend API
+  const isLoadedFromApi = ref(false)
+  const isLoadingFromApi = ref(false)
+
+  // Memuat data transaksi dan pengeluaran dari API Backend (/api/cashflow)
+  const loadCashflowFromApi = async (force = false) => {
+    if (isLoadedFromApi.value && !force) return
+    isLoadingFromApi.value = true
+    try {
+      const res = await cashflowApi.getAll()
+      if (res.data && Array.isArray(res.data) && res.data.length > 0) {
+        const incomes: SalesTransaction[] = []
+        const expenses: ExpenseItem[] = []
+
+        res.data.forEach((item) => {
+          if (item.type === 'masuk') {
+            incomes.push({
+              id: item.id,
+              invoiceNo: item.invoiceNo || `TRX-${item.rawDate.replace(/-/g, '')}`,
+              date: item.rawDate,
+              displayDate: item.displayDate,
+              time: item.time,
+              customer: item.customer || 'Pelanggan',
+              items: [
+                {
+                  id: `i-${item.id}`,
+                  name: item.desc,
+                  category: item.category,
+                  qty: 1,
+                  price: item.amount,
+                },
+              ],
+              paymentMethod: item.paymentMethod,
+              paymentProofUrl: item.paymentProofUrl,
+              status: (item.status as any) || 'Selesai',
+            })
+          } else if (item.type === 'keluar') {
+            expenses.push({
+              id: item.id,
+              date: item.rawDate,
+              displayDate: item.displayDate,
+              desc: item.desc,
+              category: item.category,
+              amount: item.amount,
+              paymentMethod: item.paymentMethod,
+              paymentProofUrl: item.paymentProofUrl,
+            })
+          }
+        })
+
+        masterTransactions.value = incomes
+        masterExpenses.value = expenses
+        isLoadedFromApi.value = true
+      }
+    } catch (err) {
+      console.warn('Gagal memuat data arus kas dari API, menggunakan memori default:', err)
+    } finally {
+      isLoadingFromApi.value = false
+    }
+  }
+
+  // Add new Income Transaction (Sync to backend API)
   const addIncomeTransaction = (data: {
     date: string
     displayDate: string
@@ -233,19 +295,43 @@ export function useReportData() {
           name: data.desc || data.category,
           category: data.category,
           qty: 1,
-          price: data.amount
-        }
+          price: data.amount,
+        },
       ],
       paymentMethod: (data.paymentMethod as any) || 'Tunai',
       paymentProofUrl: data.paymentProofUrl,
-      status: 'Selesai'
+      status: 'Selesai',
     }
 
     masterTransactions.value.unshift(newTrx)
+
+    // Simpan ke API backend secara asinkron
+    cashflowApi
+      .createIncome({
+        date: data.date,
+        displayDate: data.displayDate,
+        time: data.time || defaultTime,
+        customer: data.customer,
+        desc: data.desc,
+        category: data.category,
+        amount: data.amount,
+        paymentMethod: data.paymentMethod,
+        paymentProofUrl: data.paymentProofUrl,
+      })
+      .then((res) => {
+        if (res.data?.id) {
+          newTrx.id = res.data.id
+          if (res.data.invoiceNo) newTrx.invoiceNo = res.data.invoiceNo
+        }
+      })
+      .catch((err) => {
+        console.warn('Gagal menyimpan pemasukan ke API backend:', err)
+      })
+
     return newTrx
   }
 
-  // Add new Expense Item
+  // Add new Expense Item (Sync to backend API)
   const addExpenseTransaction = (data: {
     date: string
     displayDate: string
@@ -255,31 +341,82 @@ export function useReportData() {
     paymentMethod?: string
     paymentProofUrl?: string
   }) => {
+    const newId = `exp-${Date.now()}`
+    const now = new Date()
+    const defaultTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')} WIB`
+
     const newExp: ExpenseItem = {
-      id: `exp-${Date.now()}`,
+      id: newId,
       date: data.date,
       displayDate: data.displayDate,
       desc: data.desc,
       category: data.category,
       amount: data.amount,
       paymentMethod: data.paymentMethod || 'Kas Operasional (Tunai)',
-      paymentProofUrl: data.paymentProofUrl
+      paymentProofUrl: data.paymentProofUrl,
     }
 
     masterExpenses.value.unshift(newExp)
+
+    // Simpan ke API backend secara asinkron
+    cashflowApi
+      .createExpense({
+        date: data.date,
+        displayDate: data.displayDate,
+        time: defaultTime,
+        desc: data.desc,
+        category: data.category,
+        amount: data.amount,
+        paymentMethod: data.paymentMethod,
+        paymentProofUrl: data.paymentProofUrl,
+      })
+      .then((res) => {
+        if (res.data?.id) {
+          newExp.id = res.data.id
+        }
+      })
+      .catch((err) => {
+        console.warn('Gagal menyimpan pengeluaran ke API backend:', err)
+      })
+
     return newExp
+  }
+
+  // Delete Cashflow Transaction (Sync to backend API)
+  const deleteCashTransaction = async (id: string, type: 'masuk' | 'keluar') => {
+    const cleanId = id.replace(/^(in-|out-)/, '')
+
+    if (type === 'masuk') {
+      masterTransactions.value = masterTransactions.value.filter(
+        (t) => t.id !== cleanId && t.id !== id
+      )
+    } else {
+      masterExpenses.value = masterExpenses.value.filter(
+        (e) => e.id !== cleanId && e.id !== id
+      )
+    }
+
+    try {
+      await cashflowApi.delete(cleanId)
+    } catch (err) {
+      console.warn('Gagal menghapus transaksi dari API backend:', err)
+    }
   }
 
   return {
     masterTransactions,
     masterExpenses,
     selectedPeriod,
+    isLoadedFromApi,
+    isLoadingFromApi,
+    loadCashflowFromApi,
     getTrxTotalAmount,
     getTrxTotalQty,
     filterTransactionsByPeriod,
     filterExpensesByPeriod,
     addIncomeTransaction,
-    addExpenseTransaction
+    addExpenseTransaction,
+    deleteCashTransaction,
   }
 }
 

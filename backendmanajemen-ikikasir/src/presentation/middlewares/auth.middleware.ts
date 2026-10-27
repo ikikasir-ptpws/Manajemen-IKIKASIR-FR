@@ -61,6 +61,36 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
 }
 
 /**
+ * Middleware Autentikasi Opsional
+ * Memeriksa token jika ada di header, tetapi tidak melempar error jika tidak ada.
+ */
+export async function optionalAuthenticate(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return next();
+    }
+    const token = authHeader.split(' ')[1];
+    if (!token) {
+      return next();
+    }
+
+    try {
+      const decodedPayload = tokenService.verifyToken(token);
+      const user = await userRepository.findById(decodedPayload.id);
+      if (user && user.isActive) {
+        req.user = decodedPayload;
+      }
+    } catch {
+      // Token tidak valid atau kedaluwarsa, lanjutkan tanpa user
+    }
+    next();
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
  * Normalisasi nama role untuk perbandingan case-insensitive
  */
 function normalizeRole(role: string): string {

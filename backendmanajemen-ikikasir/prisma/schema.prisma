@@ -232,3 +232,29 @@ model LeadFollowUp {
   @@map("lead_follow_ups")
 }
 
+model CashTransaction {
+  id              String    @id @default(uuid())
+  type            String    // "masuk" (income) atau "keluar" (expense)
+  category        String
+  desc            String
+  amount          Float     @default(0)
+  date            DateTime  @default(now())
+  rawDate         String    @default("") // Format: YYYY-MM-DD
+  displayDate     String?   @default("") // Format: 12 Sep 2026
+  time            String?   @default("") // Format: 09:15 WIB
+  customer        String?   @default("") // Nama Pelanggan / Vendor
+  paymentMethod   String    @default("Tunai")
+  paymentProofUrl String?   @default("")
+  status          String    @default("Selesai") // Selesai, Pending, Batal
+  invoiceNo       String?   @default("")
+  notes           String?   @default("")
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([type])
+  @@index([date])
+  @@index([rawDate])
+  @@index([status])
+  @@map("cash_transactions")
+}
+

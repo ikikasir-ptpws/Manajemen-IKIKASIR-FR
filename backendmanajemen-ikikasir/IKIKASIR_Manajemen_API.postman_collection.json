@@ -45,6 +45,11 @@
       "key": "testLeadId",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "testCashflowId",
+      "value": "",
+      "type": "string"
     }
   ],
   "auth": {
@@ -1522,6 +1527,346 @@
               ]
             },
             "description": "Mengunggah bukti pembayaran format Base64 JSON. Sistem otomatis mengubah string Base64 menjadi file fisik di storage /uploads/receipts/ dan mengembalikan URL publik."
+          }
+        }
+      ]
+    },
+    {
+      "name": "ARUS KAS (CASH FLOW)",
+      "description": "Koleksi lengkap Postman untuk modul Laporan Arus Kas (Cash Flow) IKIKASIR Backend Manajemen: Pengambilan riwayat transaksi real-time, ringkasan metrik summary KPI (Total Uang Masuk, Total Uang Keluar, Saldo Bersih, Pertumbuhan), filter rentang tanggal, filter tipe kas ('masuk' / 'keluar'), pencarian transaksi, pencatatan pemasukan dengan bukti pembayaran, pencatatan beban operasional, update transaksi, dan penghapusan transaksi.",
+      "item": [
+        {
+          "name": "1. GET Ambil Semua Transaksi Arus Kas (Default + Auto Seed)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var res = pm.response.json();",
+                  "if (res.success && res.data && res.data.length > 0) {",
+                  "    pm.collectionVariables.set('testCashflowId', res.data[0].id);",
+                  "    console.log('✅ ID Transaksi Arus Kas tersimpan ke variabel koleksi: ' + res.data[0].id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/cashflow",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cashflow"
+              ]
+            },
+            "description": "Mengambil semua riwayat arus kas yang tercatat di database PostgreSQL beserta ringkasan metrik summary KPI. Jika database masih baru/kosong, sistem backend otomatis melakukan initial seed data default."
+          }
+        },
+        {
+          "name": "2. GET Filter Arus Kas Berdasarkan Rentang Tanggal",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/cashflow?startDate=2026-09-01&endDate=2026-09-30",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cashflow"
+              ],
+              "query": [
+                {
+                  "key": "startDate",
+                  "value": "2026-09-01",
+                  "description": "Tanggal awal rentang (YYYY-MM-DD)"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2026-09-30",
+                  "description": "Tanggal akhir rentang (YYYY-MM-DD)"
+                }
+              ]
+            },
+            "description": "Mengambil transaksi arus kas dalam rentang tanggal tertentu, misalnya 01 September 2026 hingga 30 September 2026."
+          }
+        },
+        {
+          "name": "3. GET Filter Arus Kas Tipe Masuk (Pemasukan Saja)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/cashflow?type=masuk",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cashflow"
+              ],
+              "query": [
+                {
+                  "key": "type",
+                  "value": "masuk",
+                  "description": "Filter tipe transaksi ('masuk' untuk uang masuk)"
+                }
+              ]
+            },
+            "description": "Mengambil transaksi yang bertipe 'masuk' (pemasukan/pendapatan dari transaksi lisensi POS, hardware, addon, dll.)."
+          }
+        },
+        {
+          "name": "4. GET Filter Arus Kas Tipe Keluar (Pengeluaran Saja)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/cashflow?type=keluar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cashflow"
+              ],
+              "query": [
+                {
+                  "key": "type",
+                  "value": "keluar",
+                  "description": "Filter tipe transaksi ('keluar' untuk uang keluar)"
+                }
+              ]
+            },
+            "description": "Mengambil transaksi yang bertipe 'keluar' (beban operasional, gaji karyawan, sewa, marketing, dll.)."
+          }
+        },
+        {
+          "name": "5. GET Pencarian Transaksi Arus Kas (Search Query)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/cashflow?search=Berkah",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cashflow"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "Berkah",
+                  "description": "Kata kunci pencarian (nama pelanggan, deskripsi, kategori, dll.)"
+                }
+              ]
+            },
+            "description": "Melakukan pencarian transaksi arus kas secara fleksibel berdasarkan nama klien, keterangan transaksi, kategori, atau metode pembayaran."
+          }
+        },
+        {
+          "name": "6. GET Ringkasan Metrik Arus Kas (Summary KPI)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/cashflow/summary?startDate=2026-09-01&endDate=2026-09-30",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cashflow",
+                "summary"
+              ],
+              "query": [
+                {
+                  "key": "startDate",
+                  "value": "2026-09-01"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2026-09-30"
+                }
+              ]
+            },
+            "description": "Mengambil ringkasan metrik Total Uang Masuk, Total Uang Keluar, Saldo Bersih, dan persentase pertumbuhan untuk kartu KPI laporan arus kas."
+          }
+        },
+        {
+          "name": "7. GET Detail Transaksi Arus Kas by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/cashflow/{{testCashflowId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cashflow",
+                "{{testCashflowId}}"
+              ]
+            },
+            "description": "Mengambil rincian data lengkap satu transaksi arus kas menggunakan ID UUID."
+          }
+        },
+        {
+          "name": "8. POST Catat Pemasukan Kas Baru (Income)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var res = pm.response.json();",
+                  "if (res.success && res.data && res.data.id) {",
+                  "    pm.collectionVariables.set('testCashflowId', res.data.id);",
+                  "    console.log('✅ ID Pemasukan Baru tersimpan ke variabel koleksi: ' + res.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"date\": \"2026-09-15\",\n  \"customer\": \"Resto Padang Sederhana Indah\",\n  \"desc\": \"Pembayaran Lisensi Paket POS Pro (1 Tahun)\",\n  \"category\": \"Lisensi POS\",\n  \"amount\": 1250000,\n  \"paymentMethod\": \"Transfer Bank\",\n  \"paymentProofUrl\": \"http://localhost:5000/uploads/receipts/sample_bca.jpg\",\n  \"status\": \"Selesai\",\n  \"notes\": \"Pembayaran via transfer BCA virtual account\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/cashflow/income",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cashflow",
+                "income"
+              ]
+            },
+            "description": "Mencatat transaksi pemasukan kas baru. Backend otomatis membuat invoiceNo unik (format: TRX-YYYYMMDD-XXX) dan menyimpannya ke database PostgreSQL."
+          }
+        },
+        {
+          "name": "9. POST Catat Pengeluaran Kas Baru (Expense)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var res = pm.response.json();",
+                  "if (res.success && res.data && res.data.id) {",
+                  "    pm.collectionVariables.set('testCashflowId', res.data.id);",
+                  "    console.log('✅ ID Pengeluaran Baru tersimpan ke variabel koleksi: ' + res.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"date\": \"2026-09-15\",\n  \"desc\": \"Perpanjangan Server Database & Cloud Storage\",\n  \"category\": \"Server & Cloud\",\n  \"amount\": 1850000,\n  \"paymentMethod\": \"Rekening BCA Perusahaan\",\n  \"paymentProofUrl\": \"http://localhost:5000/uploads/receipts/sample_bca.jpg\",\n  \"status\": \"Selesai\",\n  \"notes\": \"Langganan AWS & RDS PostgreSQL\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/cashflow/expense",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cashflow",
+                "expense"
+              ]
+            },
+            "description": "Mencatat transaksi pengeluaran/beban operasional kas baru ke database PostgreSQL. Backend otomatis membuat invoiceNo unik (format: EXP-YYYYMMDD-XXX)."
+          }
+        },
+        {
+          "name": "10. POST Catat Transaksi Arus Kas Fleksibel",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"masuk\",\n  \"date\": \"2026-09-16\",\n  \"customer\": \"Cafe Senja Bersama\",\n  \"desc\": \"Pembayaran Paket Starter Kasir POS (3 Bulan)\",\n  \"category\": \"Lisensi POS\",\n  \"amount\": 597000,\n  \"paymentMethod\": \"QRIS\",\n  \"paymentProofUrl\": \"http://localhost:5000/uploads/receipts/sample_qris.jpg\",\n  \"status\": \"Selesai\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/cashflow",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cashflow"
+              ]
+            },
+            "description": "Endpoint terpadu untuk mencatat transaksi arus kas secara fleksibel dengan menentukan field 'type' ('masuk' atau 'keluar')."
+          }
+        },
+        {
+          "name": "11. PUT Update Transaksi Arus Kas",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 1350000,\n  \"desc\": \"Pembayaran Lisensi Paket POS Pro (1 Tahun) + Addon Multi Cabang\",\n  \"category\": \"Lisensi POS\",\n  \"paymentMethod\": \"Transfer Bank\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/cashflow/{{testCashflowId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cashflow",
+                "{{testCashflowId}}"
+              ]
+            },
+            "description": "Memperbarui data transaksi arus kas (nominal, deskripsi, kategori, metode pembayaran, atau bukti pembayaran)."
+          }
+        },
+        {
+          "name": "12. DELETE Hapus Transaksi Arus Kas",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/cashflow/{{testCashflowId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cashflow",
+                "{{testCashflowId}}"
+              ]
+            },
+            "description": "Menghapus transaksi arus kas dari database PostgreSQL berdasarkan ID UUID transaksi."
           }
         }
       ]
