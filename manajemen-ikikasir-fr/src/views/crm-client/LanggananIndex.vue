@@ -5,8 +5,9 @@ import { useAppData } from '../../composables/useAppData'
 import { usePagination } from '../../composables/usePagination'
 import GlobalPagination from '../../components/common/GlobalPagination.vue'
 import DateRangePicker from '../../components/common/DateRangePicker.vue'
+import InvoiceDetailModal from '../../components/InvoiceDetailModal.vue'
 
-const { invoices, markInvoicePaid, syncWithBackend } = useAppData()
+const { invoices, customers, leads, markInvoicePaid, syncWithBackend } = useAppData()
 
 onMounted(() => {
   syncWithBackend(true)
@@ -20,13 +21,6 @@ const showFilterDropdown = ref(false)
 const showInvoiceModal = ref(false)
 const selectedInvoice = ref<any>(null)
 const toastMessage = ref<string | null>(null)
-const zoomedReceiptUrl = ref<string | null>(null)
-const isReceiptZoomOpen = ref(false)
-
-const openReceiptZoom = (url: string) => {
-  zoomedReceiptUrl.value = url
-  isReceiptZoomOpen.value = true
-}
 
 const showToast = (msg: string) => {
   toastMessage.value = msg
@@ -36,18 +30,34 @@ const showToast = (msg: string) => {
 const formatCurrency = (val: number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val)
 
 const filteredSubs = computed(() => {
-  let list = invoices.value.map(i => ({
-    id: i.id,
-    customer: i.customerName,
-    business: i.businessName,
-    amount: i.amount,
-    package: i.package,
-    status: i.status,
-    date: i.date,
-    method: i.paymentMethod || 'QRIS',
-    paymentProofUrl: i.paymentProofUrl,
-    rawInvoice: i
-  }))
+  let list = invoices.value.map(i => {
+    const cust = customers.value.find(c => 
+      (i.customerId && c.id === i.customerId) || 
+      (c.name && i.customerName && c.name.toLowerCase() === i.customerName.toLowerCase()) ||
+      (c.business && i.businessName && c.business.toLowerCase() === i.businessName.toLowerCase())
+    )
+    const lead = leads.value?.find(l => 
+      (l.name && i.customerName && l.name.toLowerCase() === i.customerName.toLowerCase())
+    )
+    return {
+      id: i.id,
+      customerId: i.customerId || cust?.id,
+      customer: i.customerName,
+      customerName: i.customerName,
+      business: i.businessName,
+      businessName: i.businessName,
+      phone: i.phone || cust?.phone || lead?.phone || '',
+      email: (i as any).email || cust?.email || lead?.email || '',
+      address: (i as any).address || cust?.address || lead?.address || '',
+      amount: i.amount,
+      package: i.package,
+      status: i.status,
+      date: i.date,
+      method: i.paymentMethod || 'QRIS',
+      paymentProofUrl: i.paymentProofUrl || cust?.paymentProofUrl,
+      rawInvoice: i
+    }
+  })
 
   if (filterStatus.value !== 'Semua') {
     list = list.filter(s => s.status === filterStatus.value)
@@ -321,81 +331,13 @@ const handleExport = () => {
       </div>
     </div>
 
-    <!-- Invoice Detail Modal -->
-    <div v-if="showInvoiceModal && selectedInvoice" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center z-50 p-4" @click.self="showInvoiceModal = false">
-      <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl border border-slate-100">
-        <div class="flex items-center justify-between mb-5">
-          <h3 class="text-lg font-bold text-slate-800">Detail Invoice</h3>
-          <button @click="showInvoiceModal = false" class="p-1.5 hover:bg-slate-100 rounded-lg cursor-pointer"><X class="w-4 h-4 text-slate-400" /></button>
-        </div>
-        
-        <div class="bg-slate-50 rounded-xl p-4 mb-4 text-center">
-          <div class="text-xs text-slate-500 font-medium">No. Invoice</div>
-          <div class="text-lg font-mono font-extrabold text-indigo-700 mt-0.5">{{ selectedInvoice.id }}</div>
-        </div>
-
-        <div class="space-y-3 text-sm">
-          <div class="flex justify-between py-2 border-b border-slate-50"><span class="text-slate-500">Pelanggan</span><span class="font-semibold text-slate-800">{{ selectedInvoice.customer }}</span></div>
-          <div class="flex justify-between py-2 border-b border-slate-50"><span class="text-slate-500">Bisnis</span><span class="font-semibold text-slate-800">{{ selectedInvoice.business }}</span></div>
-          <div class="flex justify-between py-2 border-b border-slate-50"><span class="text-slate-500">Paket</span><span class="font-semibold text-slate-800">{{ selectedInvoice.package }}</span></div>
-          <div class="flex justify-between py-2 border-b border-slate-50"><span class="text-slate-500">Metode Pembayaran</span><span class="font-semibold text-slate-800">{{ selectedInvoice.method }}</span></div>
-          <div class="flex justify-between py-2 border-b border-slate-50"><span class="text-slate-500">Tanggal</span><span class="font-semibold text-slate-800">{{ selectedInvoice.date }}</span></div>
-          <div class="flex justify-between py-2 border-b border-slate-50">
-            <span class="text-slate-500">Status</span>
-            <span class="px-2 py-0.5 rounded-full text-[11px] font-bold"
-              :class="{
-                'bg-emerald-50 text-emerald-600': selectedInvoice.status === 'Paid',
-                'bg-amber-50 text-amber-600': selectedInvoice.status === 'Pending',
-                'bg-rose-50 text-rose-600': selectedInvoice.status === 'Failed',
-              }"
-            >{{ selectedInvoice.status === 'Paid' ? 'Lunas' : selectedInvoice.status === 'Pending' ? 'Menunggu' : 'Gagal' }}</span>
-          </div>
-          <div class="flex justify-between py-3 bg-indigo-50 rounded-xl px-4 -mx-1">
-            <span class="text-indigo-700 font-semibold">Total Tagihan</span>
-            <span class="font-extrabold text-indigo-700 text-lg">{{ formatCurrency(selectedInvoice.amount) }}</span>
-          </div>
-
-          <!-- Bukti Pembayaran / Transfer jika tersedia -->
-          <div v-if="selectedInvoice.paymentProofUrl || selectedInvoice.rawInvoice?.paymentProofUrl" class="p-3 bg-indigo-50/50 rounded-xl border border-indigo-100 flex items-center justify-between">
-            <div class="flex items-center gap-2">
-              <FileText class="w-4 h-4 text-indigo-600 shrink-0" />
-              <div>
-                <span class="text-xs font-bold text-slate-800 block">Bukti Transfer Pelanggan</span>
-                <span class="text-[10px] text-slate-500">Tersimpan dari verifikasi pendaftaran</span>
-              </div>
-            </div>
-            <button 
-              @click="openReceiptZoom(selectedInvoice.paymentProofUrl || selectedInvoice.rawInvoice?.paymentProofUrl)"
-              class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs cursor-pointer transition-colors shadow-xs"
-            >
-              Lihat Bukti
-            </button>
-          </div>
-
-          <!-- Action Button: Mark Paid if pending -->
-          <div v-if="selectedInvoice.status === 'Pending'" class="pt-2">
-            <button 
-              @click="handleMarkAsPaid(selectedInvoice)"
-              class="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-emerald-200 transition-all cursor-pointer"
-            >
-              <Check class="w-4 h-4" />
-              <span>Tandai Lunas & Update Masa Aktif</span>
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Zoom Modal Bukti Transfer -->
-    <div v-if="isReceiptZoomOpen" class="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-xs flex items-center justify-center p-4" @click="isReceiptZoomOpen = false">
-      <div class="relative bg-white rounded-2xl max-w-sm w-full p-4 shadow-2xl text-center" @click.stop>
-        <button @click="isReceiptZoomOpen = false" class="absolute top-3 right-3 p-1.5 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 cursor-pointer">
-          <X class="w-4 h-4" />
-        </button>
-        <h4 class="text-xs font-bold text-slate-700 mb-3">Bukti Pembayaran Pelanggan</h4>
-        <img :src="zoomedReceiptUrl || ''" alt="Bukti Transfer" class="w-full rounded-xl shadow-xs border border-slate-100 mx-auto max-h-[70vh] object-contain" />
-      </div>
-    </div>
+    <!-- Official Corporate Invoice Detail Modal -->
+    <InvoiceDetailModal 
+      :is-open="showInvoiceModal"
+      :invoice="selectedInvoice"
+      @close="showInvoiceModal = false"
+      @mark-paid="handleMarkAsPaid({ id: $event })"
+    />
   </div>
 </template>
 

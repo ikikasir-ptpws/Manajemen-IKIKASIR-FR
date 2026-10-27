@@ -44,6 +44,7 @@ import {
   Share2 
 } from 'lucide-vue-next'
 import RentalAgreementModal from '../../components/RentalAgreementModal.vue'
+import InvoiceDetailModal from '../../components/InvoiceDetailModal.vue'
 import GlobalPagination from '../../components/common/GlobalPagination.vue'
 import CustomerFormModal from '../../components/crm/CustomerFormModal.vue'
 import { 
@@ -67,6 +68,7 @@ const {
   resolveEmailIssue, 
   completeTechnicianSetup,
   syncWithBackend,
+  markInvoicePaid,
   isSyncing
 } = useAppData()
 
@@ -325,7 +327,56 @@ const openSetupFromDetail = () => {
 }
 
 const openAgreementFromDetail = () => {
-  openAgreementPreview(selectedCustomer.value)
+  openInvoiceFromDetail(selectedCustomer.value)
+}
+
+const openInvoiceFromDetail = (user?: any) => {
+  const target = user || selectedCustomer.value || selectedSetupUser.value
+  if (!target) return
+  
+  // Cari apakah ada invoice yang sudah tersimpan di sistem
+  const matchedInvoices = getAssociatedInvoices(target)
+  const existingInv = matchedInvoices.length > 0 ? matchedInvoices[0] : null
+  
+  const invoiceNum = existingInv?.id || target.invoiceNumber || ('INV-' + new Date().getFullYear() + String(new Date().getMonth() + 1).padStart(2, '0') + '-' + (target.id ? String(target.id).replace(/\D/g, '').slice(-4) || '1001' : '1001'))
+  
+  const pkg = target.packageType || target.type || target.packageInterest || existingInv?.package || 'Basic'
+  const amt = existingInv?.amount || target.amount || (pkg === 'Pro' ? 500000 : 250000)
+  const stat = existingInv?.status || ((target.status === 'active' || target.status === 'Aktif') ? 'Paid' : 'Pending')
+
+  const lead = getAssociatedLead(target)
+  const phoneVal = target.phone || target.whatsapp || lead?.phone || lead?.whatsapp || existingInv?.phone || ''
+  const emailVal = target.email || lead?.email || existingInv?.email || ''
+  const addressVal = target.address || lead?.address || existingInv?.address || 'Pasuruan, Jawa Timur'
+
+  selectedInvoiceData.value = {
+    id: invoiceNum,
+    customerId: target.id,
+    customerName: target.name || existingInv?.customerName,
+    businessName: target.business || target.businessName || existingInv?.businessName || 'Toko',
+    phone: phoneVal,
+    email: emailVal,
+    address: addressVal,
+    package: pkg,
+    amount: amt,
+    billingCycleMonths: existingInv?.billingCycleMonths || 1,
+    date: existingInv?.date || target.registrationDate || new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }),
+    paymentMethod: existingInv?.paymentMethod || target.paymentMethod || 'QRIS IKI KASIR',
+    status: stat,
+    paymentProofUrl: getCustomerPaymentProof(target) || existingInv?.paymentProofUrl
+  }
+  isInvoiceOpen.value = true
+}
+
+const handleInvoiceMarkPaid = (invId: string) => {
+  markInvoicePaid(invId)
+  if (selectedInvoiceData.value) {
+    selectedInvoiceData.value.status = 'Paid'
+  }
+  if (selectedCustomer.value) {
+    selectedCustomer.value.status = 'active'
+  }
+  showToast(`✅ Invoice #${invId} berhasil ditandai LUNAS!`)
 }
 
 const openEdit = (cust: any) => {
@@ -367,6 +418,10 @@ const isSetupModalOpen = ref(false)
 const selectedSetupUser = ref<any>(null)
 const selectedTechStatus = ref<'pending_setup' | 'in_progress' | 'issue' | 'completed'>('pending_setup')
 const techIssueNotes = ref('')
+
+// Invoice Detail Modal State
+const isInvoiceOpen = ref(false)
+const selectedInvoiceData = ref<any>(null)
 
 // Rental Agreement Preview Modal State
 const isRentalAgreementOpen = ref(false)
@@ -1180,6 +1235,14 @@ const openAgreementPreview = (user?: any) => {
       </div>
     </div>
 
+    <!-- OFFICIAL CORPORATE INVOICE MODAL -->
+    <InvoiceDetailModal 
+      :is-open="isInvoiceOpen"
+      :invoice="selectedInvoiceData"
+      @close="isInvoiceOpen = false"
+      @mark-paid="handleInvoiceMarkPaid"
+    />
+
     <!-- RENTAL AGREEMENT MODAL (Bilingual Printable Agreement with Kop Surat & Signatures) -->
     <RentalAgreementModal 
       v-if="rentalAgreementData"
@@ -1253,13 +1316,13 @@ const openAgreementPreview = (user?: any) => {
                 <span>Ubah Status Setup</span>
               </button>
 
-              <!-- Surat Perjanjian Sewa (SPK) -->
+              <!-- Invoice Tagihan Klien -->
               <button 
-                @click="openAgreementFromDetail"
-                class="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-slate-900 hover:bg-black text-white text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95"
+                @click="openInvoiceFromDetail(selectedCustomer)"
+                class="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95"
               >
-                <FileText class="w-3.5 h-3.5 text-indigo-300" />
-                <span>Surat Sewa (SPK)</span>
+                <Receipt class="w-3.5 h-3.5 text-white" />
+                <span>Invoice Tagihan</span>
               </button>
 
               <!-- Edit Data Pelanggan -->
@@ -2079,24 +2142,24 @@ const openAgreementPreview = (user?: any) => {
                         </a>
                       </div>
 
-                      <!-- 3. Surat Perjanjian Sewa SPK -->
-                      <div class="p-3 bg-slate-50/80 rounded-xl border border-slate-100 flex items-center justify-between gap-3">
+                      <!-- 3. Faktur Tagihan / Invoice Resmi -->
+                      <div class="p-3 bg-indigo-50/60 rounded-xl border border-indigo-100 flex items-center justify-between gap-3">
                         <div class="flex items-center gap-2.5">
-                          <div class="w-9 h-9 rounded-xl bg-slate-900 text-white flex items-center justify-center shrink-0">
-                            <FileText class="w-4 h-4" />
+                          <div class="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0">
+                            <Receipt class="w-4 h-4" />
                           </div>
                           <div>
-                            <span class="font-bold text-slate-800 block">Surat Perjanjian Sewa (SPK Resmi)</span>
-                            <span class="text-[11px] text-slate-500 font-mono">No. {{ getCustomerCredentials(selectedCustomer).spkNumber }}</span>
+                            <span class="font-bold text-slate-800 block">Faktur Tagihan / Invoice Resmi</span>
+                            <span class="text-[11px] text-indigo-700 font-mono font-semibold">Cetak PDF & Kirim via WhatsApp Pelanggan</span>
                           </div>
                         </div>
 
                         <button 
-                          @click="openAgreementFromDetail"
-                          class="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-black text-white font-bold text-xs flex items-center gap-1 shadow-2xs cursor-pointer"
+                          @click="openInvoiceFromDetail(selectedCustomer)"
+                          class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs flex items-center gap-1 shadow-2xs cursor-pointer"
                         >
-                          <FileText class="w-3.5 h-3.5 text-indigo-300" />
-                          <span>Cetak Surat Sewa</span>
+                          <Receipt class="w-3.5 h-3.5 text-white" />
+                          <span>Lihat & Cetak Invoice</span>
                         </button>
                       </div>
                     </div>

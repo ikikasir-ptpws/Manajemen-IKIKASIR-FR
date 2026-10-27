@@ -203,21 +203,13 @@ const printAgreement = () => {
   </div>
 </template>
 
-<style>
+<style scoped>
 @media print {
-  body * {
-    visibility: hidden;
-  }
-  #printable-contract, #printable-contract * {
-    visibility: visible;
-  }
   #printable-contract {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-    margin: 0;
-    padding: 20mm;
+    position: static !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 10mm 15mm !important;
     background: white !important;
     color: black !important;
   }
