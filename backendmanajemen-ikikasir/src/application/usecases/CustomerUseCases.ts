@@ -1,5 +1,7 @@
 import { ICustomerRepository } from '../../domain/interfaces/ICustomerRepository.js';
 import { IPackageRepository } from '../../domain/interfaces/IPackageRepository.js';
+import { ICashTransactionRepository } from '../../domain/interfaces/ICashTransactionRepository.js';
+import { PrismaCashTransactionRepository } from '../../repositories/PrismaCashTransactionRepository.js';
 import {
   CreateCustomerDto,
   UpdateCustomerDto,
@@ -17,10 +19,15 @@ import { Customer } from '../../domain/entities/Customer.js';
 import { saveProofFileToStorage } from '../../infrastructure/utils/storage.util.js';
 
 export class CustomerUseCases {
+  private cashTransactionRepository: ICashTransactionRepository;
+
   constructor(
     private customerRepository: ICustomerRepository,
-    private packageRepository: IPackageRepository
-  ) {}
+    private packageRepository: IPackageRepository,
+    cashTransactionRepository?: ICashTransactionRepository
+  ) {
+    this.cashTransactionRepository = cashTransactionRepository || new PrismaCashTransactionRepository();
+  }
 
   private calculateExpiryDate(startDate: Date, months: number): Date {
     const expiry = new Date(startDate);
@@ -31,6 +38,59 @@ export class CustomerUseCases {
       expiry.setDate(0);
     }
     return expiry;
+  }
+
+  /**
+   * Catat transaksi pemasukan kas secara otomatis ke tabel CashTransaction
+   */
+  private async recordIncomeCashTransaction(params: {
+    customerName: string;
+    businessName: string;
+    packageName: string;
+    amount: number;
+    paymentMethod?: string;
+    paymentProofUrl?: string;
+    date?: Date;
+    notes?: string;
+    isRenewal?: boolean;
+  }): Promise<void> {
+    try {
+      if (!params.amount || params.amount <= 0) return;
+
+      const dateObj = params.date || new Date();
+      const year = dateObj.getFullYear();
+      const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+      const day = String(dateObj.getDate()).padStart(2, '0');
+      const rawDate = `${year}-${month}-${day}`;
+      const prefix = params.isRenewal ? 'RNW' : 'NEW';
+      const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+      const invoiceNo = `INV-${rawDate.replace(/-/g, '')}-${prefix}-${randomSuffix}`;
+
+      const clientLabel = params.businessName
+        ? `${params.businessName} (${params.customerName})`
+        : params.customerName;
+
+      const titleAction = params.isRenewal
+        ? 'Perpanjangan Langganan'
+        : 'Pendaftaran Pelanggan Baru';
+
+      await this.cashTransactionRepository.create({
+        type: 'masuk',
+        category: 'Lisensi POS',
+        desc: `${titleAction} - ${clientLabel} (${params.packageName})`,
+        amount: params.amount,
+        date: dateObj,
+        rawDate,
+        customer: clientLabel,
+        paymentMethod: params.paymentMethod || 'QRIS',
+        paymentProofUrl: params.paymentProofUrl || '',
+        status: 'Selesai',
+        invoiceNo,
+        notes: params.notes || `${titleAction} via ${params.paymentMethod || 'Sistem'}`
+      });
+    } catch (err) {
+      console.warn('⚠️ Gagal mencatat arus kas pemasukan pelanggan:', err);
+    }
   }
 
   public async createCustomer(dto: CreateCustomerDto): Promise<CustomerResponseDto> {
@@ -123,6 +183,21 @@ export class CustomerUseCases {
         startedAt,
         expiresAt,
       });
+
+      // 5. Catat Arus Kas Pemasukan Otomatis
+      if ((dto.paymentStatus || 'PAID') === 'PAID' && totalAmount > 0) {
+        await this.recordIncomeCashTransaction({
+          customerName: dto.name,
+          businessName: dto.businessName,
+          packageName,
+          amount: totalAmount,
+          paymentMethod: finalMethod,
+          paymentProofUrl: finalProof,
+          date: dto.paymentDate ? new Date(dto.paymentDate) : startedAt,
+          notes: dto.notes || `Pendaftaran pelanggan baru paket ${packageName} (${months} Bulan)`,
+          isRenewal: false,
+        });
+      }
     } catch (historyErr) {
       console.warn('⚠️ Gagal menyimpan riwayat subscription awal:', historyErr);
     }
@@ -243,6 +318,21 @@ export class CustomerUseCases {
       expiresAt: newExpiresAt,
     });
 
+    // Catat Arus Kas Pemasukan Otomatis untuk perpanjangan
+    if (amount > 0) {
+      await this.recordIncomeCashTransaction({
+        customerName: customer.name,
+        businessName: customer.businessName,
+        packageName,
+        amount,
+        paymentMethod: dto.paymentMethod || 'QRIS',
+        paymentProofUrl: finalProof || customer.paymentProofUrl || '',
+        date: baseDate,
+        notes: dto.notes || `Perpanjangan paket ${packageName} (${months} Bulan)`,
+        isRenewal: true,
+      });
+    }
+
     return updatedCustomer.toJSON();
   }
 
@@ -275,6 +365,20 @@ export class CustomerUseCases {
 
   public async markHistoryPaid(historyId: string) {
     const updated = await this.customerRepository.updateSubscriptionHistoryStatus(historyId, 'PAID');
+    if (updated.amount > 0) {
+      const customer = await this.customerRepository.findById(updated.customerId);
+      await this.recordIncomeCashTransaction({
+        customerName: customer ? customer.name : '',
+        businessName: customer ? customer.businessName : '',
+        packageName: updated.packageName,
+        amount: updated.amount,
+        paymentMethod: updated.paymentMethod,
+        paymentProofUrl: updated.paymentProofUrl,
+        date: updated.createdAt || new Date(),
+        notes: `Pelunasan tagihan invoice ${updated.packageName}`,
+        isRenewal: true,
+      });
+    }
     return updated.toJSON();
   }
 

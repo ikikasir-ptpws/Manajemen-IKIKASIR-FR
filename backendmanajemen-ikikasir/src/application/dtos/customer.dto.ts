@@ -23,6 +23,7 @@ export interface UpdateCustomerDto {
   email?: string;
   phone?: string;
   address?: string;
+  packageId?: string | null;
   notes?: string;
   paymentProofUrl?: string;
   paymentMethod?: string;

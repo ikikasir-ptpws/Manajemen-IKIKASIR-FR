@@ -181,14 +181,85 @@ export class PrismaCashTransactionRepository implements ICashTransactionReposito
 
     const saldoBersih = totalMasuk - totalKeluar;
 
+    // Hitung periode perbandingan sebelumnya (real comparison period)
+    let prevStartDateObj: Date;
+    let prevEndDateObj: Date;
+
+    if (filter?.startDate && filter?.endDate) {
+      const curStart = new Date(filter.startDate);
+      const curEnd = new Date(filter.endDate);
+      const durationMs = Math.max(curEnd.getTime() - curStart.getTime(), 24 * 60 * 60 * 1000);
+      prevEndDateObj = new Date(curStart.getTime() - 24 * 60 * 60 * 1000);
+      prevStartDateObj = new Date(prevEndDateObj.getTime() - durationMs);
+    } else if (filter?.startDate && !filter?.endDate) {
+      const curStart = new Date(filter.startDate);
+      prevStartDateObj = new Date(curStart.getFullYear(), curStart.getMonth() - 1, curStart.getDate());
+      prevEndDateObj = new Date(curStart.getTime() - 24 * 60 * 60 * 1000);
+    } else {
+      const now = new Date();
+      // Default: Bulan sebelumnya penuh
+      prevStartDateObj = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      prevEndDateObj = new Date(now.getFullYear(), now.getMonth(), 0);
+    }
+
+    const prevWhere: any = {};
+    if (filter?.category) {
+      prevWhere.category = filter.category;
+    }
+    prevWhere.rawDate = {
+      gte: this.formatRawDate(prevStartDateObj),
+      lte: this.formatRawDate(prevEndDateObj),
+    };
+
+    const prevRecords = await prisma.cashTransaction.findMany({
+      where: prevWhere,
+      select: {
+        type: true,
+        amount: true,
+        status: true,
+      },
+    });
+
+    let prevTotalMasuk = 0;
+    let prevTotalKeluar = 0;
+
+    for (const item of prevRecords) {
+      if (item.type === 'masuk') {
+        if (!item.status || item.status === 'Selesai') {
+          prevTotalMasuk += item.amount;
+        }
+      } else if (item.type === 'keluar') {
+        prevTotalKeluar += item.amount;
+      }
+    }
+
+    // Hitung persentase pertumbuhan real
+    let pertumbuhanMasuk = 0;
+    if (prevTotalMasuk > 0) {
+      pertumbuhanMasuk = Number((((totalMasuk - prevTotalMasuk) / prevTotalMasuk) * 100).toFixed(1));
+    } else if (totalMasuk > 0) {
+      pertumbuhanMasuk = 100;
+    } else {
+      pertumbuhanMasuk = 0;
+    }
+
+    let pertumbuhanKeluar = 0;
+    if (prevTotalKeluar > 0) {
+      pertumbuhanKeluar = Number((((totalKeluar - prevTotalKeluar) / prevTotalKeluar) * 100).toFixed(1));
+    } else if (totalKeluar > 0) {
+      pertumbuhanKeluar = 100;
+    } else {
+      pertumbuhanKeluar = 0;
+    }
+
     return {
       totalMasuk,
       totalKeluar,
       saldoBersih,
       countMasuk,
       countKeluar,
-      pertumbuhanMasuk: 12.5,
-      pertumbuhanKeluar: -3.2,
+      pertumbuhanMasuk,
+      pertumbuhanKeluar,
     };
   }
 

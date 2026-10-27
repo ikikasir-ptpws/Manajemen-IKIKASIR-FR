@@ -12,6 +12,7 @@ import {
 import { NotFoundError, BadRequestError } from '../../domain/errors/AppError.js';
 import { Lead, LeadFollowUp } from '../../domain/entities/Lead.js';
 import { saveProofFileToStorage } from '../../infrastructure/utils/storage.util.js';
+import { PrismaCashTransactionRepository } from '../../repositories/PrismaCashTransactionRepository.js';
 
 export class LeadUseCases {
   constructor(
@@ -328,6 +329,36 @@ export class LeadUseCases {
             startedAt: now,
             expiresAt,
           });
+        }
+
+        // Catat Arus Kas Pemasukan Otomatis
+        if (finalAmount > 0) {
+          try {
+            const cashRepo = new PrismaCashTransactionRepository();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const rawDate = `${year}-${month}-${day}`;
+            const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+            const clientLabel = lead.businessName ? `${lead.businessName} (${lead.name})` : lead.name;
+
+            await cashRepo.create({
+              type: 'masuk',
+              category: 'Lisensi POS',
+              desc: `Pendaftaran Pelanggan Baru (Lead) - ${clientLabel} (${lead.packageInterest || 'Basic'})`,
+              amount: finalAmount,
+              date: now,
+              rawDate,
+              customer: clientLabel,
+              paymentMethod: finalMethod,
+              paymentProofUrl: finalProof,
+              status: 'Selesai',
+              invoiceNo: `INV-${rawDate.replace(/-/g, '')}-LEAD-${randomSuffix}`,
+              notes: notes || 'Pembayaran pendaftaran calon client yang disetujui',
+            });
+          } catch (cashErr) {
+            console.warn('⚠️ Gagal mencatat arus kas dari konversi lead:', cashErr);
+          }
         }
       } catch (custErr: any) {
         console.warn('⚠️ Gagal sinkronisasi otomatis ke tabel customers:', custErr.message);

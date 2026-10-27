@@ -36,9 +36,21 @@ import GlobalPagination from '../../components/common/GlobalPagination.vue'
 import CatatKasModal from './components/CatatKasModal.vue'
 import DateRangePicker from '../../components/common/DateRangePicker.vue'
 
-// Date range filter (default September 2026)
-const startDate = ref('2026-09-01')
-const endDate = ref('2026-09-30')
+// Inisialisasi rentang tanggal default ke bulan berjalan secara dinamis
+const getDefaultDateRange = () => {
+  const now = new Date()
+  const y = now.getFullYear()
+  const m = String(now.getMonth() + 1).padStart(2, '0')
+  const lastDay = new Date(y, now.getMonth() + 1, 0).getDate()
+  return {
+    start: `${y}-${m}-01`,
+    end: `${y}-${m}-${String(lastDay).padStart(2, '0')}`
+  }
+}
+
+const defaultRange = getDefaultDateRange()
+const startDate = ref(defaultRange.start)
+const endDate = ref(defaultRange.end)
 const filterType = ref<'semua' | 'masuk' | 'keluar'>('semua')
 const searchQuery = ref('')
 
@@ -50,10 +62,57 @@ const summary = ref<CashFlowSummary>({
   saldoBersih: 0,
   countMasuk: 0,
   countKeluar: 0,
-  pertumbuhanMasuk: 12.5,
-  pertumbuhanKeluar: -3.2
+  pertumbuhanMasuk: 0,
+  pertumbuhanKeluar: 0
 })
 const isLoading = ref(false)
+
+// Indikator Pertumbuhan Pemasukan (data real perbandingan periode sebelumnya)
+const incomeGrowth = computed(() => {
+  const val = summary.value.pertumbuhanMasuk || 0
+  if (val > 0) {
+    return {
+      type: 'up',
+      class: 'text-emerald-600',
+      text: `+${val}% dari periode sebelumnya`
+    }
+  } else if (val < 0) {
+    return {
+      type: 'down',
+      class: 'text-rose-600',
+      text: `${val}% dari periode sebelumnya`
+    }
+  }
+  return {
+    type: 'neutral',
+    class: 'text-slate-500',
+    text: '0% dari periode sebelumnya'
+  }
+})
+
+// Indikator Pertumbuhan / Pengurangan Pengeluaran (data real perbandingan periode sebelumnya)
+// Catatan: Jika pengeluaran berkurang (negatif), berarti hemat/efisien (hijau). Jika meningkat (positif), perlu diperhatikan (merah).
+const expenseGrowth = computed(() => {
+  const val = summary.value.pertumbuhanKeluar || 0
+  if (val > 0) {
+    return {
+      type: 'up',
+      class: 'text-rose-600',
+      text: `+${val}% dari periode sebelumnya`
+    }
+  } else if (val < 0) {
+    return {
+      type: 'down',
+      class: 'text-emerald-600',
+      text: `${val}% dari periode sebelumnya`
+    }
+  }
+  return {
+    type: 'neutral',
+    class: 'text-slate-500',
+    text: '0% dari periode sebelumnya'
+  }
+})
 
 // Highlight row setelah penambahan transaksi
 const lastAddedId = ref<string | null>(null)
@@ -436,9 +495,11 @@ const handleExport = () => {
           </button>
         </div>
         <h3 class="text-xl sm:text-2xl font-extrabold text-slate-800 tracking-tight">{{ formatCurrency(summary.totalMasuk) }}</h3>
-        <div class="flex items-center gap-1 text-[11px] font-semibold text-emerald-600 mt-1">
-          <ArrowUpRight class="w-3.5 h-3.5" />
-          <span>+{{ summary.pertumbuhanMasuk }}% dari bulan lalu</span>
+        <div class="flex items-center gap-1 text-[11px] font-semibold mt-1" :class="incomeGrowth.class">
+          <ArrowUpRight v-if="incomeGrowth.type === 'up'" class="w-3.5 h-3.5" />
+          <ArrowDownRight v-else-if="incomeGrowth.type === 'down'" class="w-3.5 h-3.5" />
+          <TrendingUp v-else class="w-3.5 h-3.5 opacity-60" />
+          <span>{{ incomeGrowth.text }}</span>
         </div>
       </div>
 
@@ -461,9 +522,11 @@ const handleExport = () => {
           </button>
         </div>
         <h3 class="text-xl sm:text-2xl font-extrabold text-slate-800 tracking-tight">{{ formatCurrency(summary.totalKeluar) }}</h3>
-        <div class="flex items-center gap-1 text-[11px] font-semibold text-rose-600 mt-1">
-          <ArrowDownRight class="w-3.5 h-3.5" />
-          <span>{{ summary.pertumbuhanKeluar }}% dari bulan lalu</span>
+        <div class="flex items-center gap-1 text-[11px] font-semibold mt-1" :class="expenseGrowth.class">
+          <ArrowUpRight v-if="expenseGrowth.type === 'up'" class="w-3.5 h-3.5" />
+          <ArrowDownRight v-else-if="expenseGrowth.type === 'down'" class="w-3.5 h-3.5" />
+          <TrendingDown v-else class="w-3.5 h-3.5 opacity-60" />
+          <span>{{ expenseGrowth.text }}</span>
         </div>
       </div>
 
@@ -477,7 +540,8 @@ const handleExport = () => {
         </div>
         <h3 class="text-xl sm:text-2xl font-extrabold tracking-tight">{{ formatCurrency(summary.saldoBersih) }}</h3>
         <div class="flex items-center gap-1 text-[11px] font-semibold text-indigo-200 mt-1">
-          <TrendingUp class="w-3.5 h-3.5" />
+          <TrendingUp v-if="summary.saldoBersih >= 0" class="w-3.5 h-3.5" />
+          <TrendingDown v-else class="w-3.5 h-3.5" />
           <span>{{ summary.saldoBersih >= 0 ? 'Surplus Kas Sehat' : 'Defisit Kas Operasional' }}</span>
         </div>
       </div>
