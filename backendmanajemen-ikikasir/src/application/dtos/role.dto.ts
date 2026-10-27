@@ -1,15 +1,17 @@
-import { MenuAccessProps } from '../../domain/entities/Role.js';
+import { MenuAccessProps, RolePermissions } from '../../domain/entities/Role.js';
 
 export interface CreateRoleDto {
   name: string;
   description?: string;
   menuAccess?: Partial<MenuAccessProps>;
+  permissions?: RolePermissions;
 }
 
 export interface UpdateRoleDto {
   name?: string;
   description?: string;
   menuAccess?: Partial<MenuAccessProps>;
+  permissions?: RolePermissions;
 }
 
 export interface RoleResponseDto {
@@ -17,6 +19,7 @@ export interface RoleResponseDto {
   name: string;
   description: string | null;
   menuAccess: MenuAccessProps;
+  permissions: RolePermissions;
   userCount: number;
   createdAt: Date;
   updatedAt: Date;

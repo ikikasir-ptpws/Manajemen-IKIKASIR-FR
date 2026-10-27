@@ -9,6 +9,25 @@ import { User } from '../domain/entities/User.js';
 import { Role } from '../domain/entities/Role.js';
 import { InternalServerError } from '../domain/errors/AppError.js';
 
+const PERMISSION_TAG = '__PERMISSIONS__:';
+
+function unpackDescriptionAndPermissions(combined: string | null | undefined): { description: string | null; permissions?: any } {
+  if (!combined) {
+    return { description: null, permissions: undefined };
+  }
+  const parts = combined.split(PERMISSION_TAG);
+  const cleanDesc = parts[0].trim() || null;
+  let permissions: any;
+  if (parts.length > 1 && parts[1].trim()) {
+    try {
+      permissions = JSON.parse(parts[1].trim());
+    } catch {
+      permissions = undefined;
+    }
+  }
+  return { description: cleanDesc, permissions };
+}
+
 /**
  * Implementasi Repository User Menggunakan Prisma ORM
  * Menjalankan query yang efisien dan clean ke database PostgreSQL
@@ -21,28 +40,32 @@ export class PrismaUserRepository implements IUserRepository {
   private mapToDomain(record: any): User {
     let roleDetail: Role | null = null;
     if (record.roleRef) {
+      const { description, permissions } = unpackDescriptionAndPermissions(record.roleRef.description);
+      const menuAccess = record.roleRef.menuAccess
+        ? {
+            dashboard: record.roleRef.menuAccess.dashboard,
+            manajemenPengguna: record.roleRef.menuAccess.manajemenPengguna,
+            manajemenRole: record.roleRef.menuAccess.manajemenRole,
+            manajemenPromo: record.roleRef.menuAccess.manajemenPromo,
+            kelolaPaket: record.roleRef.menuAccess.kelolaPaket,
+            calonClient: record.roleRef.menuAccess.calonClient,
+            semuaPelanggan: record.roleRef.menuAccess.semuaPelanggan,
+            langganan: record.roleRef.menuAccess.langganan,
+            expired: record.roleRef.menuAccess.expired,
+            arusKas: record.roleRef.menuAccess.arusKas,
+            labaRugi: record.roleRef.menuAccess.labaRugi,
+            neraca: record.roleRef.menuAccess.neraca,
+            laporanPenjualan: record.roleRef.menuAccess.laporanPenjualan,
+            landingPage: record.roleRef.menuAccess.landingPage,
+          }
+        : undefined;
+
       roleDetail = new Role({
         id: record.roleRef.id,
         name: record.roleRef.name,
-        description: record.roleRef.description,
-        menuAccess: record.roleRef.menuAccess
-          ? {
-              dashboard: record.roleRef.menuAccess.dashboard,
-              manajemenPengguna: record.roleRef.menuAccess.manajemenPengguna,
-              manajemenRole: record.roleRef.menuAccess.manajemenRole,
-              manajemenPromo: record.roleRef.menuAccess.manajemenPromo,
-              kelolaPaket: record.roleRef.menuAccess.kelolaPaket,
-              calonClient: record.roleRef.menuAccess.calonClient,
-              semuaPelanggan: record.roleRef.menuAccess.semuaPelanggan,
-              langganan: record.roleRef.menuAccess.langganan,
-              expired: record.roleRef.menuAccess.expired,
-              arusKas: record.roleRef.menuAccess.arusKas,
-              labaRugi: record.roleRef.menuAccess.labaRugi,
-              neraca: record.roleRef.menuAccess.neraca,
-              laporanPenjualan: record.roleRef.menuAccess.laporanPenjualan,
-              landingPage: record.roleRef.menuAccess.landingPage,
-            }
-          : undefined,
+        description,
+        menuAccess,
+        permissions: permissions ?? Role.generateDefaultPermissions(menuAccess),
         createdAt: record.roleRef.createdAt,
         updatedAt: record.roleRef.updatedAt,
       });

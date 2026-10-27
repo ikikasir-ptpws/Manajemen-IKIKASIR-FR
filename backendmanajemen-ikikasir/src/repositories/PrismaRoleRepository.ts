@@ -1,7 +1,34 @@
 import { prisma } from '../infrastructure/database/prisma.js';
 import { IRoleRepository, CreateRoleData, UpdateRoleData } from '../domain/interfaces/IRoleRepository.js';
-import { Role, MenuAccessProps } from '../domain/entities/Role.js';
+import { Role, MenuAccessProps, RolePermissions } from '../domain/entities/Role.js';
 import { InternalServerError } from '../domain/errors/AppError.js';
+
+const PERMISSION_TAG = '__PERMISSIONS__:';
+
+function packDescriptionAndPermissions(rawDesc: string | null | undefined, permissions?: RolePermissions): string | null {
+  const cleanDesc = (rawDesc || '').split(PERMISSION_TAG)[0].trim();
+  if (!permissions || Object.keys(permissions).length === 0) {
+    return cleanDesc || null;
+  }
+  return `${cleanDesc}\n${PERMISSION_TAG}${JSON.stringify(permissions)}`;
+}
+
+function unpackDescriptionAndPermissions(combined: string | null | undefined): { description: string | null; permissions?: RolePermissions } {
+  if (!combined) {
+    return { description: null, permissions: undefined };
+  }
+  const parts = combined.split(PERMISSION_TAG);
+  const cleanDesc = parts[0].trim() || null;
+  let permissions: RolePermissions | undefined;
+  if (parts.length > 1 && parts[1].trim()) {
+    try {
+      permissions = JSON.parse(parts[1].trim());
+    } catch {
+      permissions = undefined;
+    }
+  }
+  return { description: cleanDesc, permissions };
+}
 
 export class PrismaRoleRepository implements IRoleRepository {
   /**
@@ -30,28 +57,33 @@ export class PrismaRoleRepository implements IRoleRepository {
    * Helper mapping Prisma record ke Domain Entity Role
    */
   private mapToDomain(record: any): Role {
+    const { description, permissions } = unpackDescriptionAndPermissions(record.description);
+
+    const menuAccess: MenuAccessProps = record.menuAccess
+      ? {
+          dashboard: record.menuAccess.dashboard,
+          manajemenPengguna: record.menuAccess.manajemenPengguna,
+          manajemenRole: record.menuAccess.manajemenRole,
+          manajemenPromo: record.menuAccess.manajemenPromo,
+          kelolaPaket: record.menuAccess.kelolaPaket,
+          calonClient: record.menuAccess.calonClient,
+          semuaPelanggan: record.menuAccess.semuaPelanggan,
+          langganan: record.menuAccess.langganan,
+          expired: record.menuAccess.expired,
+          arusKas: record.menuAccess.arusKas,
+          labaRugi: record.menuAccess.labaRugi,
+          neraca: record.menuAccess.neraca,
+          laporanPenjualan: record.menuAccess.laporanPenjualan,
+          landingPage: record.menuAccess.landingPage,
+        }
+      : this.defaultMenuAccess();
+
     return new Role({
       id: record.id,
       name: record.name,
-      description: record.description,
-      menuAccess: record.menuAccess
-        ? {
-            dashboard: record.menuAccess.dashboard,
-            manajemenPengguna: record.menuAccess.manajemenPengguna,
-            manajemenRole: record.menuAccess.manajemenRole,
-            manajemenPromo: record.menuAccess.manajemenPromo,
-            kelolaPaket: record.menuAccess.kelolaPaket,
-            calonClient: record.menuAccess.calonClient,
-            semuaPelanggan: record.menuAccess.semuaPelanggan,
-            langganan: record.menuAccess.langganan,
-            expired: record.menuAccess.expired,
-            arusKas: record.menuAccess.arusKas,
-            labaRugi: record.menuAccess.labaRugi,
-            neraca: record.menuAccess.neraca,
-            laporanPenjualan: record.menuAccess.laporanPenjualan,
-            landingPage: record.menuAccess.landingPage,
-          }
-        : this.defaultMenuAccess(),
+      description,
+      menuAccess,
+      permissions: permissions ?? Role.generateDefaultPermissions(menuAccess),
       userCount: record._count ? record._count.users : 0,
       createdAt: record.createdAt,
       updatedAt: record.updatedAt,
@@ -131,12 +163,23 @@ export class PrismaRoleRepository implements IRoleRepository {
 
   public async create(data: CreateRoleData): Promise<Role> {
     try {
-      const normalizedAccess = this.defaultMenuAccess(data.menuAccess);
+      const menuAccessInput: Partial<MenuAccessProps> = { ...(data.menuAccess || {}) };
+      if (data.permissions) {
+        for (const key of Role.defaultMenuKeys) {
+          const perm = data.permissions[key];
+          if (perm) {
+            menuAccessInput[key] = Boolean(perm.read || perm.create || perm.update || perm.delete);
+          }
+        }
+      }
+
+      const normalizedAccess = this.defaultMenuAccess(menuAccessInput);
+      const packedDesc = packDescriptionAndPermissions(data.description, data.permissions);
 
       const record = await prisma.role.create({
         data: {
           name: data.name.trim(),
-          description: data.description ? data.description.trim() : null,
+          description: packedDesc,
           menuAccess: {
             create: normalizedAccess,
           },
@@ -162,12 +205,34 @@ export class PrismaRoleRepository implements IRoleRepository {
       if (data.name !== undefined) {
         updateData.name = data.name.trim();
       }
-      if (data.description !== undefined) {
-        updateData.description = data.description ? data.description.trim() : null;
+
+      let existingPermissions: RolePermissions | undefined;
+      if (data.description !== undefined || data.permissions !== undefined) {
+        const existingRecord = await prisma.role.findUnique({
+          where: { id },
+          select: { description: true },
+        });
+        const currentUnpacked = unpackDescriptionAndPermissions(existingRecord?.description);
+        existingPermissions = currentUnpacked.permissions;
+
+        const effectivePermissions = data.permissions !== undefined ? data.permissions : existingPermissions;
+        const effectiveDesc = data.description !== undefined ? data.description : currentUnpacked.description;
+
+        updateData.description = packDescriptionAndPermissions(effectiveDesc, effectivePermissions);
       }
 
-      if (data.menuAccess) {
-        const normalized = this.defaultMenuAccess(data.menuAccess);
+      const effectivePerms = data.permissions !== undefined ? data.permissions : existingPermissions;
+      if (data.menuAccess || effectivePerms) {
+        const menuAccessInput: Partial<MenuAccessProps> = { ...(data.menuAccess || {}) };
+        if (effectivePerms) {
+          for (const key of Role.defaultMenuKeys) {
+            const perm = effectivePerms[key];
+            if (perm) {
+              menuAccessInput[key] = Boolean(perm.read || perm.create || perm.update || perm.delete);
+            }
+          }
+        }
+        const normalized = this.defaultMenuAccess(menuAccessInput);
         updateData.menuAccess = {
           upsert: {
             create: normalized,

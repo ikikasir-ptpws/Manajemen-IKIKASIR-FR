@@ -153,6 +153,7 @@ export class CreateRoleUseCase {
       name: trimmedName,
       description: dto.description,
       menuAccess: dto.menuAccess,
+      permissions: dto.permissions,
     });
 
     return created.toJSON();
@@ -179,7 +180,12 @@ export class UpdateRoleUseCase {
       }
     }
 
-    const updated = await this.roleRepository.update(id, dto);
+    const updated = await this.roleRepository.update(id, {
+      name: dto.name,
+      description: dto.description,
+      menuAccess: dto.menuAccess,
+      permissions: dto.permissions,
+    });
     return updated.toJSON();
   }
 }

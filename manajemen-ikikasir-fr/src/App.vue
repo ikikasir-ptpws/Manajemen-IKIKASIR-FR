@@ -26,6 +26,7 @@ import {
   Check,
   CheckCircle2,
   X,
+  ShieldCheck,
 } from "lucide-vue-next";
 import { ref, computed, watch } from "vue";
 import { RouterLink, useRoute, useRouter } from "vue-router";
@@ -283,6 +284,26 @@ const confirmLogout = () => {
                   "
                 />
                 <span>Manajemen Pengguna</span>
+              </RouterLink>
+              <RouterLink
+                to="/manajemen-role"
+                @click="isMobileDrawerOpen = false"
+                class="flex items-center gap-3 px-3.5 py-2 rounded-xl text-sm font-medium transition-all duration-200 group"
+                :class="
+                  route.path === '/manajemen-role'
+                    ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-semibold'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50 hover:text-slate-900 dark:hover:text-slate-200'
+                "
+              >
+                <ShieldCheck
+                  class="w-4 h-4 transition-transform duration-200 group-hover:scale-110"
+                  :class="
+                    route.path === '/manajemen-role'
+                      ? 'text-indigo-600'
+                      : 'text-slate-400 group-hover:text-slate-600'
+                  "
+                />
+                <span>Manajemen Role</span>
               </RouterLink>
               <RouterLink
                 to="/manajemen-promo"

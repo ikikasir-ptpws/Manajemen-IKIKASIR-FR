@@ -17,6 +17,15 @@ export const menuAccessSchema = z.object({
   landingPage: z.boolean().optional(),
 });
 
+export const menuCrudPermissionSchema = z.object({
+  create: z.boolean().default(false),
+  read: z.boolean().default(false),
+  update: z.boolean().default(false),
+  delete: z.boolean().default(false),
+});
+
+export const rolePermissionsSchema = z.record(z.string(), menuCrudPermissionSchema);
+
 export const createRoleSchema = z.object({
   name: z
     .string()
@@ -24,6 +33,7 @@ export const createRoleSchema = z.object({
     .min(2, 'Nama role minimal terdiri dari 2 karakter.'),
   description: z.string().trim().optional().nullable(),
   menuAccess: menuAccessSchema.optional(),
+  permissions: rolePermissionsSchema.optional(),
 });
 
 export const updateRoleSchema = z.object({
@@ -34,4 +44,6 @@ export const updateRoleSchema = z.object({
     .optional(),
   description: z.string().trim().optional().nullable(),
   menuAccess: menuAccessSchema.optional(),
+  permissions: rolePermissionsSchema.optional(),
 });
+

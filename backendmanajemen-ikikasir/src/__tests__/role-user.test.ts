@@ -112,6 +112,37 @@ describe('Manajemen Role dan Pengguna API', () => {
       expect(res.body.data.name).toBe('Supervisor CRM Test Updated');
       expect(res.body.data.menuAccess.dashboard).toBe(true);
     });
+
+    it('POST /api/roles - Mendukung checklist CRUD per menu (bisa tambah & edit data tanpa hapus data)', async () => {
+      const res = await request(app)
+        .post('/api/roles')
+        .set('Authorization', `Bearer ${superAdminToken}`)
+        .send({
+          name: 'Staf Operasional Gudang Test',
+          description: 'Bisa tambah dan edit tanpa hapus',
+          permissions: {
+            kelolaPaket: {
+              create: true,
+              read: true,
+              update: true,
+              delete: false,
+            },
+          },
+        });
+
+      expect(res.status).toBe(201);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.permissions.kelolaPaket.create).toBe(true);
+      expect(res.body.data.permissions.kelolaPaket.read).toBe(true);
+      expect(res.body.data.permissions.kelolaPaket.update).toBe(true);
+      expect(res.body.data.permissions.kelolaPaket.delete).toBe(false);
+      expect(res.body.data.menuAccess.kelolaPaket).toBe(true);
+
+      // Cleanup
+      await request(app)
+        .delete(`/api/roles/${res.body.data.id}`)
+        .set('Authorization', `Bearer ${superAdminToken}`);
+    });
   });
 
   describe('2. Manajemen Pengguna API (Form Sesuai Frontend)', () => {

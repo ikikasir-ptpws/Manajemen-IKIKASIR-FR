@@ -1,15 +1,17 @@
-import { Role, MenuAccessProps } from '../entities/Role.js';
+import { Role, MenuAccessProps, RolePermissions } from '../entities/Role.js';
 
 export interface CreateRoleData {
   name: string;
   description?: string | null;
   menuAccess?: Partial<MenuAccessProps>;
+  permissions?: RolePermissions;
 }
 
 export interface UpdateRoleData {
   name?: string;
   description?: string | null;
   menuAccess?: Partial<MenuAccessProps>;
+  permissions?: RolePermissions;
 }
 
 export interface IRoleRepository {

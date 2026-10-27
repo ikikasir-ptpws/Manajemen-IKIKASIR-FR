@@ -132,3 +132,48 @@ export function authorizeMenuAccess(menuKey: keyof MenuAccessProps) {
     }
   };
 }
+
+/**
+ * Middleware Otorisasi Berdasarkan Izin Aksi CRUD Per Menu
+ * action: 'create' (tambah) | 'read' (lihat) | 'update' (edit) | 'delete' (hapus)
+ */
+export function authorizePermission(menuKey: keyof MenuAccessProps, action: 'create' | 'read' | 'update' | 'delete') {
+  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      if (!req.user) {
+        throw new UnauthorizedError('Akses tidak diizinkan. Silakan login terlebih dahulu.');
+      }
+
+      const user = await userRepository.findById(req.user.id);
+      if (!user) {
+        throw new UnauthorizedError('Data pengguna tidak ditemukan.');
+      }
+
+      // Super Admin bypass
+      if (user.isSuperAdmin()) {
+        return next();
+      }
+
+      const permissions = (user.roleDetail as any)?.permissions;
+      const perm = permissions ? permissions[menuKey] : undefined;
+      const hasActionPermission = perm ? Boolean(perm[action]) : false;
+
+      if (!hasActionPermission) {
+        const actionLabels: Record<string, string> = {
+          create: 'tambah data',
+          read: 'melihat data',
+          update: 'mengedit data',
+          delete: 'menghapus data',
+        };
+        throw new ForbiddenError(
+          `Akses ditolak: Akun role '${user.role}' tidak memiliki izin ${actionLabels[action] || action} pada modul '${String(menuKey)}'.`
+        );
+      }
+
+      next();
+    } catch (error) {
+      next(error);
+    }
+  };
+}
+

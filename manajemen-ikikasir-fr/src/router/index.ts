@@ -14,6 +14,11 @@ const router = createRouter({
       component: () => import('../views/manajemen-pengguna/PenggunaIndex.vue')
     },
     {
+      path: '/manajemen-role',
+      name: 'manajemen-role',
+      component: () => import('../views/manajemen-role/RoleIndex.vue')
+    },
+    {
       path: '/manajemen-promo',
       name: 'manajemen-promo',
       component: () => import('../views/manajemen-promo/PromoIndex.vue')
