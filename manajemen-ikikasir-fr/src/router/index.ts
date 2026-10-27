@@ -90,4 +90,118 @@ const router = createRouter({
   ],
 })
 
+router.beforeEach((to, _from, next) => {
+  // Public routes
+  if (to.path === '/login' || to.path === '/landing') {
+    return next()
+  }
+
+  // Get active role from user session or storage
+  let role = 'Super Admin'
+  let userObj: any = null
+  try {
+    const rawUser = localStorage.getItem('ikikasir_user')
+    if (rawUser) {
+      userObj = JSON.parse(rawUser)
+      if (userObj?.role) role = userObj.role
+    } else {
+      const storedRole = localStorage.getItem('ikikasir_current_role_v1')
+      if (storedRole) role = storedRole
+    }
+  } catch {
+    // fallback
+  }
+
+  const lowerRole = (role || '').trim().toLowerCase()
+
+  // Super Admin has full bypass
+  if (lowerRole.includes('super')) {
+    return next()
+  }
+
+  // Helper checking if a menu is permitted
+  const isMenuAllowed = (menuKey: string): boolean => {
+    // 1. Check latest saved roles in localStorage (from Manajemen Role updates)
+    try {
+      const rawRoles = localStorage.getItem('ikikasir_roles_v2')
+      if (rawRoles) {
+        const parsed = JSON.parse(rawRoles)
+        const matched = parsed.find((item: any) => (item.name || '').trim().toLowerCase() === lowerRole)
+        if (matched) {
+          if (matched.permissions?.[menuKey]?.read !== undefined) {
+            return Boolean(matched.permissions[menuKey].read)
+          }
+          if (typeof matched.menuAccess?.[menuKey] === 'boolean') {
+            return matched.menuAccess[menuKey]
+          }
+        }
+      }
+    } catch {}
+
+    // 2. Check roleDetail from user session
+    if (userObj?.roleDetail) {
+      if (userObj.roleDetail.permissions?.[menuKey]?.read !== undefined) {
+        return Boolean(userObj.roleDetail.permissions[menuKey].read)
+      }
+      if (userObj.roleDetail.menuAccess && typeof userObj.roleDetail.menuAccess[menuKey] === 'boolean') {
+        return userObj.roleDetail.menuAccess[menuKey]
+      }
+    }
+
+    // 3. Fallback defaults
+    if (lowerRole === 'sales' || lowerRole === 'seles') {
+      return menuKey === 'calonClient'
+    }
+    if (lowerRole === 'finance') {
+      return ['calonClient', 'semuaPelanggan', 'arusKas', 'labaRugi', 'neraca'].includes(menuKey)
+    }
+    if (lowerRole === 'teknisi') {
+      return ['semuaPelanggan'].includes(menuKey)
+    }
+    if (lowerRole === 'admin') {
+      return menuKey !== 'manajemenRole'
+    }
+    return true
+  }
+
+  const routeToMenuKey: Record<string, string> = {
+    '/': 'dashboard',
+    '/manajemen-pengguna': 'manajemenPengguna',
+    '/manajemen-role': 'manajemenRole',
+    '/manajemen-promo': 'manajemenPromo',
+    '/kelola-paket': 'kelolaPaket',
+    '/calon-client': 'calonClient',
+    '/semua-pelanggan': 'semuaPelanggan',
+    '/langganan': 'langganan',
+    '/expired': 'expired',
+    '/arus-kas': 'arusKas',
+    '/laba-rugi': 'labaRugi',
+    '/neraca': 'neraca',
+    '/laporan-harian': 'laporanPenjualan',
+  }
+
+  const targetMenuKey = routeToMenuKey[to.path]
+
+  // If this route is mapped to a menu key, verify access
+  if (targetMenuKey) {
+    if (isMenuAllowed(targetMenuKey)) {
+      // User is allowed to access this menu
+      return next()
+    }
+
+    // Not allowed to access to.path: redirect to first accessible route
+    if (isMenuAllowed('dashboard')) {
+      return next('/')
+    } else if (isMenuAllowed('calonClient')) {
+      return next('/calon-client')
+    } else if (isMenuAllowed('semuaPelanggan')) {
+      return next('/semua-pelanggan')
+    } else {
+      return next('/calon-client')
+    }
+  }
+
+  next()
+})
+
 export default router

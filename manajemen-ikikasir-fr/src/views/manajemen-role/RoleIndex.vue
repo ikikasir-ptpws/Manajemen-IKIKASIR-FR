@@ -877,6 +877,25 @@ const handleSaveRole = async () => {
       }
 
       saveRolesToStorage()
+
+      // Synchronize active session if current logged-in user belongs to this role
+      try {
+        const rawUser = localStorage.getItem('ikikasir_user')
+        if (rawUser) {
+          const userObj = JSON.parse(rawUser)
+          if ((userObj.role || '').trim().toLowerCase() === trimmedName.toLowerCase()) {
+            userObj.roleDetail = {
+              ...(userObj.roleDetail || {}),
+              name: trimmedName,
+              menuAccess: finalMenuAccess,
+              permissions: form.value.permissions
+            }
+            localStorage.setItem('ikikasir_user', JSON.stringify(userObj))
+            window.dispatchEvent(new Event('storage'))
+          }
+        }
+      } catch {}
+
       showToast(`Role '${trimmedName}' berhasil diperbarui.`, 'success')
     } else {
       // Create new role

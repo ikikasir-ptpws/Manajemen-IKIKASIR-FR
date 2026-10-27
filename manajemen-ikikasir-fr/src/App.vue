@@ -32,6 +32,7 @@ import { ref, computed, watch } from "vue";
 import { RouterLink, useRoute, useRouter } from "vue-router";
 import IkiKasirLogo from "./components/IkiKasirLogo.vue";
 import { useAppData } from "./composables/useAppData";
+import { authApi } from "./api";
 
 const router = useRouter();
 const route = useRoute();
@@ -41,7 +42,9 @@ const mainContent = ref<HTMLElement | null>(null);
 const isDarkMode = ref(false);
 
 const { 
+  currentUser,
   currentRole, 
+  setCurrentUser,
   setRole, 
   notifications, 
   unreadNotificationCount, 
@@ -63,7 +66,16 @@ const pendingTeknisiCount = computed(() => {
 });
 
 const roleMeta = computed(() => {
-  switch (currentRole.value) {
+  const r = (currentRole.value || '').trim();
+  switch (r) {
+    case 'Sales':
+    case 'Seles':
+      return { 
+        title: 'Sales Officer', 
+        sub: 'Pendaftaran & Follow-up Calon Client', 
+        badge: 'SL', 
+        color: 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-800 dark:text-emerald-200 border-emerald-300 dark:border-emerald-700' 
+      };
     case 'Finance':
       return { 
         title: 'Finance Officer', 
@@ -97,25 +109,107 @@ const roleMeta = computed(() => {
         title: 'Kasir', 
         sub: 'Transaksi & Penjualan', 
         badge: 'KS', 
-        color: 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-800 dark:text-emerald-200 border-emerald-300 dark:border-emerald-700' 
+        color: 'bg-teal-100 dark:bg-teal-900/50 text-teal-800 dark:text-teal-200 border-teal-300 dark:border-teal-700' 
       };
-    default:
+    case 'Super Admin':
       return { 
         title: 'Super Admin', 
         sub: 'Admin Utama (Akses Penuh)', 
         badge: 'SA', 
         color: 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-800 dark:text-indigo-200 border-indigo-300 dark:border-indigo-700' 
       };
+    default:
+      if (r.toLowerCase().includes('super')) {
+        return { 
+          title: 'Super Admin', 
+          sub: 'Admin Utama (Akses Penuh)', 
+          badge: 'SA', 
+          color: 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-800 dark:text-indigo-200 border-indigo-300 dark:border-indigo-700' 
+        };
+      }
+      return { 
+        title: r || 'Pengguna', 
+        sub: 'Hak Akses Sistem', 
+        badge: (r ? r.substring(0, 2).toUpperCase() : 'US'), 
+        color: 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border-slate-300 dark:border-slate-700' 
+      };
   }
 });
 
-const handleSelectRole = (r: 'Super Admin' | 'Finance' | 'Teknisi' | 'Admin' | 'Staff' | 'Kasir') => {
+// Helper checking whether current active role has permission to access a menu key
+const canAccessMenu = (menuKey: string): boolean => {
+  const r = (currentRole.value || '').trim();
+  const lowerRole = r.toLowerCase();
+
+  // Super Admin has full bypass
+  if (lowerRole.includes('super') || lowerRole === 'superadmin' || lowerRole === 'super admin') {
+    return true;
+  }
+
+  // 1. Check latest saved roles in localStorage (from Manajemen Role updates)
+  try {
+    const rawRoles = localStorage.getItem('ikikasir_roles_v2');
+    if (rawRoles) {
+      const parsed = JSON.parse(rawRoles);
+      const matched = parsed.find((item: any) => (item.name || '').trim().toLowerCase() === lowerRole);
+      if (matched) {
+        if (matched.permissions?.[menuKey]?.read !== undefined) {
+          return Boolean(matched.permissions[menuKey].read);
+        }
+        if (typeof matched.menuAccess?.[menuKey] === 'boolean') {
+          return matched.menuAccess[menuKey];
+        }
+      }
+    }
+  } catch {
+    // fallback
+  }
+
+  // 2. Check logged-in user roleDetail menuAccess & permissions
+  if (currentUser.value?.roleDetail) {
+    if (currentUser.value.roleDetail.permissions?.[menuKey]?.read !== undefined) {
+      return Boolean(currentUser.value.roleDetail.permissions[menuKey].read);
+    }
+    if (currentUser.value.roleDetail.menuAccess) {
+      const hasAccess = (currentUser.value.roleDetail.menuAccess as Record<string, boolean>)[menuKey];
+      if (typeof hasAccess === 'boolean') {
+        return hasAccess;
+      }
+    }
+  }
+
+  // 3. Fallback defaults by role
+  if (lowerRole === 'sales' || lowerRole === 'seles') {
+    return menuKey === 'calonClient';
+  }
+  if (lowerRole === 'finance') {
+    return ['calonClient', 'semuaPelanggan', 'arusKas', 'labaRugi', 'neraca'].includes(menuKey);
+  }
+  if (lowerRole === 'teknisi') {
+    return ['semuaPelanggan'].includes(menuKey);
+  }
+  if (lowerRole === 'admin') {
+    return menuKey !== 'manajemenRole';
+  }
+  if (lowerRole === 'staff') {
+    return ['calonClient', 'semuaPelanggan', 'manajemenPromo'].includes(menuKey);
+  }
+  if (lowerRole === 'kasir') {
+    return ['semuaPelanggan', 'laporanPenjualan'].includes(menuKey);
+  }
+
+  return true;
+};
+
+const handleSelectRole = (r: string) => {
   setRole(r);
   isRoleDropdownOpen.value = false;
   if (r === 'Finance') {
     router.push('/calon-client');
   } else if (r === 'Teknisi') {
     router.push('/semua-pelanggan');
+  } else if (r === 'Sales' || r === 'Seles') {
+    router.push('/calon-client');
   }
 };
 
@@ -159,6 +253,8 @@ const handleLogout = () => {
 
 const confirmLogout = () => {
   showLogoutConfirm.value = false;
+  authApi.logout();
+  setCurrentUser(null);
   router.push("/login");
 };
 </script>
@@ -195,7 +291,7 @@ const confirmLogout = () => {
           :class="roleMeta.color"
         >
           <span>{{ roleMeta.badge }}</span>
-          <span class="text-[10px] font-semibold hidden xs:inline">{{ currentRole }}</span>
+          <span class="text-[10px] font-semibold hidden xs:inline">{{ roleMeta.title }}</span>
           <ChevronDown class="w-3 h-3 opacity-60" />
         </button>
       </div>
@@ -236,7 +332,7 @@ const confirmLogout = () => {
         <!-- Navigation Menu -->
         <nav class="space-y-5 md:space-y-6">
           <!-- Main / Dashboard -->
-          <div>
+          <div v-if="canAccessMenu('dashboard')">
             <RouterLink
               to="/"
               @click="isMobileDrawerOpen = false"
@@ -258,7 +354,7 @@ const confirmLogout = () => {
           </div>
 
           <!-- Section: MANAJEMEN -->
-          <div>
+          <div v-if="canAccessMenu('manajemenPengguna') || canAccessMenu('manajemenRole') || canAccessMenu('manajemenPromo') || canAccessMenu('kelolaPaket')">
             <h3
               class="px-3 text-[11px] font-bold tracking-wider text-slate-400 uppercase mb-2"
             >
@@ -266,6 +362,7 @@ const confirmLogout = () => {
             </h3>
             <div class="space-y-1">
               <RouterLink
+                v-if="canAccessMenu('manajemenPengguna')"
                 to="/manajemen-pengguna"
                 @click="isMobileDrawerOpen = false"
                 class="flex items-center gap-3 px-3.5 py-2 rounded-xl text-sm font-medium transition-all duration-200 group"
@@ -286,6 +383,7 @@ const confirmLogout = () => {
                 <span>Manajemen Pengguna</span>
               </RouterLink>
               <RouterLink
+                v-if="canAccessMenu('manajemenRole')"
                 to="/manajemen-role"
                 @click="isMobileDrawerOpen = false"
                 class="flex items-center gap-3 px-3.5 py-2 rounded-xl text-sm font-medium transition-all duration-200 group"
@@ -306,6 +404,7 @@ const confirmLogout = () => {
                 <span>Manajemen Role</span>
               </RouterLink>
               <RouterLink
+                v-if="canAccessMenu('manajemenPromo')"
                 to="/manajemen-promo"
                 @click="isMobileDrawerOpen = false"
                 class="flex items-center gap-3 px-3.5 py-2 rounded-xl text-sm font-medium transition-all duration-200 group"
@@ -326,6 +425,7 @@ const confirmLogout = () => {
                 <span>Manajemen Promo</span>
               </RouterLink>
               <RouterLink
+                v-if="canAccessMenu('kelolaPaket')"
                 to="/kelola-paket"
                 @click="isMobileDrawerOpen = false"
                 class="flex items-center gap-3 px-3.5 py-2 rounded-xl text-sm font-medium transition-all duration-200 group"
@@ -349,7 +449,7 @@ const confirmLogout = () => {
           </div>
 
           <!-- Section: CRM CLIENT -->
-          <div>
+          <div v-if="canAccessMenu('calonClient')">
             <h3
               class="px-3 text-[11px] font-bold tracking-wider text-slate-400 uppercase mb-2"
             >
@@ -389,7 +489,7 @@ const confirmLogout = () => {
           </div>
 
           <!-- Section: DATA PELANGGAN -->
-          <div>
+          <div v-if="canAccessMenu('semuaPelanggan') || canAccessMenu('langganan') || canAccessMenu('expired')">
             <h3
               class="px-3 text-[11px] font-bold tracking-wider text-slate-400 uppercase mb-2"
             >
@@ -397,6 +497,7 @@ const confirmLogout = () => {
             </h3>
             <div class="space-y-1">
               <RouterLink
+                v-if="canAccessMenu('semuaPelanggan')"
                 to="/semua-pelanggan"
                 @click="isMobileDrawerOpen = false"
                 class="flex items-center justify-between px-3.5 py-2 rounded-xl text-sm font-medium transition-all duration-200 group"
@@ -426,6 +527,7 @@ const confirmLogout = () => {
                 </span>
               </RouterLink>
               <RouterLink
+                v-if="canAccessMenu('langganan')"
                 to="/langganan"
                 @click="isMobileDrawerOpen = false"
                 class="flex items-center gap-3 px-3.5 py-2 rounded-xl text-sm font-medium transition-all duration-200 group"
@@ -441,6 +543,7 @@ const confirmLogout = () => {
                 <span>Langganan</span>
               </RouterLink>
               <RouterLink
+                v-if="canAccessMenu('expired')"
                 to="/expired"
                 @click="isMobileDrawerOpen = false"
                 class="flex items-center gap-3 px-3.5 py-2 rounded-xl text-sm font-medium transition-all duration-200 group"
@@ -459,7 +562,7 @@ const confirmLogout = () => {
           </div>
 
           <!-- Section: LAPORAN PENJUALAN -->
-          <div>
+          <div v-if="canAccessMenu('arusKas') || canAccessMenu('labaRugi') || canAccessMenu('neraca') || canAccessMenu('laporanPenjualan')">
             <h3
               class="px-3 text-[11px] font-bold tracking-wider text-slate-400 uppercase mb-2"
             >
@@ -467,6 +570,7 @@ const confirmLogout = () => {
             </h3>
             <div class="space-y-1">
               <RouterLink
+                v-if="canAccessMenu('arusKas')"
                 to="/arus-kas"
                 @click="isMobileDrawerOpen = false"
                 class="flex items-center gap-3 px-3.5 py-2 rounded-xl text-sm font-medium transition-all duration-200 group"
@@ -482,6 +586,7 @@ const confirmLogout = () => {
                 <span>Arus Kas</span>
               </RouterLink>
               <RouterLink
+                v-if="canAccessMenu('labaRugi')"
                 to="/laba-rugi"
                 @click="isMobileDrawerOpen = false"
                 class="flex items-center gap-3 px-3.5 py-2 rounded-xl text-sm font-medium transition-all duration-200 group"
@@ -497,6 +602,7 @@ const confirmLogout = () => {
                 <span>Laba Rugi</span>
               </RouterLink>
               <RouterLink
+                v-if="canAccessMenu('neraca')"
                 to="/neraca"
                 @click="isMobileDrawerOpen = false"
                 class="flex items-center gap-3 px-3.5 py-2 rounded-xl text-sm font-medium transition-all duration-200 group"
@@ -512,6 +618,7 @@ const confirmLogout = () => {
                 <span>Neraca</span>
               </RouterLink>
               <RouterLink
+                v-if="canAccessMenu('laporanPenjualan')"
                 to="/laporan-harian"
                 @click="isMobileDrawerOpen = false"
                 class="flex items-center gap-3 px-3.5 py-2 rounded-xl text-sm font-medium transition-all duration-200 group"
@@ -530,7 +637,7 @@ const confirmLogout = () => {
           </div>
 
           <!-- Section: LANDING PAGE -->
-          <div>
+          <div v-if="canAccessMenu('landingPage')">
             <h3
               class="px-3 text-[11px] font-bold tracking-wider text-slate-400 uppercase mb-2"
             >
@@ -688,11 +795,12 @@ const confirmLogout = () => {
             >
               <div class="text-right hidden lg:block">
                 <p class="text-xs font-bold text-slate-800 dark:text-slate-200 leading-tight flex items-center justify-end gap-1.5">
-                  <span>{{ roleMeta.title }}</span>
+                  <span>{{ currentUser?.name || roleMeta.title }}</span>
                   <ChevronDown class="w-3.5 h-3.5 text-slate-400" />
                 </p>
                 <p class="text-[10px] text-slate-500 dark:text-slate-400">
-                  {{ roleMeta.sub }}
+                  <span class="font-semibold text-indigo-600 dark:text-indigo-400">{{ roleMeta.title }}</span>
+                  <span v-if="currentUser?.email"> • {{ currentUser.email }}</span>
                 </p>
               </div>
               <div
@@ -728,6 +836,22 @@ const confirmLogout = () => {
                     </div>
                   </div>
                   <Check v-if="currentRole === 'Super Admin'" class="w-4 h-4 text-indigo-600" />
+                </button>
+
+                <!-- Sales -->
+                <button 
+                  @click="handleSelectRole('Sales')"
+                  class="w-full text-left p-2 rounded-xl flex items-center justify-between transition-colors cursor-pointer"
+                  :class="(currentRole === 'Sales' || currentRole === 'Seles') ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 font-bold' : 'hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200'"
+                >
+                  <div class="flex items-center gap-2.5">
+                    <span class="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center text-xs font-bold">SL</span>
+                    <div>
+                      <p class="text-xs font-bold">Sales (Seles)</p>
+                      <p class="text-[10px] text-slate-400">Pendaftaran calon klien</p>
+                    </div>
+                  </div>
+                  <Check v-if="currentRole === 'Sales' || currentRole === 'Seles'" class="w-4 h-4 text-emerald-600" />
                 </button>
 
                 <!-- Finance -->
@@ -802,6 +926,7 @@ const confirmLogout = () => {
     >
       <!-- Dashboard -->
       <RouterLink
+        v-if="canAccessMenu('dashboard')"
         to="/"
         class="flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition-colors group"
         :class="
@@ -816,6 +941,7 @@ const confirmLogout = () => {
 
       <!-- Calon Client -->
       <RouterLink
+        v-if="canAccessMenu('calonClient')"
         to="/calon-client"
         class="flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition-colors group"
         :class="
@@ -830,6 +956,7 @@ const confirmLogout = () => {
 
       <!-- Semua Pelanggan -->
       <RouterLink
+        v-if="canAccessMenu('semuaPelanggan')"
         to="/semua-pelanggan"
         class="flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition-colors group"
         :class="

@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import IkiKasirLogo from '../../components/IkiKasirLogo.vue'
 import { authApi } from '../../api'
+import { useAppData } from '../../composables/useAppData'
 import { 
   Mail, 
   Lock, 
@@ -20,6 +21,7 @@ import {
 } from 'lucide-vue-next'
 
 const router = useRouter()
+const { setCurrentUser, setRole } = useAppData()
 
 // Form States
 const email = ref('')
@@ -29,6 +31,13 @@ const showPassword = ref(false)
 const isLoading = ref(false)
 const errorMessage = ref('')
 const successMessage = ref('')
+
+// Demo Accounts Helper for Quick Testing
+const setDemoAccount = (demoEmail: string, demoPass = 'password123') => {
+  email.value = demoEmail
+  password.value = demoPass
+  errorMessage.value = ''
+}
 
 // Forgot Password Modal States
 const showForgotPasswordModal = ref(false)
@@ -82,26 +91,42 @@ const handleLogin = async () => {
 
     let res
     try {
-      res = await authApi.loginSuperAdmin({ email: cleanEmail, password: pass })
+      // 1. Primary: Use backend unified login endpoint /api/auth/login
+      res = await authApi.login({ email: cleanEmail, password: pass })
     } catch (err: any) {
-      // If superadmin login failed, try sales login
+      // 2. Fallback: If 404 or specific endpoint required, try specific endpoints
       try {
         res = await authApi.loginSales({ email: cleanEmail, password: pass })
       } catch {
-        throw err
+        res = await authApi.loginSuperAdmin({ email: cleanEmail, password: pass })
       }
     }
 
     if (res?.data?.user) {
       const user = res.data.user
+      // Synchronize reactive state and storage
+      setCurrentUser(user)
+      setRole(user.role)
       successMessage.value = `Login berhasil! Selamat datang kembali, ${user.name} (${user.role}).`
+
+      setTimeout(() => {
+        const lowerRole = (user.role || '').toLowerCase()
+        if (lowerRole === 'sales' || lowerRole === 'seles') {
+          router.push('/calon-client')
+        } else if (lowerRole === 'finance') {
+          router.push('/calon-client')
+        } else if (lowerRole === 'teknisi') {
+          router.push('/semua-pelanggan')
+        } else {
+          router.push('/')
+        }
+      }, 800)
     } else {
       successMessage.value = `Login berhasil! Mengalihkan (${cleanEmail})...`
+      setTimeout(() => {
+        router.push('/')
+      }, 800)
     }
-
-    setTimeout(() => {
-      router.push('/')
-    }, 800)
   } catch (err: any) {
     errorMessage.value = err.message || 'Login gagal. Periksa kembali email dan kata sandi Anda.'
   } finally {
@@ -351,6 +376,48 @@ const handleOtpInput = (index: number, event: Event) => {
               <ArrowRight class="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </template>
           </button>
+
+          <!-- Quick Role Selector for Demo/Testing -->
+          <div class="pt-3">
+            <p class="text-[11px] font-semibold text-slate-400 mb-2 flex items-center justify-between">
+              <span>Akun Uji Coba Cepat (1-Klik):</span>
+              <span class="text-[10px] text-slate-500 font-mono">password123</span>
+            </p>
+            <div class="grid grid-cols-2 gap-2 text-xs">
+              <button
+                type="button"
+                @click="setDemoAccount('sales@ikikasir.com')"
+                class="px-2.5 py-2 rounded-xl bg-emerald-950/30 hover:bg-emerald-900/50 border border-emerald-800/40 text-emerald-300 font-medium text-left flex items-center gap-2 cursor-pointer transition-colors"
+              >
+                <span class="w-5 h-5 rounded-md bg-emerald-600/30 text-emerald-300 flex items-center justify-center font-bold text-[10px]">SL</span>
+                <span class="truncate font-semibold">Sales (Seles)</span>
+              </button>
+              <button
+                type="button"
+                @click="setDemoAccount('superadmin@ikikasir.com')"
+                class="px-2.5 py-2 rounded-xl bg-indigo-950/30 hover:bg-indigo-900/50 border border-indigo-800/40 text-indigo-300 font-medium text-left flex items-center gap-2 cursor-pointer transition-colors"
+              >
+                <span class="w-5 h-5 rounded-md bg-indigo-600/30 text-indigo-300 flex items-center justify-center font-bold text-[10px]">SA</span>
+                <span class="truncate font-semibold">Super Admin</span>
+              </button>
+              <button
+                type="button"
+                @click="setDemoAccount('finance@ikikasir.com')"
+                class="px-2.5 py-2 rounded-xl bg-amber-950/30 hover:bg-amber-900/50 border border-amber-800/40 text-amber-300 font-medium text-left flex items-center gap-2 cursor-pointer transition-colors"
+              >
+                <span class="w-5 h-5 rounded-md bg-amber-600/30 text-amber-300 flex items-center justify-center font-bold text-[10px]">FN</span>
+                <span class="truncate font-semibold">Finance</span>
+              </button>
+              <button
+                type="button"
+                @click="setDemoAccount('teknisi@ikikasir.com')"
+                class="px-2.5 py-2 rounded-xl bg-cyan-950/30 hover:bg-cyan-900/50 border border-cyan-800/40 text-cyan-300 font-medium text-left flex items-center gap-2 cursor-pointer transition-colors"
+              >
+                <span class="w-5 h-5 rounded-md bg-cyan-600/30 text-cyan-300 flex items-center justify-center font-bold text-[10px]">TK</span>
+                <span class="truncate font-semibold">Teknisi</span>
+              </button>
+            </div>
+          </div>
         </form>
 
         <div class="mt-8 pt-4 border-t border-slate-700/50 text-center">

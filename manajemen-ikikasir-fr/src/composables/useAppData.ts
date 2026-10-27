@@ -1,7 +1,7 @@
 import { ref, computed } from 'vue'
 import type { ClientLead, LeadStatus, LeadSource, FollowUpLog } from '../types/crm'
 import type { Customer, PackageType } from '../types/dashboard'
-import { leadsApi, customersApi, packagesApi, authApi, tokenStorage } from '../api'
+import { leadsApi, customersApi, packagesApi, authApi, tokenStorage, type AuthUser } from '../api'
 
 export interface PricingPackage {
   id: string
@@ -460,14 +460,21 @@ const leads = ref<ClientLead[]>([])
 const customers = ref<Customer[]>([])
 const invoices = ref<SubscriptionInvoice[]>([])
 const packages = ref<PricingPackage[]>([])
-const currentRole = ref<'Super Admin' | 'Finance' | 'Teknisi' | 'Admin' | 'Staff' | 'Kasir'>('Super Admin')
+const currentUser = ref<AuthUser | null>(authApi.getUser())
+const currentRole = ref<string>(authApi.getUser()?.role || 'Super Admin')
 const notifications = ref<import('../types/crm').SystemNotification[]>([])
 
 function loadAllFromStorage() {
   if (typeof localStorage === 'undefined') return
   try {
-    const rawRole = localStorage.getItem(STORAGE_KEY_ROLE)
-    if (rawRole) currentRole.value = rawRole as any
+    const user = authApi.getUser()
+    if (user?.role) {
+      currentUser.value = user
+      currentRole.value = user.role
+    } else {
+      const rawRole = localStorage.getItem(STORAGE_KEY_ROLE)
+      if (rawRole) currentRole.value = rawRole as any
+    }
 
     const rawNotif = localStorage.getItem(STORAGE_KEY_NOTIFICATIONS)
     if (rawNotif) notifications.value = JSON.parse(rawNotif)
@@ -619,12 +626,30 @@ async function ensureAuthenticated(): Promise<boolean> {
   if (isTokenValid(currentToken)) {
     return true
   }
+
+  // Do NOT auto-login as superadmin if on login page or landing page
+  const isAuthPage = typeof window !== 'undefined' && 
+    (window.location.pathname === '/login' || window.location.pathname === '/landing')
+  if (isAuthPage) {
+    return false
+  }
+
+  // Do NOT auto-login if user already has an active session/identity
+  const existingUser = authApi.getUser()
+  if (existingUser) {
+    return false
+  }
+
   tokenStorage.remove()
   try {
     const res = await authApi.loginSuperAdmin({
       email: 'superadmin@ikikasir.com',
       password: 'password123'
     })
+    if (res.data?.user) {
+      currentUser.value = res.data.user
+      currentRole.value = res.data.user.role
+    }
     return Boolean(res.data?.token)
   } catch (err) {
     console.warn('Auto-login Super Admin dev warning:', err)
@@ -721,14 +746,19 @@ async function syncWithBackend(force = false) {
     )
 
     if (has401) {
-      console.log('🔄 Token 401, re-authenticating as Super Admin and retrying sync...')
-      tokenStorage.remove()
-      await ensureAuthenticated()
-      ;[leadsRes, custsRes, pkgsRes] = await Promise.allSettled([
-        leadsApi.getAll(),
-        customersApi.getAll(),
-        packagesApi.getAll()
-      ])
+      const existingUser = authApi.getUser()
+      if (!existingUser) {
+        console.log('🔄 Token 401 dev fallback, re-authenticating as Super Admin...')
+        tokenStorage.remove()
+        await ensureAuthenticated()
+        ;[leadsRes, custsRes, pkgsRes] = await Promise.allSettled([
+          leadsApi.getAll(),
+          customersApi.getAll(),
+          packagesApi.getAll()
+        ])
+      } else {
+        console.warn('⚠️ Sesi token 401 untuk pengguna:', existingUser.email)
+      }
     }
 
     if (leadsRes.status === 'fulfilled' && Array.isArray(leadsRes.value.data)) {
@@ -763,6 +793,9 @@ async function syncWithBackend(force = false) {
 loadAllFromStorage()
 if (typeof window !== 'undefined') {
   syncWithBackend()
+  window.addEventListener('storage', () => {
+    loadAllFromStorage()
+  })
 }
 
 export function useAppData() {
@@ -1390,8 +1423,29 @@ export function useAppData() {
   // ==========================================
   // WORKFLOW: ROLE & NOTIFICATIONS
   // ==========================================
-  const setRole = (newRole: 'Super Admin' | 'Finance' | 'Teknisi' | 'Admin' | 'Staff' | 'Kasir') => {
+  const setCurrentUser = (user: AuthUser | null) => {
+    currentUser.value = user
+    if (user) {
+      authApi.setUser(user)
+      currentRole.value = user.role
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(STORAGE_KEY_ROLE, user.role)
+      }
+    } else {
+      authApi.removeUser()
+      currentRole.value = 'Super Admin'
+    }
+  }
+
+  const setRole = (newRole: string) => {
     currentRole.value = newRole
+    if (currentUser.value) {
+      currentUser.value = {
+        ...currentUser.value,
+        role: newRole
+      }
+      authApi.setUser(currentUser.value)
+    }
     if (typeof localStorage !== 'undefined') {
       localStorage.setItem(STORAGE_KEY_ROLE, newRole)
     }
@@ -1888,7 +1942,9 @@ export function useAppData() {
     customers,
     invoices,
     packages,
+    currentUser,
     currentRole,
+    setCurrentUser,
     notifications,
     unreadNotificationCount,
     financeQueue,
