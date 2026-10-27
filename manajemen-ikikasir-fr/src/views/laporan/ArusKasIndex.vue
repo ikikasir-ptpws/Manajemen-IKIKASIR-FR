@@ -186,6 +186,7 @@ const handleSaveIncome = (payload: {
   category: string
   amount: number
   paymentMethod: string
+  paymentProofUrl?: string
 }) => {
   const createdTrx = addIncomeTransaction({
     date: payload.date,
@@ -194,7 +195,8 @@ const handleSaveIncome = (payload: {
     desc: payload.desc,
     category: payload.category,
     amount: payload.amount,
-    paymentMethod: payload.paymentMethod
+    paymentMethod: payload.paymentMethod,
+    paymentProofUrl: payload.paymentProofUrl
   })
 
   lastAddedId.value = `in-${createdTrx.id}`
@@ -216,13 +218,16 @@ const handleSaveExpense = (payload: {
   category: string
   amount: number
   paymentMethod: string
+  paymentProofUrl?: string
 }) => {
   const createdExp = addExpenseTransaction({
     date: payload.date,
     displayDate: payload.displayDate,
     desc: payload.desc,
     category: payload.category,
-    amount: payload.amount
+    amount: payload.amount,
+    paymentMethod: payload.paymentMethod,
+    paymentProofUrl: payload.paymentProofUrl
   })
 
   lastAddedId.value = `out-${createdExp.id}`

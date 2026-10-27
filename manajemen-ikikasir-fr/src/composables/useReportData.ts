@@ -18,6 +18,7 @@ export interface SalesTransaction {
   items: TransactionItem[]
   paymentMethod: 'Tunai' | 'QRIS' | 'Transfer Bank' | 'Kartu Debit' | string
   status: 'Selesai' | 'Pending' | 'Batal'
+  paymentProofUrl?: string
 }
 
 export interface ExpenseItem {
@@ -27,6 +28,8 @@ export interface ExpenseItem {
   desc: string
   category: 'Gaji Karyawan' | 'Server & Cloud' | 'Marketing & Iklan' | 'Sewa Kantor' | 'Maintenance' | string
   amount: number
+  paymentMethod?: string
+  paymentProofUrl?: string
 }
 
 // Master Sales Transactions
@@ -208,6 +211,7 @@ export function useReportData() {
     category: string
     amount: number
     paymentMethod?: string
+    paymentProofUrl?: string
   }) => {
     const newId = `trx-${Date.now()}`
     const now = new Date()
@@ -232,7 +236,8 @@ export function useReportData() {
           price: data.amount
         }
       ],
-      paymentMethod: (data.paymentMethod as any) || 'Transfer Bank',
+      paymentMethod: (data.paymentMethod as any) || 'Tunai',
+      paymentProofUrl: data.paymentProofUrl,
       status: 'Selesai'
     }
 
@@ -247,6 +252,8 @@ export function useReportData() {
     desc: string
     category: string
     amount: number
+    paymentMethod?: string
+    paymentProofUrl?: string
   }) => {
     const newExp: ExpenseItem = {
       id: `exp-${Date.now()}`,
@@ -254,7 +261,9 @@ export function useReportData() {
       displayDate: data.displayDate,
       desc: data.desc,
       category: data.category,
-      amount: data.amount
+      amount: data.amount,
+      paymentMethod: data.paymentMethod || 'Kas Operasional (Tunai)',
+      paymentProofUrl: data.paymentProofUrl
     }
 
     masterExpenses.value.unshift(newExp)
