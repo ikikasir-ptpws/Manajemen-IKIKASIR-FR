@@ -12,6 +12,11 @@ export interface SubscriptionHistoryProps {
   startedAt: Date;
   expiresAt: Date;
   createdAt: Date;
+  customerName?: string;
+  businessName?: string;
+  phone?: string;
+  email?: string;
+  address?: string;
 }
 
 export class SubscriptionHistory {
@@ -28,6 +33,11 @@ export class SubscriptionHistory {
   public readonly startedAt: Date;
   public readonly expiresAt: Date;
   public readonly createdAt: Date;
+  public readonly customerName?: string;
+  public readonly businessName?: string;
+  public readonly phone?: string;
+  public readonly email?: string;
+  public readonly address?: string;
 
   constructor(props: SubscriptionHistoryProps) {
     this.id = props.id;
@@ -43,12 +53,22 @@ export class SubscriptionHistory {
     this.startedAt = props.startedAt;
     this.expiresAt = props.expiresAt;
     this.createdAt = props.createdAt;
+    this.customerName = props.customerName;
+    this.businessName = props.businessName;
+    this.phone = props.phone;
+    this.email = props.email;
+    this.address = props.address;
   }
 
   public toJSON() {
     return {
       id: this.id,
       customerId: this.customerId,
+      customerName: this.customerName,
+      businessName: this.businessName,
+      phone: this.phone,
+      email: this.email,
+      address: this.address,
       packageId: this.packageId,
       packageName: this.packageName,
       amount: this.amount,

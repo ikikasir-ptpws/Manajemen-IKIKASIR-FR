@@ -8,6 +8,8 @@ import {
   renew,
   deleteCustomer,
   getHistories,
+  getAllHistories,
+  markHistoryPaid,
 } from '../controllers/CustomerController.js';
 import { validateBody } from '../middlewares/validation.middleware.js';
 import {
@@ -27,6 +29,18 @@ router.use(authenticate);
  * GET /api/customers/expired
  */
 router.get('/expired', getExpired);
+
+/**
+ * Route: Mengambil seluruh riwayat pembayaran / tagihan langganan (Menu Langganan)
+ * GET /api/customers/histories
+ */
+router.get('/histories', getAllHistories);
+
+/**
+ * Route: Menandai riwayat pembayaran langganan menjadi LUNAS
+ * PATCH /api/customers/histories/:id/pay
+ */
+router.patch('/histories/:id/pay', markHistoryPaid);
 
 /**
  * Route: Mengambil daftar seluruh pelanggan

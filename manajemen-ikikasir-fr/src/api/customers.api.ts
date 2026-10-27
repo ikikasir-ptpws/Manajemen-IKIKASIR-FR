@@ -46,6 +46,11 @@ export interface SubscriptionHistoryItem {
   startedAt: string
   expiresAt: string
   createdAt?: string
+  customerName?: string
+  businessName?: string
+  phone?: string
+  email?: string
+  address?: string
 }
 
 export interface CreateCustomerPayload {
@@ -104,6 +109,12 @@ export const customersApi = {
 
   getHistories: (id: string) =>
     httpClient.get<SubscriptionHistoryItem[]>(`/customers/${id}/histories`),
+
+  getAllHistories: (params?: { customerId?: string }) =>
+    httpClient.get<SubscriptionHistoryItem[]>('/customers/histories', params),
+
+  markHistoryPaid: (id: string) =>
+    httpClient.patch<SubscriptionHistoryItem>(`/customers/histories/${id}/pay`),
 
   create: (payload: CreateCustomerPayload) =>
     httpClient.post<CustomerItem>('/customers', payload),

@@ -17,6 +17,7 @@ import type { Customer, PackageType } from '../../types/dashboard'
 import { customersApi, uploadApi } from '../../api'
 import { 
   useAppData, 
+  getPackageDurationMonths,
   getOrCreateCustomerReferralCode, 
   SAMPLE_RECEIPT_BCA, 
   SAMPLE_RECEIPT_QRIS 
@@ -233,10 +234,21 @@ const handleSubmit = () => {
     const cleanPhone = formData.value.phone.replace(/[^0-9]/g, '')
     const finalPhone = cleanPhone.startsWith('0') ? cleanPhone : (cleanPhone.startsWith('62') ? '0' + cleanPhone.slice(2) : '0' + cleanPhone)
 
+    const selectedPkg = availablePackages.value.find(p => p.id === formData.value.packageId || p.name === formData.value.packageType)
+    const durationMonths = getPackageDurationMonths(selectedPkg)
+
     if (props.customerToEdit) {
       const idx = customers.value.findIndex(c => c.id === props.customerToEdit?.id)
       if (idx !== -1) {
         const curr = customers.value[idx]
+
+        let updatedExpDate = curr.expiredDate
+        if (formData.value.packageId !== curr.packageId || formData.value.packageType !== curr.packageType) {
+          const exp = new Date()
+          exp.setMonth(exp.getMonth() + durationMonths)
+          updatedExpDate = exp.toISOString().substring(0, 10)
+        }
+
         savedCustomer = {
           ...curr,
           name: formData.value.name.trim(),
@@ -252,6 +264,7 @@ const handleSubmit = () => {
           packageType: formData.value.packageType || curr.packageType,
           packageName: formData.value.packageType || curr.packageName,
           amount: Number(formData.value.amount) || curr.amount || 250000,
+          expiredDate: updatedExpDate,
           paymentMethod: formData.value.paymentMethod,
           paymentProofUrl: formData.value.paymentProofUrl || curr.paymentProofUrl,
           notes: formData.value.notes || curr.notes
@@ -280,7 +293,7 @@ const handleSubmit = () => {
     } else {
       const newId = 'cust-' + Date.now()
       const expDate = new Date()
-      expDate.setMonth(expDate.getMonth() + 1)
+      expDate.setMonth(expDate.getMonth() + durationMonths)
       const expISO = expDate.toISOString().substring(0, 10)
 
       savedCustomer = {
@@ -319,7 +332,7 @@ const handleSubmit = () => {
         phone: savedCustomer.phone,
         address: savedCustomer.address,
         packageId: formData.value.packageId || undefined,
-        billingCycleMonths: 1,
+        billingCycleMonths: durationMonths,
         paymentMethod: savedCustomer.paymentMethod,
         paymentAmount: savedCustomer.amount,
         paymentProofUrl: savedCustomer.paymentProofUrl,
@@ -344,12 +357,12 @@ const handleSubmit = () => {
         phone: savedCustomer.phone || '',
         package: savedCustomer.packageType,
         amount: savedCustomer.amount || 250000,
-        billingCycleMonths: 1,
+        billingCycleMonths: durationMonths,
         date: formData.value.paymentDate || new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }),
         paymentMethod: savedCustomer.paymentMethod || 'Transfer BCA',
         status: 'Paid' as 'Paid',
         paymentProofUrl: savedCustomer.paymentProofUrl,
-        notes: formData.value.notes || 'Pembayaran aktivasi pelanggan baru.'
+        notes: formData.value.notes || `Pembayaran aktivasi pelanggan baru (${durationMonths >= 12 ? '1 Tahun' : durationMonths + ' Bulan'}).`
       }
       invoices.value.unshift(newInvoice)
     }
@@ -576,6 +589,12 @@ const handleSubmit = () => {
                   {{ pkg.name }} (Rp {{ Number(pkg.price || 0).toLocaleString('id-ID') }} {{ pkg.period || '/bulan' }})
                 </option>
               </select>
+              <div class="mt-1.5 flex items-center justify-between text-[11px] px-0.5">
+                <span class="text-slate-500">Masa Aktif:</span>
+                <span class="font-semibold text-indigo-600 dark:text-indigo-400">
+                  {{ getPackageDurationMonths(availablePackages.find(p => p.id === formData.packageId || p.name === formData.packageType)) >= 12 ? 'Setahun (12 Bulan)' : '1 Bulan' }}
+                </span>
+              </div>
             </div>
 
             <!-- Biaya Langganan -->

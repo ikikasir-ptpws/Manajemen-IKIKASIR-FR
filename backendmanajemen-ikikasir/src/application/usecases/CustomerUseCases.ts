@@ -49,17 +49,21 @@ export class CustomerUseCases {
     let packagePeriod = '/bulan';
     let months = dto.billingCycleMonths && dto.billingCycleMonths > 0 ? dto.billingCycleMonths : 1;
 
-    if (dto.packageId) {
-      selectedPackage = await this.packageRepository.findById(dto.packageId);
-      if (!selectedPackage) {
-        throw new NotFoundError(`Paket langganan dengan ID '${dto.packageId}' tidak ditemukan.`);
-      }
-      packageName = selectedPackage.name;
-      packagePrice = selectedPackage.price;
-      packagePeriod = selectedPackage.period;
+    const pkgIdentifier = dto.packageId || (dto as any).packageName || (dto as any).packageType;
+    if (pkgIdentifier) {
+      selectedPackage = await this.packageRepository.findById(pkgIdentifier);
+      if (selectedPackage) {
+        packageName = selectedPackage.name;
+        packagePrice = selectedPackage.price;
+        packagePeriod = selectedPackage.period;
 
-      if (!dto.billingCycleMonths) {
-        months = selectedPackage.getDurationMonths();
+        const pkgDuration = selectedPackage.getDurationMonths();
+        // Jika billingCycleMonths tidak diisi atau default 1 padahal paket memiliki durasi spesifik (misal 12 bulan / tahunan)
+        if (!dto.billingCycleMonths || (dto.billingCycleMonths === 1 && pkgDuration > 1)) {
+          months = pkgDuration;
+        }
+      } else if (dto.packageId) {
+        throw new NotFoundError(`Paket langganan dengan ID '${dto.packageId}' tidak ditemukan.`);
       }
     }
 
@@ -67,7 +71,7 @@ export class CustomerUseCases {
     let expiresAt: Date;
 
     // Jika paket custom memiliki rentang tanggal (startDate & endDate)
-    if (selectedPackage?.endDate && !dto.billingCycleMonths && selectedPackage.periodType === 'custom') {
+    if (selectedPackage?.endDate && (!dto.billingCycleMonths || dto.billingCycleMonths === 1) && selectedPackage.periodType === 'custom') {
       const customEnd = new Date(selectedPackage.endDate);
       if (!isNaN(customEnd.getTime())) {
         customEnd.setHours(23, 59, 59, 999);
@@ -199,8 +203,9 @@ export class CustomerUseCases {
       if (pkg) {
         packageName = pkg.name;
         packagePrice = pkg.price;
-        if (!dto.billingCycleMonths) {
-          months = pkg.getDurationMonths();
+        const pkgDuration = pkg.getDurationMonths();
+        if (!dto.billingCycleMonths || (dto.billingCycleMonths === 1 && pkgDuration > 1)) {
+          months = pkgDuration;
         }
       }
     }
@@ -261,6 +266,16 @@ export class CustomerUseCases {
     }
     const histories = await this.customerRepository.getSubscriptionHistories(customerId);
     return histories.map((h) => h.toJSON());
+  }
+
+  public async getAllSubscriptionHistories(customerId?: string) {
+    const histories = await this.customerRepository.getSubscriptionHistories(customerId);
+    return histories.map((h) => h.toJSON());
+  }
+
+  public async markHistoryPaid(historyId: string) {
+    const updated = await this.customerRepository.updateSubscriptionHistoryStatus(historyId, 'PAID');
+    return updated.toJSON();
   }
 
   /**

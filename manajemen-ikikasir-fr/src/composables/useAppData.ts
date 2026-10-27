@@ -41,7 +41,32 @@ export function getCustomerWaUrl(phone: string, text: string) {
     ? '62' + cleanPhone.slice(1)
     : (cleanPhone.startsWith('62') ? cleanPhone : '62' + cleanPhone)
   const encodedText = encodeURIComponent(text)
-  return `https://api.whatsapp.com/send?phone=${formattedPhone}&text=${encodedText}`
+}
+
+// PACKAGE DURATION HELPER
+export function getPackageDurationMonths(pkg?: Partial<PricingPackage> | null): number {
+  if (!pkg) return 1
+  if (pkg.periodType === 'tahunan') return 12
+  if (pkg.periodType === 'bulanan') return 1
+  
+  if (pkg.startDate && pkg.endDate) {
+    const d1 = new Date(pkg.startDate)
+    const d2 = new Date(pkg.endDate)
+    if (!isNaN(d1.getTime()) && !isNaN(d2.getTime())) {
+      const diff = (d2.getFullYear() - d1.getFullYear()) * 12 + (d2.getMonth() - d1.getMonth()) + 1
+      if (diff > 0) return diff
+    }
+  }
+
+  const p = (pkg.period || '').toLowerCase().trim()
+  if (p.includes('tahun') || p.includes('/thn') || p.includes('12 bulan') || p === '/tahun') {
+    return 12
+  }
+  const matchMonth = p.match(/(\d+)\s*bulan/)
+  if (matchMonth && matchMonth[1]) {
+    return parseInt(matchMonth[1], 10)
+  }
+  return 1
 }
 
 // SAMPLE RECEIPT SVGS FOR VERIFICATION DEMO
@@ -401,60 +426,7 @@ const initialCustomers: Customer[] = [
   }
 ]
 
-const initialInvoices: SubscriptionInvoice[] = [
-  {
-    id: 'INV-20260901',
-    customerId: 'cust-101',
-    customerName: 'Budi Santoso',
-    businessName: 'Toko Budi Jaya',
-    phone: '081234567890',
-    package: 'Custom / IT One',
-    amount: 1500000,
-    billingCycleMonths: 6,
-    date: '10 Sep 2026',
-    paymentMethod: 'QRIS',
-    status: 'Paid'
-  },
-  {
-    id: 'INV-20260902',
-    customerId: 'cust-102',
-    customerName: 'Dewi Lestari',
-    businessName: 'Butik Dewi',
-    phone: '082123456789',
-    package: 'Custom / IT One',
-    amount: 750000,
-    billingCycleMonths: 3,
-    date: '07 Sep 2026',
-    paymentMethod: 'Transfer BCA',
-    status: 'Paid'
-  },
-  {
-    id: 'INV-20260903',
-    customerId: 'cust-103',
-    customerName: 'Siti Aisyah',
-    businessName: 'Warung Bu Siti',
-    phone: '085712345678',
-    package: 'Basic',
-    amount: 250000,
-    billingCycleMonths: 1,
-    date: '01 Agu 2026',
-    paymentMethod: 'Transfer BCA',
-    status: 'Paid'
-  },
-  {
-    id: 'INV-20260904',
-    customerId: 'cust-104',
-    customerName: 'Donni Cell',
-    businessName: 'Donni Pulsa & Aksesoris',
-    phone: '085619283746',
-    package: 'Basic',
-    amount: 250000,
-    billingCycleMonths: 1,
-    date: '09 Sep 2026',
-    paymentMethod: 'Transfer BCA',
-    status: 'Pending'
-  }
-]
+const initialInvoices: SubscriptionInvoice[] = []
 // SINGLETON REACTIVE STATE
 const leads = ref<ClientLead[]>([])
 const customers = ref<Customer[]>([])
@@ -497,8 +469,22 @@ function loadAllFromStorage() {
     }
 
     const rawI = localStorage.getItem(STORAGE_KEY_INVOICES)
-    if (rawI) invoices.value = JSON.parse(rawI)
-    else { invoices.value = [...initialInvoices]; saveStorage(STORAGE_KEY_INVOICES, invoices.value) }
+    if (rawI) {
+      try {
+        const parsed: SubscriptionInvoice[] = JSON.parse(rawI)
+        // Hapus data dummy lama jika masih tersimpan di browser localStorage
+        const cleanList = parsed.filter(i => 
+          !['INV-20260901', 'INV-20260902', 'INV-20260903', 'INV-20260904'].includes(i.id) &&
+          !['cust-101', 'cust-102', 'cust-103', 'cust-104'].includes(i.customerId || '') &&
+          !['Budi Santoso', 'Dewi Lestari', 'Siti Aisyah', 'Donni Cell'].includes(i.customerName || '')
+        )
+        invoices.value = cleanList
+      } catch {
+        invoices.value = []
+      }
+    } else {
+      invoices.value = []
+    }
 
     const rawP = localStorage.getItem(STORAGE_KEY_PACKAGES)
     if (rawP) {
@@ -723,6 +709,35 @@ function mapBackendPackageToFrontend(p: any): PricingPackage {
   }
 }
 
+function mapBackendHistoryToInvoice(h: any): SubscriptionInvoice {
+  const cust = customers.value.find(c => c.id === h.customerId)
+  const lead = leads.value.find(l => 
+    (h.customerName && l.name && l.name.toLowerCase() === h.customerName.toLowerCase()) || 
+    (h.businessName && l.businessName && l.businessName.toLowerCase() === h.businessName.toLowerCase())
+  )
+
+  const createdDate = h.createdAt ? new Date(h.createdAt) : (h.startedAt ? new Date(h.startedAt) : new Date())
+  const dateStr = createdDate.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })
+
+  return {
+    id: h.id.startsWith('INV-') ? h.id : ('INV-' + h.id.substring(0, 8).toUpperCase()),
+    customerId: h.customerId,
+    customerName: h.customerName || h.customer?.name || cust?.name || lead?.name || 'Pelanggan',
+    businessName: h.businessName || h.customer?.businessName || cust?.businessName || cust?.business || lead?.businessName || 'Toko',
+    phone: h.phone || h.customer?.phone || cust?.phone || lead?.phone || '',
+    email: h.email || h.customer?.email || cust?.email || lead?.email || '',
+    address: h.address || h.customer?.address || cust?.address || lead?.address || '',
+    package: (h.packageName || h.package?.name || cust?.packageType || 'Basic') as PackageType,
+    amount: Number(h.amount) || cust?.amount || 250000,
+    billingCycleMonths: h.billingCycleMonths || 1,
+    date: dateStr,
+    paymentMethod: h.paymentMethod || cust?.paymentMethod || 'QRIS',
+    status: h.paymentStatus?.toUpperCase() === 'PAID' ? 'Paid' : (h.paymentStatus?.toUpperCase() === 'FAILED' ? 'Failed' : 'Pending'),
+    paymentProofUrl: h.paymentProofUrl || cust?.paymentProofUrl,
+    notes: h.notes || ''
+  }
+}
+
 const isSyncing = ref(false)
 const syncError = ref<string | null>(null)
 
@@ -734,14 +749,15 @@ async function syncWithBackend(force = false) {
   try {
     await ensureAuthenticated()
 
-    let [leadsRes, custsRes, pkgsRes] = await Promise.allSettled([
+    let [leadsRes, custsRes, pkgsRes, historiesRes] = await Promise.allSettled([
       leadsApi.getAll(),
       customersApi.getAll(),
-      packagesApi.getAll()
+      packagesApi.getAll(),
+      customersApi.getAllHistories()
     ])
 
     // If any request failed with 401, clear token, re-login, and retry once
-    const has401 = [leadsRes, custsRes, pkgsRes].some(
+    const has401 = [leadsRes, custsRes, pkgsRes, historiesRes].some(
       r => r.status === 'rejected' && ((r.reason as any)?.status === 401 || String((r.reason as any)?.message).includes('401'))
     )
 
@@ -751,10 +767,11 @@ async function syncWithBackend(force = false) {
         console.log('🔄 Token 401 dev fallback, re-authenticating as Super Admin...')
         tokenStorage.remove()
         await ensureAuthenticated()
-        ;[leadsRes, custsRes, pkgsRes] = await Promise.allSettled([
+        ;[leadsRes, custsRes, pkgsRes, historiesRes] = await Promise.allSettled([
           leadsApi.getAll(),
           customersApi.getAll(),
-          packagesApi.getAll()
+          packagesApi.getAll(),
+          customersApi.getAllHistories()
         ])
       } else {
         console.warn('⚠️ Sesi token 401 untuk pengguna:', existingUser.email)
@@ -780,6 +797,14 @@ async function syncWithBackend(force = false) {
       saveStorage(STORAGE_KEY_PACKAGES, packages.value)
     } else if (pkgsRes.status === 'rejected') {
       console.warn('Backend packagesApi.getAll rejected:', pkgsRes.reason)
+    }
+
+    if (historiesRes.status === 'fulfilled' && Array.isArray(historiesRes.value.data)) {
+      const dbInvoices = historiesRes.value.data.map(mapBackendHistoryToInvoice)
+      invoices.value = dbInvoices
+      saveStorage(STORAGE_KEY_INVOICES, invoices.value)
+    } else if (historiesRes.status === 'rejected') {
+      console.warn('Backend customersApi.getAllHistories rejected:', historiesRes.reason)
     }
   } catch (err: any) {
     syncError.value = err?.message || 'Gagal sinkronisasi data backend'
@@ -1125,9 +1150,15 @@ export function useAppData() {
       }
       saveStorage(STORAGE_KEY_CUSTOMERS, customers.value)
     } else {
-      // Calculate 1 month expired date
+      // Calculate expired date based on selected package duration
+      const matchedPkg = packages.value.find(p => 
+        (p.name && lead.packageInterest && p.name.toLowerCase() === lead.packageInterest.toLowerCase()) ||
+        p.id === lead.packageInterest ||
+        p.id === lead.packageId
+      )
+      const durationMonths = getPackageDurationMonths(matchedPkg)
       const expDate = new Date()
-      expDate.setMonth(expDate.getMonth() + 1)
+      expDate.setMonth(expDate.getMonth() + durationMonths)
       const expISO = expDate.toISOString().substring(0, 10)
 
       targetCustomer = {
@@ -1152,6 +1183,14 @@ export function useAppData() {
       saveStorage(STORAGE_KEY_CUSTOMERS, customers.value)
     }
 
+    // Determine billing cycle months for invoice & backend
+    const matchedPkgForInv = packages.value.find(p => 
+      (p.name && lead.packageInterest && p.name.toLowerCase() === lead.packageInterest.toLowerCase()) ||
+      p.id === lead.packageInterest ||
+      p.id === lead.packageId
+    )
+    const durationMonths = getPackageDurationMonths(matchedPkgForInv)
+
     // Create Initial Invoice for Customer (Rule 9)
     const newInvoice: SubscriptionInvoice = {
       id: 'INV-' + Date.now().toString().slice(-8),
@@ -1161,7 +1200,7 @@ export function useAppData() {
       phone: targetCustomer.phone || '',
       package: targetCustomer.packageType,
       amount: finalAmount,
-      billingCycleMonths: 1,
+      billingCycleMonths: durationMonths,
       date: paymentData?.date || getTodayFormatted(),
       paymentMethod: finalMethod,
       status: 'Paid',
@@ -1173,6 +1212,7 @@ export function useAppData() {
     // Sync approval to backend (which converts Lead into Customer in DB)
     leadsApi.approve(leadId, {
       amount: finalAmount,
+      billingCycleMonths: durationMonths,
       paymentMethod: finalMethod,
       paymentProofUrl: finalProof,
       notes: paymentData?.notes
@@ -1279,6 +1319,12 @@ export function useAppData() {
       inv.status = 'Paid'
       saveStorage(STORAGE_KEY_INVOICES, invoices.value)
 
+      // Sync status LUNAS ke backend
+      const rawId = (inv as any).rawHistoryId || (inv.id.startsWith('INV-') ? inv.id.replace('INV-', '') : inv.id)
+      customersApi.markHistoryPaid(rawId).catch(err => {
+        console.warn('Backend customersApi.markHistoryPaid warning:', err)
+      })
+
       // Update associated customer's active period dynamically (Rule 10)
       const customer = customers.value.find(c => c.id === inv.customerId)
       if (customer) {
@@ -1289,6 +1335,13 @@ export function useAppData() {
         customer.expiredDate = newExpDate.toISOString().substring(0, 10)
         customer.status = 'active'
         saveStorage(STORAGE_KEY_CUSTOMERS, customers.value)
+
+        customersApi.renew(customer.id, {
+          packageId: customer.packageId,
+          billingCycleMonths: inv.billingCycleMonths || 1,
+          paymentMethod: inv.paymentMethod,
+          notes: `Pembayaran invoice ${inv.id} telah lunas.`
+        }).catch(err => console.warn('Backend customersApi.renew warning:', err))
       }
     }
   }
@@ -1980,6 +2033,7 @@ export function useAppData() {
     renewCustomerSubscription,
     getAdminWaUrl,
     getCustomerWaUrl,
+    getPackageDurationMonths,
     getComputedCustomerStatus,
     getOrCreateCustomerReferralCode,
     resetAllToDefault: () => {

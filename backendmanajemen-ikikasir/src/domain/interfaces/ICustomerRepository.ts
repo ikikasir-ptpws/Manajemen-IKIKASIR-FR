@@ -78,4 +78,5 @@ export interface ICustomerRepository {
   findExpired(search?: string): Promise<Customer[]>;
   addSubscriptionHistory(data: CreateSubscriptionHistoryData): Promise<SubscriptionHistory>;
   getSubscriptionHistories(customerId?: string): Promise<SubscriptionHistory[]>;
+  updateSubscriptionHistoryStatus(id: string, paymentStatus: string): Promise<SubscriptionHistory>;
 }

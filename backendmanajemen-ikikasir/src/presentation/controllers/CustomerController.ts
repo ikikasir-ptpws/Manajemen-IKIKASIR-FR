@@ -129,3 +129,33 @@ export const getHistories = async (req: Request, res: Response, next: NextFuncti
     next(error);
   }
 };
+
+export const getAllHistories = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const customerId = (req.query.customerId as string) || undefined;
+    const histories = await customerUseCases.getAllSubscriptionHistories(customerId);
+
+    res.status(200).json({
+      success: true,
+      message: 'Riwayat seluruh langganan berhasil diambil.',
+      data: histories,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const markHistoryPaid = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const id = req.params.id as string;
+    const updated = await customerUseCases.markHistoryPaid(id);
+
+    res.status(200).json({
+      success: true,
+      message: 'Invoice langganan berhasil ditandai LUNAS.',
+      data: updated,
+    });
+  } catch (error) {
+    next(error);
+  }
+};

@@ -49,6 +49,7 @@ import GlobalPagination from '../../components/common/GlobalPagination.vue'
 import CustomerFormModal from '../../components/crm/CustomerFormModal.vue'
 import { 
   useAppData, 
+  getPackageDurationMonths,
   SAMPLE_RECEIPT_BCA, 
   SAMPLE_RECEIPT_QRIS, 
   getCustomerWaUrl, 
@@ -150,6 +151,19 @@ const completedCount = computed(() => {
   return customers.value.filter(u => u.technicianStatus === 'completed' && !u.emailIssueReported && u.technicianStatus !== 'issue').length
 })
 
+const activeCompletedCount = computed(() => {
+  return customers.value.filter(u => 
+    u.technicianStatus === 'completed' && 
+    !u.emailIssueReported && 
+    u.technicianStatus !== 'issue' &&
+    getComputedCustomerStatus(u).computedStatus !== 'expired'
+  ).length
+})
+
+const expiredCustomerCount = computed(() => {
+  return customers.value.filter(u => getComputedCustomerStatus(u).computedStatus === 'expired').length
+})
+
 // Unified Filtered Customers List
 const filteredCustomers = computed(() => {
   let list = customers.value.map(c => {
@@ -170,7 +184,7 @@ const filteredCustomers = computed(() => {
     list = list.filter(c => c.type === filterType.value)
   }
 
-  // Filter Status Teknisi
+  // Filter Status Teknisi & Langganan
   if (filterTeknisiStatus.value === 'Siap Dikerjakan') {
     list = list.filter(c => c.technicianStatus === 'pending_setup' && !c.emailIssueReported && c.technicianStatus !== 'issue')
   } else if (filterTeknisiStatus.value === 'Sedang Dikerjakan') {
@@ -178,7 +192,9 @@ const filteredCustomers = computed(() => {
   } else if (filterTeknisiStatus.value === 'Ada Kendala') {
     list = list.filter(c => c.emailIssueReported || c.technicianStatus === 'issue')
   } else if (filterTeknisiStatus.value === 'Selesai') {
-    list = list.filter(c => c.technicianStatus === 'completed' && !c.emailIssueReported && c.technicianStatus !== 'issue')
+    list = list.filter(c => c.technicianStatus === 'completed' && !c.emailIssueReported && c.technicianStatus !== 'issue' && c.computedStatus !== 'expired')
+  } else if (filterTeknisiStatus.value === 'Expired') {
+    list = list.filter(c => c.computedStatus === 'expired')
   }
 
   // Search
@@ -309,7 +325,13 @@ const getCustomerCredentials = (cust: any) => {
 }
 
 const openDetail = (cust: any) => {
-  selectedCustomer.value = cust
+  const statusInfo = getComputedCustomerStatus(cust)
+  selectedCustomer.value = {
+    ...cust,
+    computedStatus: statusInfo.computedStatus,
+    daysLeft: statusInfo.daysLeft,
+    daysExpired: statusInfo.daysExpired
+  }
   activeDetailTab.value = 'profil'
   isPasswordVisible.value = false
   showDetailModal.value = true
@@ -341,6 +363,8 @@ const openInvoiceFromDetail = (user?: any) => {
   const invoiceNum = existingInv?.id || target.invoiceNumber || ('INV-' + new Date().getFullYear() + String(new Date().getMonth() + 1).padStart(2, '0') + '-' + (target.id ? String(target.id).replace(/\D/g, '').slice(-4) || '1001' : '1001'))
   
   const pkg = target.packageType || target.type || target.packageInterest || existingInv?.package || 'Basic'
+  const matchedPkg = packages.value.find(p => (target.packageId && p.id === target.packageId) || (p.name && p.name.toLowerCase() === String(pkg).toLowerCase()))
+  const defaultMonths = getPackageDurationMonths(matchedPkg)
   const amt = existingInv?.amount || target.amount || (pkg === 'Pro' ? 500000 : 250000)
   const stat = existingInv?.status || ((target.status === 'active' || target.status === 'Aktif') ? 'Paid' : 'Pending')
 
@@ -359,7 +383,7 @@ const openInvoiceFromDetail = (user?: any) => {
     address: addressVal,
     package: pkg,
     amount: amt,
-    billingCycleMonths: existingInv?.billingCycleMonths || 1,
+    billingCycleMonths: existingInv?.billingCycleMonths || defaultMonths || 1,
     date: existingInv?.date || target.registrationDate || new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }),
     paymentMethod: existingInv?.paymentMethod || target.paymentMethod || 'QRIS IKI KASIR',
     status: stat,
@@ -507,8 +531,8 @@ const saveSetupStatus = async () => {
   isSetupModalOpen.value = false
 }
 
-// Redirect ke WA Pelanggan (Kendala / Selesai / Kontak Umum)
-const redirectToWa = (user: any, mode: 'issue' | 'completed' | 'custom' = 'custom') => {
+// Redirect ke WA Pelanggan (Kendala / Selesai / Expired / Kontak Umum)
+const redirectToWa = (user: any, mode: 'issue' | 'completed' | 'expired' | 'custom' = 'custom') => {
   if (!user) return
   const phone = (user.phone || '').replace(/[^0-9]/g, '')
   const cleanPhone = phone.startsWith('0') ? '62' + phone.slice(1) : (phone.startsWith('62') ? phone : '62' + phone)
@@ -519,6 +543,10 @@ const redirectToWa = (user: any, mode: 'issue' | 'completed' | 'custom' = 'custo
   if (mode === 'issue') {
     const reason = techIssueNotes.value || user.emailIssueNotes || 'Kendala verifikasi data akun / email kasir'
     text = `Halo Kak ${name} (${business}), salam dari tim Teknisi IKI KASIR 🙏\n\nSaat ini kami sedang menyiapkan sistem & akun aplikasi kasir Anda. Namun, kami mendapati kendala:\n"${reason}"\n\nMohon konfirmasinya ya Kak agar kami dapat segera melanjutkan dan menyelesaikan penyiapan aplikasi. Terima kasih!`
+  } else if (mode === 'expired') {
+    const expiredStr = user.expiredDate || 'baru-baru ini'
+    const daysExp = user.daysExpired ? ` (${user.daysExpired} hari yang lalu)` : ''
+    text = `Halo Kak ${name} (${business}), kami dari tim IKI KASIR menginformasikan bahwa masa aktif paket kasir Anda telah berakhir pada ${expiredStr}${daysExp}.\n\nAgar operasional transaksi kasir tetap lancar dan tidak terhenti, yuk segera lakukan perpanjangan langganan Kak 🙏\n\nJika ingin memperpanjang paket atau ada kendala yang ingin ditanyakan, silakan balas pesan ini ya Kak. Terima kasih! ✨`
   } else if (mode === 'completed') {
     text = `Halo Kak ${name} (${business}), kabar gembira! 🚀\n\nPenyiapan sistem dan akun aplikasi IKI KASIR untuk usaha Anda telah SELESAI dan siap digunakan.\n\nJika Kakak membutuhkan panduan atau bantuan awal pengoperasian kasir, tim kami siap mendampingi. Selamat bertransaksi & sukses selalu untuk usahanya! 🙏✨\n\nTim Teknisi IKI KASIR`
   } else {
@@ -576,8 +604,8 @@ const openAgreementPreview = (user?: any) => {
       </div>
     </header>
 
-    <!-- Quick Metrics Cards (5 Status Pillars - Clickable Filters) -->
-    <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+    <!-- Quick Metrics Cards (6 Status Pillars - Clickable Filters) -->
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
       <!-- Total -->
       <div 
         @click="resetFilter"
@@ -638,7 +666,7 @@ const openAgreementPreview = (user?: any) => {
         </div>
       </div>
 
-      <!-- Aplikasi Diberikan / Selesai -->
+      <!-- Aplikasi Diberikan / Selesai Aktif -->
       <div 
         @click="filterTeknisiStatus = 'Selesai'"
         class="bg-white rounded-2xl p-3.5 border border-emerald-100 shadow-xs flex items-center gap-3 bg-emerald-50/20 cursor-pointer hover:border-emerald-300 transition-all"
@@ -649,7 +677,22 @@ const openAgreementPreview = (user?: any) => {
         </div>
         <div>
           <span class="text-[10px] text-emerald-700 font-bold uppercase tracking-wider block">Selesai (Aktif)</span>
-          <span class="text-lg font-black text-emerald-600">{{ completedCount }}</span>
+          <span class="text-lg font-black text-emerald-600">{{ activeCompletedCount }}</span>
+        </div>
+      </div>
+
+      <!-- Langganan Expired -->
+      <div 
+        @click="filterTeknisiStatus = 'Expired'"
+        class="bg-white rounded-2xl p-3.5 border border-rose-200 shadow-xs flex items-center gap-3 bg-rose-50/30 cursor-pointer hover:border-rose-400 transition-all"
+        :class="filterTeknisiStatus === 'Expired' ? 'ring-2 ring-rose-500 bg-rose-100/40' : ''"
+      >
+        <div class="w-10 h-10 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center shrink-0">
+          <AlertCircle class="w-5 h-5" />
+        </div>
+        <div>
+          <span class="text-[10px] text-rose-700 font-bold uppercase tracking-wider block">Expired</span>
+          <span class="text-lg font-black text-rose-600">{{ expiredCustomerCount }}</span>
         </div>
       </div>
     </div>
@@ -668,16 +711,17 @@ const openAgreementPreview = (user?: any) => {
       </div>
 
       <div class="flex items-center flex-wrap gap-2 text-xs">
-        <!-- Filter Status Teknisi -->
+        <!-- Filter Status Teknisi / Langganan -->
         <select 
           v-model="filterTeknisiStatus" 
           class="px-3 py-2 sm:py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 outline-none focus:border-cyan-500 cursor-pointer shadow-2xs"
         >
-          <option value="Semua">Status Teknisi: Semua</option>
+          <option value="Semua">Status: Semua</option>
           <option value="Siap Dikerjakan">Siap Dikerjakan ({{ readyForSetupCount }})</option>
           <option value="Sedang Dikerjakan">Sedang Dikerjakan ({{ inProgressCount }})</option>
           <option value="Ada Kendala">Ada Kendala ({{ issueCount }})</option>
-          <option value="Selesai">Aplikasi Diberikan ({{ completedCount }})</option>
+          <option value="Selesai">Aplikasi Diberikan / Aktif ({{ activeCompletedCount }})</option>
+          <option value="Expired">Langganan Expired ({{ expiredCustomerCount }})</option>
         </select>
 
         <!-- Filter Paket -->
@@ -733,8 +777,14 @@ const openAgreementPreview = (user?: any) => {
             <tr 
               v-for="(cust, index) in paginatedCustomers" 
               :key="cust.id" 
-              class="hover:bg-slate-50/80 transition-colors group cursor-pointer"
-              :class="cust.technicianStatus === 'pending_setup' ? 'bg-cyan-50/20' : (cust.emailIssueReported || cust.technicianStatus === 'issue' ? 'bg-rose-50/20' : '')"
+              class="hover:bg-slate-50/80 transition-all group cursor-pointer"
+              :class="[
+                cust.computedStatus === 'expired' 
+                  ? 'bg-rose-50/35 hover:bg-rose-50/60' 
+                  : (cust.technicianStatus === 'pending_setup' 
+                    ? 'bg-cyan-50/20' 
+                    : (cust.emailIssueReported || cust.technicianStatus === 'issue' ? 'bg-rose-50/20' : ''))
+              ]"
               @click="openDetail(cust)"
             >
               <!-- No -->
@@ -745,11 +795,23 @@ const openAgreementPreview = (user?: any) => {
               <!-- Pelanggan & Bisnis -->
               <td class="py-3.5 px-3.5">
                 <div class="flex items-center gap-3">
-                  <div class="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
+                  <div 
+                    class="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs"
+                    :class="cust.computedStatus === 'expired' ? 'bg-rose-100 text-rose-700 font-extrabold' : 'bg-indigo-50 text-indigo-600'"
+                  >
                     {{ cust.name.charAt(0) }}
                   </div>
                   <div>
-                    <div class="font-bold text-slate-800 text-xs group-hover:text-indigo-600 transition-colors leading-snug">{{ cust.name }}</div>
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                      <span class="font-bold text-slate-800 text-xs group-hover:text-indigo-600 transition-colors leading-snug">{{ cust.name }}</span>
+                      <span 
+                        v-if="cust.computedStatus === 'expired'"
+                        class="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-rose-100 text-rose-700 border border-rose-300 shadow-2xs inline-flex items-center gap-0.5"
+                      >
+                        <AlertCircle class="w-2.5 h-2.5 shrink-0" />
+                        Expired
+                      </span>
+                    </div>
                     <div class="text-[11px] text-slate-400 flex items-center gap-1 mt-0.5 font-medium leading-tight">
                       <ShieldCheck class="w-3 h-3 text-slate-400 shrink-0" />
                       <span>{{ cust.business }}</span>
@@ -796,10 +858,19 @@ const openAgreementPreview = (user?: any) => {
                 </span>
               </td>
               
-              <!-- Status Teknisi -->
+              <!-- Status Teknisi / Penyiapan -->
               <td class="py-3.5 px-3.5 whitespace-nowrap">
+                <div v-if="cust.computedStatus === 'expired'" class="inline-flex flex-col gap-1 items-start">
+                  <span class="px-2.5 py-1 rounded-xl text-[11px] font-bold bg-rose-100 text-rose-800 border border-rose-300 inline-flex items-center gap-1 shadow-2xs">
+                    <AlertCircle class="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                    <span>Masa Aktif Habis</span>
+                  </span>
+                  <span v-if="cust.technicianStatus === 'completed'" class="text-[10px] text-slate-400 font-semibold pl-1">
+                    ✓ Aplikasi Diberikan
+                  </span>
+                </div>
                 <span 
-                  v-if="cust.emailIssueReported || cust.technicianStatus === 'issue'"
+                  v-else-if="cust.emailIssueReported || cust.technicianStatus === 'issue'"
                   class="px-2.5 py-1 rounded-xl text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-200 inline-flex items-center gap-1"
                 >
                   <AlertTriangle class="w-3.5 h-3.5 text-rose-600" />
@@ -829,8 +900,39 @@ const openAgreementPreview = (user?: any) => {
               </td>
 
               <!-- Masa Aktif Expired -->
-              <td class="py-3.5 px-3.5 text-slate-600 text-xs font-mono font-medium whitespace-nowrap">
-                {{ cust.expiredDate || '-' }}
+              <td class="py-3.5 px-3.5 whitespace-nowrap">
+                <!-- Jika Expired -->
+                <div v-if="cust.computedStatus === 'expired'" class="space-y-1">
+                  <div class="font-mono text-xs font-bold text-rose-700 flex items-center gap-1.5">
+                    <AlertCircle class="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                    <span>{{ cust.expiredDate || '-' }}</span>
+                  </div>
+                  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black bg-rose-100 text-rose-800 border border-rose-300 shadow-2xs">
+                    <span>Expired ({{ cust.daysExpired }} Hari Lalu)</span>
+                  </span>
+                </div>
+
+                <!-- Jika Segera Expired (H-7) -->
+                <div v-else-if="cust.computedStatus === 'expiring'" class="space-y-1">
+                  <div class="font-mono text-xs font-bold text-amber-700 flex items-center gap-1.5">
+                    <Clock class="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                    <span>{{ cust.expiredDate || '-' }}</span>
+                  </div>
+                  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                    <span>Sisa {{ cust.daysLeft }} Hari</span>
+                  </span>
+                </div>
+
+                <!-- Jika Masih Aktif Normal -->
+                <div v-else class="space-y-1">
+                  <div class="font-mono text-xs font-semibold text-slate-700">
+                    {{ cust.expiredDate || '-' }}
+                  </div>
+                  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    <CheckCircle2 class="w-3 h-3 text-emerald-600 shrink-0" />
+                    <span>Aktif</span>
+                  </span>
+                </div>
               </td>
 
               <!-- Aksi -->
@@ -846,9 +948,20 @@ const openAgreementPreview = (user?: any) => {
                     <span>Setup</span>
                   </button>
 
+                  <!-- Tombol Redirect ke WA jika Langganan Expired -->
+                  <button 
+                    v-if="cust.computedStatus === 'expired'"
+                    @click="redirectToWa(cust, 'expired')"
+                    class="px-2.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs flex items-center gap-1 shadow-sm shadow-rose-200 transition-colors cursor-pointer whitespace-nowrap"
+                    title="Follow Up Perpanjangan Langganan via WhatsApp"
+                  >
+                    <MessageSquare class="w-3.5 h-3.5 shrink-0" />
+                    <span>WA Expired</span>
+                  </button>
+
                   <!-- Tombol Redirect ke WA jika Ada Kendala -->
                   <button 
-                    v-if="cust.emailIssueReported || cust.technicianStatus === 'issue'"
+                    v-else-if="cust.emailIssueReported || cust.technicianStatus === 'issue'"
                     @click="redirectToWa(cust, 'issue')"
                     class="px-2.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs flex items-center gap-1 shadow-sm shadow-rose-200 transition-colors cursor-pointer whitespace-nowrap"
                     title="Hubungi Pelanggan via WhatsApp (Ada Kendala)"
@@ -857,7 +970,7 @@ const openAgreementPreview = (user?: any) => {
                     <span>WA Kendala</span>
                   </button>
 
-                  <!-- Tombol Redirect ke WA jika Sudah Selesai -->
+                  <!-- Tombol Redirect ke WA jika Sudah Selesai & Masih Aktif -->
                   <button 
                     v-else-if="cust.technicianStatus === 'completed'"
                     @click="redirectToWa(cust, 'completed')"
@@ -942,15 +1055,32 @@ const openAgreementPreview = (user?: any) => {
       <div 
         v-for="cust in paginatedCustomers" 
         :key="cust.id"
-        class="bg-white rounded-2xl p-4 border border-slate-100 shadow-xs space-y-3 cursor-pointer"
+        class="bg-white rounded-2xl p-4 border shadow-xs space-y-3 cursor-pointer transition-all"
+        :class="cust.computedStatus === 'expired' ? 'border-rose-200 bg-rose-50/20' : 'border-slate-100'"
         @click="openDetail(cust)"
       >
         <div class="flex items-start justify-between">
           <div>
-            <h4 class="font-extrabold text-sm text-slate-900">{{ cust.name }}</h4>
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <h4 class="font-extrabold text-sm text-slate-900">{{ cust.name }}</h4>
+              <span 
+                v-if="cust.computedStatus === 'expired'"
+                class="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-rose-100 text-rose-700 border border-rose-300"
+              >
+                Expired
+              </span>
+            </div>
             <p class="text-xs text-slate-500">{{ cust.business }} &bull; {{ cust.phone }}</p>
           </div>
           <span 
+            v-if="cust.computedStatus === 'expired'"
+            class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-200 flex items-center gap-1"
+          >
+            <AlertCircle class="w-3 h-3 text-rose-600" />
+            Expired ({{ cust.daysExpired }} hr)
+          </span>
+          <span 
+            v-else
             class="px-2 py-0.5 rounded-full text-[10px] font-bold"
             :class="cust.technicianStatus === 'completed' ? 'bg-emerald-100 text-emerald-800' : 'bg-cyan-100 text-cyan-800'"
           >
@@ -963,9 +1093,16 @@ const openAgreementPreview = (user?: any) => {
             <span class="text-slate-400">Paket:</span>
             <span class="font-bold text-slate-800">{{ cust.type }}</span>
           </div>
-          <div class="flex justify-between">
+          <div class="flex justify-between items-center">
             <span class="text-slate-400">Masa Aktif:</span>
-            <span class="font-mono text-slate-700">{{ cust.expiredDate || '-' }}</span>
+            <span 
+              class="font-mono font-bold"
+              :class="cust.computedStatus === 'expired' ? 'text-rose-700' : (cust.computedStatus === 'expiring' ? 'text-amber-700' : 'text-slate-700')"
+            >
+              {{ cust.expiredDate || '-' }}
+              <span v-if="cust.computedStatus === 'expired'" class="text-[10px] text-rose-600 font-extrabold ml-1">(Lewat {{ cust.daysExpired }} hr)</span>
+              <span v-else-if="cust.computedStatus === 'expiring'" class="text-[10px] text-amber-600 font-bold ml-1">(Sisa {{ cust.daysLeft }} hr)</span>
+            </span>
           </div>
           <div v-if="cust.emailIssueReported || cust.technicianStatus === 'issue'" class="pt-1 border-t border-slate-200 flex justify-between items-center text-rose-600 font-bold">
             <span>Ada Kendala!</span>
@@ -983,7 +1120,14 @@ const openAgreementPreview = (user?: any) => {
             <Wrench class="w-3.5 h-3.5" /> Setup Status
           </button>
           <button 
-            v-if="cust.emailIssueReported || cust.technicianStatus === 'issue'"
+            v-if="cust.computedStatus === 'expired'"
+            @click="redirectToWa(cust, 'expired')"
+            class="py-2 px-3 rounded-xl bg-rose-600 text-white font-bold text-xs flex items-center justify-center gap-1 shadow-md shadow-rose-200 cursor-pointer"
+          >
+            <MessageSquare class="w-3.5 h-3.5" /> WA Expired
+          </button>
+          <button 
+            v-else-if="cust.emailIssueReported || cust.technicianStatus === 'issue'"
             @click="redirectToWa(cust, 'issue')"
             class="py-2 px-3 rounded-xl bg-rose-600 text-white font-bold text-xs flex items-center justify-center gap-1 shadow-md shadow-rose-200 cursor-pointer"
           >
@@ -1300,11 +1444,12 @@ const openAgreementPreview = (user?: any) => {
             <div class="flex items-center flex-wrap gap-2 pt-0.5">
               <!-- Hubungi WhatsApp -->
               <button 
-                @click="redirectToWa(selectedCustomer, (selectedCustomer.emailIssueReported || selectedCustomer.technicianStatus === 'issue') ? 'issue' : (selectedCustomer.technicianStatus === 'completed' ? 'completed' : 'custom'))"
-                class="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95"
+                @click="redirectToWa(selectedCustomer, selectedCustomer.computedStatus === 'expired' ? 'expired' : ((selectedCustomer.emailIssueReported || selectedCustomer.technicianStatus === 'issue') ? 'issue' : (selectedCustomer.technicianStatus === 'completed' ? 'completed' : 'custom')))"
+                class="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-white text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95"
+                :class="selectedCustomer.computedStatus === 'expired' ? 'bg-rose-600 hover:bg-rose-700 shadow-rose-200' : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200'"
               >
                 <MessageSquare class="w-3.5 h-3.5" />
-                <span>Hubungi WhatsApp</span>
+                <span>{{ selectedCustomer.computedStatus === 'expired' ? 'WA Follow-Up Expired' : 'Hubungi WhatsApp' }}</span>
               </button>
 
               <!-- Setup Status Teknisi -->
@@ -1519,6 +1664,32 @@ const openAgreementPreview = (user?: any) => {
                 <!-- ========================================== -->
                 <div v-if="activeDetailTab === 'profil'" class="space-y-4 animate-in fade-in duration-150">
                   
+                  <!-- Alert jika Langganan Expired -->
+                  <div 
+                    v-if="selectedCustomer.computedStatus === 'expired'"
+                    class="bg-rose-50 border border-rose-200 rounded-2xl p-4 flex items-start gap-3 shadow-2xs"
+                  >
+                    <AlertCircle class="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+                    <div class="flex-1">
+                      <div class="flex items-center justify-between flex-wrap gap-2">
+                        <span class="text-xs font-bold text-rose-800">Perhatian: Masa Aktif Pelanggan Telah Berakhir (Expired)!</span>
+                        <span class="text-[10px] font-black uppercase bg-rose-200/80 text-rose-800 px-2 py-0.5 rounded">Masa Aktif Habis</span>
+                      </div>
+                      <p class="text-xs text-rose-700 mt-1 leading-relaxed">
+                        Langganan paket kasir untuk toko ini telah berakhir pada <strong>{{ selectedCustomer.expiredDate }}</strong> (lewat {{ selectedCustomer.daysExpired }} hari yang lalu). Segera hubungi pelanggan untuk konfirmasi perpanjangan paket agar layanan kasir tidak terkendala.
+                      </p>
+                      <div class="mt-2.5 flex items-center gap-2">
+                        <button 
+                          @click="redirectToWa(selectedCustomer, 'expired')"
+                          class="px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs cursor-pointer"
+                        >
+                          <MessageSquare class="w-3.5 h-3.5" />
+                          <span>Chat WA Perpanjangan Langganan</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
                   <!-- Alert Status Penyiapan Kasir -->
                   <div 
                     v-if="selectedCustomer.emailIssueReported || selectedCustomer.technicianStatus === 'issue'"
@@ -1762,6 +1933,29 @@ const openAgreementPreview = (user?: any) => {
                 <!-- ========================================== -->
                 <div v-if="activeDetailTab === 'langganan'" class="space-y-4 animate-in fade-in duration-150">
                   
+                  <!-- Banner Peringatan jika Expired -->
+                  <div 
+                    v-if="selectedCustomer.computedStatus === 'expired'"
+                    class="p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-center justify-between gap-3 shadow-2xs flex-wrap sm:flex-nowrap"
+                  >
+                    <div class="flex items-center gap-3 text-rose-800">
+                      <div class="w-9 h-9 rounded-xl bg-rose-100 flex items-center justify-center shrink-0">
+                        <AlertCircle class="w-5 h-5 text-rose-600" />
+                      </div>
+                      <div>
+                        <p class="font-bold text-xs">Langganan Telah Expired Sejak {{ selectedCustomer.expiredDate }}</p>
+                        <p class="text-[11px] text-rose-600 mt-0.5">Toko ini telah melewati masa aktif selama {{ selectedCustomer.daysExpired }} hari. Segera follow-up untuk perpanjangan lisensi.</p>
+                      </div>
+                    </div>
+                    <button 
+                      @click="redirectToWa(selectedCustomer, 'expired')"
+                      class="px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shrink-0 inline-flex items-center gap-1.5 shadow-xs cursor-pointer"
+                    >
+                      <MessageSquare class="w-3.5 h-3.5" />
+                      <span>Chat WA Perpanjangan</span>
+                    </button>
+                  </div>
+
                   <!-- Card Detail Paket & Billing -->
                   <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-xs space-y-3.5">
                     <div class="flex items-center justify-between border-b border-slate-100 pb-2.5">

@@ -250,7 +250,23 @@ export class LeadUseCases {
         const cleanEmail = lead.email.toLowerCase().trim();
         const existingCust = await this.customerRepository.findByEmail(cleanEmail);
 
-        const months = dto.billingCycleMonths || 1;
+        let months = dto.billingCycleMonths;
+        if (!months || months === 1) {
+          let pkg = null;
+          if (lead.packageId && this.packageRepository) {
+            pkg = await this.packageRepository.findById(lead.packageId);
+          } else if (lead.packageInterest && this.packageRepository) {
+            pkg = await this.packageRepository.findById(lead.packageInterest);
+          }
+          if (pkg) {
+            const pkgDuration = pkg.getDurationMonths();
+            if (pkgDuration > 0) {
+              months = pkgDuration;
+            }
+          }
+        }
+        if (!months || months <= 0) months = 1;
+
         const expiresAt = new Date();
         expiresAt.setMonth(expiresAt.getMonth() + months);
 

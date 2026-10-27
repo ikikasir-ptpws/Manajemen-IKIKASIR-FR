@@ -55,6 +55,11 @@ export class PrismaCustomerRepository implements ICustomerRepository {
       startedAt: record.startedAt,
       expiresAt: record.expiresAt,
       createdAt: record.createdAt,
+      customerName: record.customer?.name ?? '',
+      businessName: record.customer?.businessName ?? '',
+      phone: record.customer?.phone ?? '',
+      email: record.customer?.email ?? '',
+      address: record.customer?.address ?? '',
     });
   }
 
@@ -265,6 +270,10 @@ export class PrismaCustomerRepository implements ICustomerRepository {
 
       const records = await prisma.subscriptionHistory.findMany({
         where,
+        include: {
+          customer: true,
+          package: true,
+        },
         orderBy: {
           createdAt: 'desc',
         },
@@ -273,6 +282,19 @@ export class PrismaCustomerRepository implements ICustomerRepository {
       return records.map((r) => this.mapHistoryToDomain(r));
     } catch (error) {
       throw new InternalServerError(`Gagal mengambil riwayat pembayaran langganan: ${(error as Error).message}`);
+    }
+  }
+
+  public async updateSubscriptionHistoryStatus(id: string, paymentStatus: string): Promise<SubscriptionHistory> {
+    try {
+      const record = await prisma.subscriptionHistory.update({
+        where: { id },
+        data: { paymentStatus },
+        include: { customer: true, package: true },
+      });
+      return this.mapHistoryToDomain(record);
+    } catch (error) {
+      throw new InternalServerError(`Gagal memperbarui status invoice: ${(error as Error).message}`);
     }
   }
 }

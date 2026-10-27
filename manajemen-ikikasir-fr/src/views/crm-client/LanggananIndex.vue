@@ -1,13 +1,28 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
-import { Receipt, Search, Download, CheckCircle2, XCircle, Clock, Eye, X, ChevronDown, Filter, Check, FileText } from 'lucide-vue-next'
+import { 
+  Receipt, 
+  Search, 
+  Download, 
+  CheckCircle2, 
+  XCircle, 
+  Clock, 
+  Eye, 
+  X, 
+  ChevronDown, 
+  Filter, 
+  Check, 
+  FileText,
+  CreditCard,
+  RefreshCw
+} from 'lucide-vue-next'
 import { useAppData } from '../../composables/useAppData'
 import { usePagination } from '../../composables/usePagination'
 import GlobalPagination from '../../components/common/GlobalPagination.vue'
 import DateRangePicker from '../../components/common/DateRangePicker.vue'
 import InvoiceDetailModal from '../../components/InvoiceDetailModal.vue'
 
-const { invoices, customers, leads, markInvoicePaid, syncWithBackend } = useAppData()
+const { invoices, customers, leads, markInvoicePaid, syncWithBackend, isSyncing } = useAppData()
 
 onMounted(() => {
   syncWithBackend(true)
@@ -42,19 +57,22 @@ const filteredSubs = computed(() => {
     return {
       id: i.id,
       customerId: i.customerId || cust?.id,
-      customer: i.customerName,
-      customerName: i.customerName,
-      business: i.businessName,
-      businessName: i.businessName,
+      customer: i.customerName || cust?.name || lead?.name || 'Pelanggan',
+      customerName: i.customerName || cust?.name || lead?.name || 'Pelanggan',
+      business: i.businessName || cust?.businessName || cust?.business || lead?.businessName || 'Toko',
+      businessName: i.businessName || cust?.businessName || cust?.business || lead?.businessName || 'Toko',
       phone: i.phone || cust?.phone || lead?.phone || '',
       email: (i as any).email || cust?.email || lead?.email || '',
       address: (i as any).address || cust?.address || lead?.address || '',
-      amount: i.amount,
-      package: i.package,
-      status: i.status,
+      amount: Number(i.amount) || cust?.amount || 250000,
+      billingCycleMonths: i.billingCycleMonths || 1,
+      package: i.package || cust?.packageType || 'Basic',
+      status: i.status || 'Paid',
       date: i.date,
-      method: i.paymentMethod || 'QRIS',
+      method: i.paymentMethod || cust?.paymentMethod || 'QRIS',
+      paymentMethod: i.paymentMethod || cust?.paymentMethod || 'QRIS',
       paymentProofUrl: i.paymentProofUrl || cust?.paymentProofUrl,
+      notes: i.notes || '',
       rawInvoice: i
     }
   })
@@ -126,7 +144,7 @@ const handleExport = () => {
           <Receipt class="w-6 h-6 text-indigo-600" />
           Data Langganan
         </h1>
-        <p class="text-xs text-slate-500 mt-1">Riwayat pembayaran dan tagihan langganan kasir.</p>
+        <p class="text-xs text-slate-500 mt-1">Riwayat pembayaran dan tagihan langganan kasir langsung dari database.</p>
       </div>
 
       <div class="flex items-center gap-2 w-full sm:w-auto flex-wrap">
@@ -144,7 +162,7 @@ const handleExport = () => {
             class="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
           />
         </div>
-        <!-- Filter -->
+        <!-- Filter Status -->
         <div class="relative">
           <button 
             @click="showFilterDropdown = !showFilterDropdown"
@@ -162,6 +180,18 @@ const handleExport = () => {
             >{{ s === 'Paid' ? '✅ Lunas' : s === 'Pending' ? '⏳ Menunggu' : s === 'Failed' ? '❌ Gagal' : 'Semua' }}</button>
           </div>
         </div>
+
+        <!-- Tombol Sinkronkan API -->
+        <button
+          @click="syncWithBackend(true)"
+          :disabled="isSyncing"
+          class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs font-semibold shadow-xs transition-all active:scale-98 cursor-pointer disabled:opacity-50"
+          title="Sinkronkan data dengan database server"
+        >
+          <RefreshCw class="w-3.5 h-3.5" :class="{ 'animate-spin': isSyncing }" />
+          <span class="hidden sm:inline">Sinkronkan</span>
+        </button>
+
         <button 
           @click="handleExport"
           class="flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-200 shrink-0 cursor-pointer"
@@ -175,13 +205,14 @@ const handleExport = () => {
     <!-- Table Container (Desktop) -->
     <div class="hidden md:block bg-white rounded-2xl shadow-xs border border-slate-100 overflow-hidden">
       <div class="overflow-x-auto">
-        <table class="w-full text-left text-sm min-w-[800px]">
+        <table class="w-full text-left text-sm min-w-[900px]">
           <thead class="bg-slate-50/75 border-b border-slate-100 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
             <tr>
               <th class="px-6 py-4">No. Invoice</th>
               <th class="px-6 py-4">Pelanggan</th>
               <th class="px-6 py-4">Paket</th>
               <th class="px-6 py-4">Total Tagihan</th>
+              <th class="px-6 py-4">Metode Pembayaran</th>
               <th class="px-6 py-4">Tanggal</th>
               <th class="px-6 py-4">Status Pembayaran</th>
               <th class="px-6 py-4 text-right">Aksi</th>
@@ -205,6 +236,12 @@ const handleExport = () => {
                 </span>
               </td>
               <td class="px-6 py-4 font-extrabold text-slate-800">{{ formatCurrency(sub.amount) }}</td>
+              <td class="px-6 py-4">
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-50 text-slate-700 border border-slate-200">
+                  <CreditCard class="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                  <span>{{ sub.method }}</span>
+                </span>
+              </td>
               <td class="px-6 py-4 text-slate-500 text-xs font-medium">{{ sub.date }}</td>
               <td class="px-6 py-4" @click.stop>
                 <span 
@@ -228,7 +265,7 @@ const handleExport = () => {
               </td>
             </tr>
             <tr v-if="filteredSubs.length === 0">
-              <td colspan="7" class="px-6 py-8 text-center text-slate-400 text-sm">
+              <td colspan="8" class="px-6 py-8 text-center text-slate-400 text-sm">
                 Belum ada data langganan yang cocok dengan pencarian/filter.
               </td>
             </tr>
@@ -282,9 +319,12 @@ const handleExport = () => {
             <span class="text-slate-400">Total Tagihan:</span>
             <span class="font-extrabold text-indigo-700">{{ formatCurrency(sub.amount) }}</span>
           </div>
-          <div class="flex justify-between">
+          <div class="flex justify-between items-center">
             <span class="text-slate-400">Metode:</span>
-            <span class="font-medium text-slate-600">{{ sub.method }}</span>
+            <span class="font-semibold text-slate-700 inline-flex items-center gap-1">
+              <CreditCard class="w-3 h-3 text-indigo-600 shrink-0" />
+              <span>{{ sub.method }}</span>
+            </span>
           </div>
         </div>
 
