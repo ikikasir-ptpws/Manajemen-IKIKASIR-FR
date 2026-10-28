@@ -5,6 +5,7 @@ export interface ApiResponse<T = any> {
   total?: number;
   errors?: any;
   summary?: any;
+  meta?: any;
 }
 
 export class HttpError extends Error {

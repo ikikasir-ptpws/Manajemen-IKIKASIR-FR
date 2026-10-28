@@ -1,104 +1,79 @@
-
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { Calculator, Download, Calendar, ChevronDown, Scale, Building, Landmark, Wallet, ArrowRight } from 'lucide-vue-next'
+import { ref, computed, watch, onMounted } from 'vue'
+import { Calculator, Download, Calendar, ChevronDown, Scale, Building, Landmark, Wallet, ArrowRight, RefreshCw, AlertCircle } from 'lucide-vue-next'
 import { useReportData } from '../../composables/useReportData'
+import { useNeraca } from '../../composables/useNeraca'
 import DateRangePicker from '../../components/common/DateRangePicker.vue'
 
-const { masterTransactions, masterExpenses, getTrxTotalAmount } = useReportData()
+const { startDate, endDate, periodeLabel, formatCurrency, setPreset, exportCsv } = useReportData()
+const { report, isLoading, error, fetchNeraca } = useNeraca()
 
-const startDate = ref('2026-09-01')
-const endDate = ref('2026-09-30')
+const asetLancar = computed(() => report.value?.asetLancar ?? [])
+const asetTetap = computed(() => report.value?.asetTetap ?? [])
+const kewajibanLancar = computed(() => report.value?.kewajibanLancar ?? [])
+const kewajibanJangkaPanjang = computed(() => report.value?.kewajibanJangkaPanjang ?? [])
+const ekuitasItems = computed(() => report.value?.ekuitas ?? [])
 
-const formatCurrency = (val: number) => {
-  return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val)
+const totalAsetLancar = computed(() => report.value?.summary.totalAsetLancar ?? 0)
+const totalAsetTetap = computed(() => report.value?.summary.totalAsetTetap ?? 0)
+const totalAset = computed(() => report.value?.summary.totalAset ?? 0)
+const totalKewajibanLancar = computed(() => report.value?.summary.totalKewajibanLancar ?? 0)
+const totalKewajibanJP = computed(() => report.value?.summary.totalKewajibanJangkaPanjang ?? 0)
+const totalKewajiban = computed(() => report.value?.summary.totalKewajiban ?? 0)
+const totalEkuitas = computed(() => report.value?.summary.totalEkuitas ?? 0)
+const labaPeriodeBerjalan = computed(() => report.value?.summary.labaPeriodeBerjalan ?? 0)
+const isBalanced = computed(() => report.value?.summary.isBalanced ?? true)
+
+const muatNeraca = async () => {
+  await fetchNeraca({
+    startDate: startDate.value || undefined,
+    endDate: endDate.value || undefined,
+  })
 }
 
-// Sales transactions filtered by period
-const filteredSales = computed(() => {
-  return masterTransactions.value.filter(trx => {
-    if (startDate.value && trx.date < startDate.value) return false
-    if (endDate.value && trx.date > endDate.value) return false
-    return true
-  })
+// Muat ulang neraca ketika rentang tanggal berubah
+watch([startDate, endDate], () => {
+  muatNeraca()
 })
 
-// Expense items filtered by period
-const filteredExpenses = computed(() => {
-  return masterExpenses.value.filter(exp => {
-    if (startDate.value && exp.date < startDate.value) return false
-    if (endDate.value && exp.date > endDate.value) return false
-    return true
-  })
-})
-
-// Calculations derived from shared dataset
-const totalPendapatanKas = computed(() => {
-  return filteredSales.value
-    .filter(t => t.status === 'Selesai')
-    .reduce((sum, t) => sum + getTrxTotalAmount(t), 0)
-})
-
-const totalPiutangPending = computed(() => {
-  return filteredSales.value
-    .filter(t => t.status === 'Pending')
-    .reduce((sum, t) => sum + getTrxTotalAmount(t), 0)
-})
-
-const totalBebanOperasional = computed(() => {
-  return filteredExpenses.value.reduce((sum, e) => sum + e.amount, 0)
-})
-
-const labaPeriodeBerjalan = computed(() => totalPendapatanKas.value - totalBebanOperasional.value)
-
-// Dynamic Aset Lancar
-const asetLancar = computed(() => [
-  { name: 'Kas & Setara Kas', amount: 30000000 + (totalPendapatanKas.value - totalBebanOperasional.value) },
-  { name: 'Piutang Usaha / Penjualan (Pending)', amount: totalPiutangPending.value },
-  { name: 'Perlengkapan Kantor', amount: 3200000 },
-])
-
-const asetTetap = ref([
-  { name: 'Peralatan Komputer & Server', amount: 35000000 },
-  { name: 'Peralatan Kantor', amount: 8500000 },
-  { name: 'Akumulasi Penyusutan', amount: -12500000 },
-])
-
-const totalAsetLancar = computed(() => asetLancar.value.reduce((s, i) => s + i.amount, 0))
-const totalAsetTetap = computed(() => asetTetap.value.reduce((s, i) => s + i.amount, 0))
-const totalAset = computed(() => totalAsetLancar.value + totalAsetTetap.value)
-
-// Kewajiban
-const kewajibanLancar = ref([
-  { name: 'Utang Usaha', amount: 5000000 },
-  { name: 'Pendapatan Diterima Dimuka', amount: 8500000 },
-  { name: 'Utang Pajak', amount: 1200000 },
-])
-
-const kewajibanJangkaPanjang = ref([
-  { name: 'Utang Bank (Kredit Usaha)', amount: 15000000 },
-])
-
-const totalKewajibanLancar = computed(() => kewajibanLancar.value.reduce((s, i) => s + i.amount, 0))
-const totalKewajibanJP = computed(() => kewajibanJangkaPanjang.value.reduce((s, i) => s + i.amount, 0))
-const totalKewajiban = computed(() => totalKewajibanLancar.value + totalKewajibanJP.value)
-
-// Ekuitas
-const ekuitasItems = computed(() => [
-  { name: 'Modal Disetor', amount: 30000000 },
-  { name: 'Laba Ditahan', amount: 5200000 },
-  { name: 'Laba Periode Berjalan', amount: labaPeriodeBerjalan.value },
-])
-
-const totalEkuitas = computed(() => totalAset.value - totalKewajiban.value)
-
-const isBalanced = computed(() => {
-  const kewajibanPlusEkuitas = totalKewajiban.value + totalEkuitas.value
-  return Math.abs(totalAset.value - kewajibanPlusEkuitas) < 1
+onMounted(() => {
+  muatNeraca()
 })
 
 const handleExport = () => {
-  alert('Data Neraca berhasil diekspor! (Demo)')
+  const rows: (string | number)[][] = [
+    ['LAPORAN NERACA'],
+    ['Periode', periodeLabel.value],
+    [],
+    ['ASET LANCAR', 'Nominal'],
+    ...asetLancar.value.map((item) => [item.name, item.amount]),
+    ['Total Aset Lancar', totalAsetLancar.value],
+    [],
+    ['ASET TETAP', 'Nominal'],
+    ...asetTetap.value.map((item) => [item.name, item.amount]),
+    ['Total Aset Tetap', totalAsetTetap.value],
+    [],
+    ['TOTAL ASET', totalAset.value],
+    [],
+    ['KEWAJIBAN LANCAR', 'Nominal'],
+    ...kewajibanLancar.value.map((item) => [item.name, item.amount]),
+    ['Total Kewajiban Lancar', totalKewajibanLancar.value],
+    [],
+    ['KEWAJIBAN JANGKA PANJANG', 'Nominal'],
+    ...kewajibanJangkaPanjang.value.map((item) => [item.name, item.amount]),
+    ['Total Kewajiban Jangka Panjang', totalKewajibanJP.value],
+    [],
+    ['EKUITAS', 'Nominal'],
+    ...ekuitasItems.value.map((item) => [item.name, item.amount]),
+    ['Total Ekuitas', totalEkuitas.value],
+    [],
+    ['TOTAL KEWAJIBAN + EKUITAS', totalKewajiban.value + totalEkuitas.value],
+  ]
+
+  const berhasil = exportCsv(`neraca-${new Date().toISOString().slice(0, 10)}`, rows)
+  if (!berhasil) {
+    window.alert('Tidak ada data untuk diekspor.')
+  }
 }
 </script>
 
@@ -113,17 +88,29 @@ const handleExport = () => {
           <Calculator class="w-6 h-6 text-amber-600" />
           Neraca (Balance Sheet)
         </h1>
-        <p class="text-xs text-slate-500 mt-1 font-medium">Ringkasan posisi keuangan: Aset, Kewajiban, dan Ekuitas.</p>
+        <p class="text-xs text-slate-500 mt-1 font-medium">
+          Ringkasan posisi keuangan: Aset, Kewajiban, dan Ekuitas.
+          <span class="text-slate-400">Periode: {{ periodeLabel }}</span>
+        </p>
       </div>
 
       <div class="flex items-center gap-2 flex-wrap">
-        <DateRangePicker 
-          v-model:startDate="startDate" 
-          v-model:endDate="endDate" 
+        <DateRangePicker
+          v-model:startDate="startDate"
+          v-model:endDate="endDate"
           placeholder="Filter Rentang Tanggal"
         />
-        
-        <button 
+
+        <button
+          @click="muatNeraca"
+          :disabled="isLoading"
+          class="flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 active:scale-95 text-slate-700 text-xs font-bold transition-all cursor-pointer shadow-2xs disabled:opacity-60"
+        >
+          <RefreshCw class="w-4 h-4" :class="{ 'animate-spin': isLoading }" />
+          <span class="hidden sm:inline">Muat Ulang</span>
+        </button>
+
+        <button
           @click="handleExport"
           class="flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 active:scale-95 text-slate-700 text-xs font-bold transition-all cursor-pointer shadow-2xs"
         >
@@ -132,6 +119,21 @@ const handleExport = () => {
         </button>
       </div>
     </header>
+
+    <!-- Preset Periode -->
+    <section class="bg-white rounded-2xl shadow-xs border border-slate-100 px-4 py-3 flex items-center gap-2 flex-wrap">
+      <span class="text-[11px] font-medium text-slate-400 shrink-0">Preset Periode:</span>
+      <button @click="setPreset('semua')" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-100 text-slate-600 hover:bg-amber-50 hover:text-amber-600 transition-colors cursor-pointer">Semua</button>
+      <button @click="setPreset('hari-ini')" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-100 text-slate-600 hover:bg-amber-50 hover:text-amber-600 transition-colors cursor-pointer">Hari Ini</button>
+      <button @click="setPreset('7-hari')" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-100 text-slate-600 hover:bg-amber-50 hover:text-amber-600 transition-colors cursor-pointer">7 Hari Terakhir</button>
+      <button @click="setPreset('bulan-ini')" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-100 text-slate-600 hover:bg-amber-50 hover:text-amber-600 transition-colors cursor-pointer">Bulan Ini</button>
+    </section>
+
+    <!-- Error State -->
+    <div v-if="error" class="flex items-center gap-2 px-4 py-3 rounded-xl bg-rose-50 border border-rose-200 text-xs font-semibold text-rose-700">
+      <AlertCircle class="w-4 h-4 shrink-0" />
+      <span>{{ error }}</span>
+    </div>
 
     <!-- Balance Equation Summary -->
     <section class="kpi-card bg-white rounded-2xl p-5 shadow-xs border border-slate-100">
@@ -158,7 +160,7 @@ const handleExport = () => {
         </div>
       </div>
       <div class="mt-4 pt-3 text-center">
-        <span 
+        <span
           class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold"
           :class="isBalanced ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'"
         >
@@ -170,7 +172,7 @@ const handleExport = () => {
 
     <!-- Detail Tables -->
     <section class="grid grid-cols-1 lg:grid-cols-2 gap-5">
-      
+
       <!-- ASET (Kiri) -->
       <div class="space-y-4">
         <!-- Aset Lancar -->
@@ -186,6 +188,12 @@ const handleExport = () => {
             <div v-for="item in asetLancar" :key="item.name" class="px-5 py-3 flex items-center justify-between hover:bg-slate-50/50 transition-colors">
               <span class="text-sm text-slate-700 font-medium">{{ item.name }}</span>
               <span class="text-sm font-bold text-slate-800">{{ formatCurrency(item.amount) }}</span>
+            </div>
+            <div v-if="!isLoading && asetLancar.length === 0" class="px-5 py-6 text-center text-xs text-slate-400">
+              Belum ada data aset lancar.
+            </div>
+            <div v-if="isLoading" class="px-5 py-6 text-center text-xs text-slate-400">
+              Memuat data laporan...
             </div>
           </div>
         </div>
@@ -267,7 +275,15 @@ const handleExport = () => {
           <div class="">
             <div v-for="item in ekuitasItems" :key="item.name" class="px-5 py-3 flex items-center justify-between hover:bg-slate-50/50 transition-colors">
               <span class="text-sm text-slate-700 font-medium">{{ item.name }}</span>
-              <span class="text-sm font-bold text-emerald-700">{{ formatCurrency(item.amount) }}</span>
+              <span class="text-sm font-bold" :class="item.amount < 0 ? 'text-rose-600' : 'text-emerald-700'">
+                {{ formatCurrency(item.amount) }}
+              </span>
+            </div>
+            <div class="px-5 py-3 flex items-center justify-between bg-emerald-50/40 border-t border-emerald-100">
+              <span class="text-[11px] text-slate-500 font-medium">Laba Periode Berjalan</span>
+              <span class="text-xs font-bold" :class="labaPeriodeBerjalan >= 0 ? 'text-emerald-700' : 'text-rose-600'">
+                {{ formatCurrency(labaPeriodeBerjalan) }}
+              </span>
             </div>
           </div>
         </div>

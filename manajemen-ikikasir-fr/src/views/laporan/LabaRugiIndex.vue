@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import {
   PieChart,
   Download,
@@ -7,87 +7,72 @@ import {
   TrendingDown,
   ArrowUpRight,
   ArrowDownRight,
-  DollarSign
+  DollarSign,
+  RefreshCw,
+  AlertCircle,
+  Calendar
 } from 'lucide-vue-next'
 import { useReportData } from '../../composables/useReportData'
+import { useLabaRugi } from '../../composables/useLabaRugi'
 import DateRangePicker from '../../components/common/DateRangePicker.vue'
 
-const { masterTransactions, masterExpenses } = useReportData()
+const { startDate, endDate, periodeLabel, formatCurrency, setPreset, exportCsv } = useReportData()
+const { report, isLoading, error, fetchLabaRugi } = useLabaRugi()
 
-// Date range filter using DateRangePicker
-const startDate = ref('2026-09-01')
-const endDate = ref('2026-09-30')
+const pendapatanItems = computed(() => report.value?.pendapatan ?? [])
+const bebanItems = computed(() => report.value?.beban ?? [])
 
-const formatCurrency = (val: number) => {
-  return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val)
+const totalPendapatan = computed(() => report.value?.summary.totalPendapatan ?? 0)
+const totalBeban = computed(() => report.value?.summary.totalBeban ?? 0)
+const labaRugiBersih = computed(() => report.value?.summary.labaBersih ?? 0)
+const marginPersentase = computed(() => report.value?.summary.marginPersentase ?? 0)
+const pertumbuhanPendapatan = computed(() => report.value?.summary.pertumbuhanPendapatan ?? 0)
+const pertumbuhanBeban = computed(() => report.value?.summary.pertumbuhanBeban ?? 0)
+
+const formatPertumbuhan = (nilai: number): string => {
+  if (nilai > 0) return `+${nilai}% dari periode sebelumnya`
+  if (nilai < 0) return `${nilai}% dari periode sebelumnya`
+  return 'Tidak ada pembanding periode sebelumnya'
 }
 
-// Sales transactions filtered by date range
-const filteredSales = computed(() => {
-  return masterTransactions.value.filter(trx => {
-    if (trx.status !== 'Selesai') return false
-    if (startDate.value && trx.date < startDate.value) return false
-    if (endDate.value && trx.date > endDate.value) return false
-    return true
+const muatLaporan = async () => {
+  await fetchLabaRugi({
+    startDate: startDate.value || undefined,
+    endDate: endDate.value || undefined,
   })
+}
+
+// Muat ulang laporan ketika rentang tanggal berubah
+watch([startDate, endDate], () => {
+  muatLaporan()
 })
 
-// Expense items filtered by date range
-const filteredExpenses = computed(() => {
-  return masterExpenses.value.filter(exp => {
-    if (startDate.value && exp.date < startDate.value) return false
-    if (endDate.value && exp.date > endDate.value) return false
-    return true
-  })
+onMounted(() => {
+  muatLaporan()
 })
-
-// Pendapatan items computed directly from completed sales transactions
-const pendapatanItems = computed(() => {
-  const categoryTotals: Record<string, number> = {
-    'Pendapatan Lisensi & Paket POS': 0,
-    'Pendapatan Perangkat Hardware POS': 0,
-    'Pendapatan Addon & Aksesoris': 0,
-  }
-
-  filteredSales.value.forEach(trx => {
-    trx.items.forEach(item => {
-      if (item.category === 'Lisensi POS') {
-        categoryTotals['Pendapatan Lisensi & Paket POS'] = (categoryTotals['Pendapatan Lisensi & Paket POS'] ?? 0) + item.price * item.qty
-      } else if (item.category === 'Hardware') {
-        categoryTotals['Pendapatan Perangkat Hardware POS'] = (categoryTotals['Pendapatan Perangkat Hardware POS'] ?? 0) + item.price * item.qty
-      } else if (item.category === 'Addon & Aksesoris') {
-        categoryTotals['Pendapatan Addon & Aksesoris'] = (categoryTotals['Pendapatan Addon & Aksesoris'] ?? 0) + item.price * item.qty
-      } else {
-        const key = `Pendapatan ${item.category}`
-        categoryTotals[key] = (categoryTotals[key] ?? 0) + item.price * item.qty
-      }
-    })
-  })
-
-  return Object.entries(categoryTotals)
-    .filter(([_, amount]) => amount > 0)
-    .map(([name, amount]) => ({ name, amount }))
-})
-
-// Beban items computed directly from master expenses
-const bebanItems = computed(() => {
-  const categoryTotals: Record<string, number> = {}
-
-  filteredExpenses.value.forEach(exp => {
-    const key = `Beban ${exp.category}`
-    categoryTotals[key] = (categoryTotals[key] || 0) + exp.amount
-  })
-
-  return Object.entries(categoryTotals).map(([name, amount]) => ({ name, amount }))
-})
-
-const totalPendapatan = computed(() => pendapatanItems.value.reduce((sum, i) => sum + i.amount, 0))
-const totalBeban = computed(() => bebanItems.value.reduce((sum, i) => sum + i.amount, 0))
-const labaRugiBersih = computed(() => totalPendapatan.value - totalBeban.value)
-const marginPersentase = computed(() => totalPendapatan.value > 0 ? ((labaRugiBersih.value / totalPendapatan.value) * 100).toFixed(1) : '0.0')
 
 const handleExport = () => {
-  alert('Data Laba Rugi berhasil diekspor! (Demo)')
+  const rows: (string | number)[][] = [
+    ['LAPORAN LABA RUGI'],
+    ['Periode', periodeLabel.value],
+    [],
+    ['RINCIAN PENDAPATAN'],
+    ['Kategori', 'Nominal', 'Jumlah Transaksi'],
+    ...pendapatanItems.value.map((item) => [item.name, item.amount, item.jumlahTransaksi ?? 0]),
+    ['Total Pendapatan', totalPendapatan.value, report.value?.summary.jumlahTransaksiPendapatan ?? 0],
+    [],
+    ['RINCIAN BEBAN'],
+    ['Kategori', 'Nominal', 'Jumlah Transaksi'],
+    ...bebanItems.value.map((item) => [item.name, item.amount, item.jumlahTransaksi ?? 0]),
+    ['Total Beban', totalBeban.value, report.value?.summary.jumlahTransaksiBeban ?? 0],
+    [],
+    ['Laba Bersih', labaRugiBersih.value, `Margin ${marginPersentase}%`],
+  ]
+
+  const berhasil = exportCsv(`laba-rugi-${new Date().toISOString().slice(0, 10)}`, rows)
+  if (!berhasil) {
+    window.alert('Tidak ada data untuk diekspor.')
+  }
 }
 </script>
 
@@ -101,18 +86,30 @@ const handleExport = () => {
           <PieChart class="w-6 h-6 text-purple-600" />
           Laporan Laba Rugi
         </h1>
-        <p class="text-xs text-slate-500 mt-1 font-medium">Analisis pendapatan dan pengeluaran secara terperinci.</p>
+        <p class="text-xs text-slate-500 mt-1 font-medium">
+          Analisis pendapatan dan pengeluaran secara terperinci.
+          <span class="text-slate-400">Periode: {{ periodeLabel }}</span>
+        </p>
       </div>
 
       <div class="flex items-center gap-2 flex-wrap">
         <!-- Range Date Picker -->
-        <DateRangePicker 
-          v-model:startDate="startDate" 
-          v-model:endDate="endDate" 
+        <DateRangePicker
+          v-model:startDate="startDate"
+          v-model:endDate="endDate"
           placeholder="Filter Rentang Tanggal"
         />
-        
-        <button 
+
+        <button
+          @click="muatLaporan"
+          :disabled="isLoading"
+          class="flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 active:scale-95 text-slate-700 text-xs font-bold transition-all cursor-pointer shadow-2xs disabled:opacity-60"
+        >
+          <RefreshCw class="w-4 h-4" :class="{ 'animate-spin': isLoading }" />
+          <span class="hidden sm:inline">Muat Ulang</span>
+        </button>
+
+        <button
           @click="handleExport"
           class="flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 active:scale-95 text-slate-700 text-xs font-bold transition-all cursor-pointer shadow-2xs"
         >
@@ -121,6 +118,21 @@ const handleExport = () => {
         </button>
       </div>
     </header>
+
+    <!-- Preset Periode -->
+    <section class="bg-white rounded-2xl shadow-xs border border-slate-100 px-4 py-3 flex items-center gap-2 flex-wrap">
+      <span class="text-[11px] font-medium text-slate-400 shrink-0">Preset Periode:</span>
+      <button @click="setPreset('semua')" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-100 text-slate-600 hover:bg-purple-50 hover:text-purple-600 transition-colors cursor-pointer">Semua</button>
+      <button @click="setPreset('hari-ini')" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-100 text-slate-600 hover:bg-purple-50 hover:text-purple-600 transition-colors cursor-pointer">Hari Ini</button>
+      <button @click="setPreset('7-hari')" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-100 text-slate-600 hover:bg-purple-50 hover:text-purple-600 transition-colors cursor-pointer">7 Hari Terakhir</button>
+      <button @click="setPreset('bulan-ini')" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-100 text-slate-600 hover:bg-purple-50 hover:text-purple-600 transition-colors cursor-pointer">Bulan Ini</button>
+    </section>
+
+    <!-- Error State -->
+    <div v-if="error" class="flex items-center gap-2 px-4 py-3 rounded-xl bg-rose-50 border border-rose-200 text-xs font-semibold text-rose-700">
+      <AlertCircle class="w-4 h-4 shrink-0" />
+      <span>{{ error }}</span>
+    </div>
 
     <!-- KPI Summary -->
     <section class="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -132,9 +144,10 @@ const handleExport = () => {
           </div>
         </div>
         <h3 class="text-xl sm:text-2xl font-extrabold text-slate-800 tracking-tight">{{ formatCurrency(totalPendapatan) }}</h3>
-        <div class="flex items-center gap-1 text-[11px] font-semibold text-emerald-600 mt-1">
-          <TrendingUp class="w-3.5 h-3.5" />
-          <span>+8.3% dari bulan lalu</span>
+        <div class="flex items-center gap-1 text-[11px] font-semibold mt-1" :class="pertumbuhanPendapatan >= 0 ? 'text-emerald-600' : 'text-rose-600'">
+          <TrendingUp v-if="pertumbuhanPendapatan >= 0" class="w-3.5 h-3.5" />
+          <TrendingDown v-else class="w-3.5 h-3.5" />
+          <span>{{ formatPertumbuhan(pertumbuhanPendapatan) }}</span>
         </div>
       </div>
 
@@ -146,9 +159,10 @@ const handleExport = () => {
           </div>
         </div>
         <h3 class="text-xl sm:text-2xl font-extrabold text-slate-800 tracking-tight">{{ formatCurrency(totalBeban) }}</h3>
-        <div class="flex items-center gap-1 text-[11px] font-semibold text-rose-600 mt-1">
-          <TrendingDown class="w-3.5 h-3.5" />
-          <span>-2.1% dari bulan lalu</span>
+        <div class="flex items-center gap-1 text-[11px] font-semibold mt-1" :class="pertumbuhanBeban <= 0 ? 'text-emerald-600' : 'text-rose-600'">
+          <TrendingDown v-if="pertumbuhanBeban <= 0" class="w-3.5 h-3.5" />
+          <TrendingUp v-else class="w-3.5 h-3.5" />
+          <span>{{ formatPertumbuhan(pertumbuhanBeban) }}</span>
         </div>
       </div>
 
@@ -173,7 +187,7 @@ const handleExport = () => {
 
     <!-- Pendapatan & Beban Detail -->
     <section class="grid grid-cols-1 lg:grid-cols-2 gap-5">
-      
+
       <!-- Pendapatan -->
       <div class="bg-white rounded-2xl shadow-xs border border-slate-100 overflow-hidden">
         <div class="px-5 py-4 flex items-center justify-between">
@@ -185,11 +199,17 @@ const handleExport = () => {
         </div>
         <div>
           <div v-for="item in pendapatanItems" :key="item.name" class="px-5 py-3.5 flex items-center justify-between hover:bg-slate-50/50 transition-colors">
-            <span class="text-sm text-slate-700 font-medium">{{ item.name }}</span>
+            <div>
+              <span class="text-sm text-slate-700 font-medium">{{ item.name }}</span>
+              <span class="text-[11px] text-slate-400 ml-1.5">{{ item.jumlahTransaksi }} transaksi</span>
+            </div>
             <span class="text-sm font-bold text-emerald-600">{{ formatCurrency(item.amount) }}</span>
           </div>
-          <div v-if="pendapatanItems.length === 0" class="px-5 py-6 text-center text-xs text-slate-400">
+          <div v-if="!isLoading && pendapatanItems.length === 0" class="px-5 py-6 text-center text-xs text-slate-400">
             Tidak ada transaksi pendapatan pada rentang tanggal ini.
+          </div>
+          <div v-if="isLoading" class="px-5 py-6 text-center text-xs text-slate-400">
+            Memuat data laporan...
           </div>
           <div class="px-5 py-3.5 flex items-center justify-between bg-emerald-50/50">
             <span class="text-sm text-slate-800 font-bold">Total Pendapatan</span>
@@ -209,11 +229,17 @@ const handleExport = () => {
         </div>
         <div>
           <div v-for="item in bebanItems" :key="item.name" class="px-5 py-3.5 flex items-center justify-between hover:bg-slate-50/50 transition-colors">
-            <span class="text-sm text-slate-700 font-medium">{{ item.name }}</span>
+            <div>
+              <span class="text-sm text-slate-700 font-medium">{{ item.name }}</span>
+              <span class="text-[11px] text-slate-400 ml-1.5">{{ item.jumlahTransaksi }} transaksi</span>
+            </div>
             <span class="text-sm font-bold text-rose-600">{{ formatCurrency(item.amount) }}</span>
           </div>
-          <div v-if="bebanItems.length === 0" class="px-5 py-6 text-center text-xs text-slate-400">
+          <div v-if="!isLoading && bebanItems.length === 0" class="px-5 py-6 text-center text-xs text-slate-400">
             Tidak ada pencatatan beban pada rentang tanggal ini.
+          </div>
+          <div v-if="isLoading" class="px-5 py-6 text-center text-xs text-slate-400">
+            Memuat data laporan...
           </div>
           <div class="px-5 py-3.5 flex items-center justify-between bg-rose-50/50">
             <span class="text-sm text-slate-800 font-bold">Total Beban</span>
@@ -249,6 +275,10 @@ const handleExport = () => {
         </div>
         <div class="text-2xl font-extrabold" :class="labaRugiBersih >= 0 ? 'text-emerald-700' : 'text-rose-700'">
           {{ formatCurrency(Math.abs(labaRugiBersih)) }}
+        </div>
+        <div class="text-[11px] text-slate-400 mt-0.5 flex items-center justify-end gap-1">
+          <Calendar class="w-3 h-3" />
+          <span>{{ periodeLabel }}</span>
         </div>
       </div>
     </div>

@@ -1,42 +1,47 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
-import { 
-  Search, 
-  Calendar, 
-  RotateCcw, 
-  Download, 
-  Printer, 
-  FileText, 
-  TrendingUp, 
-  ShoppingBag, 
-  CheckCircle2, 
-  Clock, 
-  XCircle, 
-  Eye, 
-  X, 
-  Receipt, 
-  Filter, 
-  Info 
+import { ref, computed, watch, onMounted } from 'vue'
+import {
+  Search,
+  Calendar,
+  RotateCcw,
+  Download,
+  Printer,
+  FileText,
+  TrendingUp,
+  ShoppingBag,
+  CheckCircle2,
+  Clock,
+  XCircle,
+  Eye,
+  X,
+  Receipt,
+  Filter,
+  Info,
+  RefreshCw,
+  AlertCircle,
+  Users
 } from 'lucide-vue-next'
 
-import { useReportData, type SalesTransaction as Transaction } from '../../composables/useReportData'
-import { usePagination } from '../../composables/usePagination'
+import { useReportData } from '../../composables/useReportData'
+import { useLaporanPenjualan } from '../../composables/useLaporanPenjualan'
+import { laporanApi, type PenjualanReportItem } from '../../api/laporan.api'
 import GlobalPagination from '../../components/common/GlobalPagination.vue'
 import DateRangePicker from '../../components/common/DateRangePicker.vue'
 
-const { masterTransactions } = useReportData()
-const transactions = masterTransactions
-
+const { startDate, endDate, periodeLabel, formatCurrency, setPreset, exportCsv } = useReportData()
+const { items, summary, meta, isLoading, error, fetchPenjualan } = useLaporanPenjualan()
 
 // Filter state
 const searchQuery = ref('')
-const startDate = ref('')
-const endDate = ref('')
 const filterStatus = ref<'Semua' | 'Selesai' | 'Pending' | 'Batal'>('Semua')
+
+// Paginasi dikendalikan oleh server
+const currentPage = ref(1)
+const pageSize = ref(10)
 
 // Modal state
 const showDetailModal = ref(false)
-const selectedTrx = ref<Transaction | null>(null)
+const selectedTrx = ref<PenjualanReportItem | null>(null)
 const toastMessage = ref<string | null>(null)
 
 // Toast Helper
@@ -45,21 +50,23 @@ const showToast = (msg: string) => {
   setTimeout(() => { toastMessage.value = null }, 3000)
 }
 
-// Utility formatting
-const formatCurrency = (val: number) => {
-  return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val)
-}
+// Data halaman yang sedang aktif
+const transactions = computed(() => items.value)
+const paginatedTransactions = computed(() => items.value)
+const totalItems = computed(() => meta.value.total)
+const totalPages = computed(() => meta.value.totalPages)
+const startIndex = computed(() => (currentPage.value - 1) * pageSize.value + 1)
 
 // Helper computations per transaction
-const getTrxTotalAmount = (trx: Transaction) => {
+const getTrxTotalAmount = (trx: PenjualanReportItem) => {
   return trx.items.reduce((sum, item) => sum + (item.price * item.qty), 0)
 }
 
-const getTrxTotalQty = (trx: Transaction) => {
+const getTrxTotalQty = (trx: PenjualanReportItem) => {
   return trx.items.reduce((sum, item) => sum + item.qty, 0)
 }
 
-const getTrxProductsSummary = (trx: Transaction) => {
+const getTrxProductsSummary = (trx: PenjualanReportItem) => {
   if (!trx.items || trx.items.length === 0) return '-'
   const firstItem = trx.items[0]
   if (!firstItem) return '-'
@@ -69,113 +76,107 @@ const getTrxProductsSummary = (trx: Transaction) => {
   return `${firstItem.name} +${trx.items.length - 1} produk lainnya`
 }
 
-// Quick Date Range Filter presets
-const setDatePreset = (preset: 'today' | '7days' | 'thisMonth' | 'all') => {
-  const today = new Date('2026-09-12')
-  
-  if (preset === 'all') {
-    startDate.value = ''
-    endDate.value = ''
-    return
-  }
-
-  const formatISO = (d: Date) => d.toISOString().split('T')[0] ?? ''
-  endDate.value = formatISO(today)
-
-  if (preset === 'today') {
-    startDate.value = formatISO(today)
-  } else if (preset === '7days') {
-    const past = new Date(today)
-    past.setDate(past.getDate() - 7)
-    startDate.value = formatISO(past)
-  } else if (preset === 'thisMonth') {
-    const firstDay = new Date(today.getFullYear(), today.getMonth(), 1)
-    startDate.value = formatISO(firstDay)
-  }
+/**
+ * Fetch Data Laporan Penjualan dari Backend API
+ */
+const muatLaporan = async () => {
+  await fetchPenjualan({
+    startDate: startDate.value || undefined,
+    endDate: endDate.value || undefined,
+    search: searchQuery.value.trim() || undefined,
+    status: filterStatus.value === 'Semua' ? undefined : filterStatus.value,
+    page: currentPage.value,
+    limit: pageSize.value
+  })
 }
 
-// Filtered Transactions
-const filteredTransactions = computed(() => {
-  return transactions.value.filter(trx => {
-    // Filter status
-    if (filterStatus.value !== 'Semua' && trx.status !== filterStatus.value) {
-      return false
-    }
-
-    // Filter search (Invoice / Pelanggan / Produk)
-    if (searchQuery.value.trim()) {
-      const q = searchQuery.value.toLowerCase().trim()
-      const matchInvoice = trx.invoiceNo.toLowerCase().includes(q)
-      const matchCustomer = trx.customer.toLowerCase().includes(q)
-      const matchProduct = trx.items.some(i => i.name.toLowerCase().includes(q))
-      if (!matchInvoice && !matchCustomer && !matchProduct) return false
-    }
-
-    // Filter date range
-    if (startDate.value && trx.date < startDate.value) return false
-    if (endDate.value && trx.date > endDate.value) return false
-
-    return true
-  })
-})
-
-// Summary KPI (Calculated from filtered data for dynamic updates)
-const summaryKpi = computed(() => {
-  const list = filteredTransactions.value
-  
-  // Total Penjualan: Sum total from 'Selesai' status
-  const totalPenjualan = list
-    .filter(t => t.status === 'Selesai')
-    .reduce((sum, t) => sum + getTrxTotalAmount(t), 0)
-
-  // Jumlah Transaksi: Count of filtered transactions
-  const jumlahTransaksi = list.length
-
-  // Produk Terjual: Sum total items qty from 'Selesai' status
-  const produkTerjual = list
-    .filter(t => t.status === 'Selesai')
-    .reduce((sum, t) => sum + getTrxTotalQty(t), 0)
-
-  return {
-    totalPenjualan,
-    jumlahTransaksi,
-    produkTerjual
-  }
-})
-
-// Pagination Integration
-const {
-  currentPage,
-  pageSize,
-  totalItems,
-  totalPages,
-  startIndex,
-  endIndex,
-  paginatedItems: paginatedTransactions,
-  resetPage
-} = usePagination(filteredTransactions, 10)
-
-watch([searchQuery, startDate, endDate, filterStatus], () => {
-  resetPage()
-})
-
-// Reset Filters
+// Reset filter
 const resetFilters = () => {
   searchQuery.value = ''
   startDate.value = ''
   endDate.value = ''
   filterStatus.value = 'Semua'
-  resetPage()
+  currentPage.value = 1
+  muatLaporan()
 }
 
+// Paginasi
+const handlePageChange = async (page: number) => {
+  currentPage.value = page
+  await muatLaporan()
+}
+
+const handlePageSizeChange = async (size: number) => {
+  pageSize.value = size
+  currentPage.value = 1
+  await muatLaporan()
+}
+
+// Debounce pencarian
+let searchDebounceTimer: any = null
+watch(searchQuery, () => {
+  if (searchDebounceTimer) clearTimeout(searchDebounceTimer)
+  searchDebounceTimer = setTimeout(() => {
+    currentPage.value = 1
+    muatLaporan()
+  }, 350)
+})
+
+// Watch filter tanggal & status
+watch([startDate, endDate, filterStatus], () => {
+  currentPage.value = 1
+  muatLaporan()
+})
+
+// Muat data saat komponen di-mount
+onMounted(() => {
+  muatLaporan()
+})
+
 // Actions
-const openDetail = (trx: Transaction) => {
+const openDetail = (trx: PenjualanReportItem) => {
   selectedTrx.value = trx
   showDetailModal.value = true
 }
 
-const handleExport = () => {
-  showToast('Laporan Penjualan berhasil diekspor (Format Excel/CSV)!')
+const handleExport = async () => {
+  try {
+    // Ambil seluruh data pada filter aktif (bukan hanya halaman saat ini)
+    const res = await laporanApi.getPenjualan({
+      startDate: startDate.value || undefined,
+      endDate: endDate.value || undefined,
+      search: searchQuery.value.trim() || undefined,
+      status: filterStatus.value === 'Semua' ? undefined : filterStatus.value,
+      page: 1,
+      limit: 200
+    })
+
+    const rows: (string | number)[][] = [
+      ['LAPORAN PENJUALAN'],
+      ['Periode', periodeLabel.value],
+      [],
+      ['No', 'Tanggal', 'No. Transaksi', 'Pelanggan', 'Produk', 'Qty', 'Total', 'Metode Pembayaran', 'Status'],
+      ...res.data.map((trx, idx) => [
+        idx + 1,
+        trx.date,
+        trx.invoiceNo,
+        trx.customer,
+        getTrxProductsSummary(trx),
+        getTrxTotalQty(trx),
+        getTrxTotalAmount(trx),
+        trx.paymentMethod,
+        trx.status
+      ])
+    ]
+
+    if (!exportCsv(`laporan-penjualan-${new Date().toISOString().slice(0, 10)}`, rows)) {
+      showToast('Tidak ada data penjualan untuk diekspor.')
+      return
+    }
+    showToast('Laporan penjualan berhasil diekspor (Format CSV/Excel).')
+  } catch (err: any) {
+    showToast(err?.message || 'Gagal mengekspor laporan penjualan.')
+  }
 }
 
 const handlePrint = () => {
@@ -211,7 +212,16 @@ const handlePrint = () => {
 
       <!-- Action Buttons: Export & Cetak -->
       <div class="flex items-center gap-2.5 print:hidden">
-        <button 
+        <button
+          @click="muatLaporan"
+          :disabled="isLoading"
+          class="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 active:scale-95 text-xs font-bold transition-all cursor-pointer shadow-xs disabled:opacity-60"
+        >
+          <RefreshCw class="w-4 h-4" :class="{ 'animate-spin': isLoading }" />
+          <span class="hidden sm:inline">Muat Ulang</span>
+        </button>
+
+        <button
           @click="handlePrint"
           class="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 active:scale-95 text-xs font-bold transition-all cursor-pointer shadow-xs"
         >
@@ -219,7 +229,7 @@ const handlePrint = () => {
           <span>Cetak</span>
         </button>
 
-        <button 
+        <button
           @click="handleExport"
           class="flex items-center justify-center gap-2 px-4.5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white text-xs font-bold shadow-md shadow-indigo-200 dark:shadow-none transition-all cursor-pointer"
         >
@@ -229,14 +239,20 @@ const handlePrint = () => {
       </div>
     </header>
 
+    <!-- ========== ERROR STATE ========== -->
+    <div v-if="error" class="flex items-center gap-2 px-4 py-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-xs font-semibold text-rose-700 dark:text-rose-300 print:hidden">
+      <AlertCircle class="w-4 h-4 shrink-0" />
+      <span>{{ error }}</span>
+    </div>
+
     <!-- ========== RINGKASAN LAPORAN (KPI CARDS) ========== -->
-    <section class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       <!-- 1. Total Penjualan -->
       <div class="kpi-card bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-100 dark:border-slate-700/50 shadow-xs flex items-center justify-between">
         <div>
           <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Total Penjualan</span>
           <h3 class="text-xl sm:text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-1 tracking-tight">
-            {{ formatCurrency(summaryKpi.totalPenjualan) }}
+            {{ formatCurrency(summary.totalPenjualan) }}
           </h3>
           <p class="text-[11px] text-slate-400 dark:text-slate-500 mt-1">Akumulasi transaksi status Selesai</p>
         </div>
@@ -250,7 +266,7 @@ const handlePrint = () => {
         <div>
           <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Jumlah Transaksi</span>
           <h3 class="text-xl sm:text-2xl font-extrabold text-slate-800 dark:text-white mt-1 tracking-tight">
-            {{ summaryKpi.jumlahTransaksi }} <span class="text-xs font-medium text-slate-400">Transaksi</span>
+            {{ summary.jumlahTransaksi }} <span class="text-xs font-medium text-slate-400">Transaksi</span>
           </h3>
           <p class="text-[11px] text-slate-400 dark:text-slate-500 mt-1">Tercatat pada periode terfilter</p>
         </div>
@@ -264,12 +280,26 @@ const handlePrint = () => {
         <div>
           <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Produk Terjual</span>
           <h3 class="text-xl sm:text-2xl font-extrabold text-indigo-600 dark:text-indigo-400 mt-1 tracking-tight">
-            {{ summaryKpi.produkTerjual }} <span class="text-xs font-medium text-slate-400">Item Qty</span>
+            {{ summary.produkTerjual }} <span class="text-xs font-medium text-slate-400">Item Terjual</span>
           </h3>
           <p class="text-[11px] text-slate-400 dark:text-slate-500 mt-1">Total produk keluar & sukses</p>
         </div>
         <div class="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
           <ShoppingBag class="w-6 h-6" />
+        </div>
+      </div>
+
+      <!-- 4. Pelanggan Unik -->
+      <div class="kpi-card bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-100 dark:border-slate-700/50 shadow-xs flex items-center justify-between">
+        <div>
+          <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Pelanggan Terlayani</span>
+          <h3 class="text-xl sm:text-2xl font-extrabold text-slate-800 dark:text-white mt-1 tracking-tight">
+            {{ summary.pelangganUnik }} <span class="text-xs font-medium text-slate-400">Pelanggan</span>
+          </h3>
+          <p class="text-[11px] text-slate-400 dark:text-slate-500 mt-1">Pelanggan unik pada periode ini</p>
+        </div>
+        <div class="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+          <Users class="w-6 h-6" />
         </div>
       </div>
     </section>
@@ -332,10 +362,10 @@ const handlePrint = () => {
       <!-- Quick Date Presets -->
       <div class="flex items-center gap-2 pt-1 border-t border-slate-100 dark:border-slate-700/50 overflow-x-auto scrollbar-none">
         <span class="text-[11px] font-medium text-slate-400 shrink-0">Preset Tanggal:</span>
-        <button @click="setDatePreset('all')" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 hover:bg-indigo-50 hover:text-indigo-600 transition-colors cursor-pointer shrink-0">Semua</button>
-        <button @click="setDatePreset('today')" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 hover:bg-indigo-50 hover:text-indigo-600 transition-colors cursor-pointer shrink-0">Hari Ini (12 Sep)</button>
-        <button @click="setDatePreset('7days')" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 hover:bg-indigo-50 hover:text-indigo-600 transition-colors cursor-pointer shrink-0">7 Hari Terakhir</button>
-        <button @click="setDatePreset('thisMonth')" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 hover:bg-indigo-50 hover:text-indigo-600 transition-colors cursor-pointer shrink-0">Bulan Ini</button>
+        <button @click="setPreset('semua')" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 hover:bg-indigo-50 hover:text-indigo-600 transition-colors cursor-pointer shrink-0">Semua</button>
+        <button @click="setPreset('hari-ini')" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 hover:bg-indigo-50 hover:text-indigo-600 transition-colors cursor-pointer shrink-0">Hari Ini</button>
+        <button @click="setPreset('7-hari')" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 hover:bg-indigo-50 hover:text-indigo-600 transition-colors cursor-pointer shrink-0">7 Hari Terakhir</button>
+        <button @click="setPreset('bulan-ini')" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 hover:bg-indigo-50 hover:text-indigo-600 transition-colors cursor-pointer shrink-0">Bulan Ini</button>
       </div>
     </section>
 
@@ -347,14 +377,14 @@ const handlePrint = () => {
           <h2 class="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2">
             <span>Daftar Transaksi Penjualan</span>
             <span class="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-[11px] font-semibold">
-              {{ filteredTransactions.length }} Data
+              {{ totalItems }} Data
             </span>
           </h2>
           <p class="text-[11px] text-slate-400 dark:text-slate-400">Klik tombol "Lihat Detail" untuk melihat rincian item & rincian pembayaran.</p>
         </div>
 
         <div class="text-xs text-slate-500 dark:text-slate-400 font-medium">
-          Status Selesai: <strong class="text-emerald-600 dark:text-emerald-400 font-bold">{{ filteredTransactions.filter(t => t.status === 'Selesai').length }}</strong>
+          Status Selesai: <strong class="text-emerald-600 dark:text-emerald-400 font-bold">{{ summary.jumlahTransaksiSelesai }}</strong>
         </div>
       </div>
 
@@ -375,6 +405,14 @@ const handlePrint = () => {
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100 dark:divide-slate-700/50">
+            <!-- Loading State -->
+            <tr v-if="isLoading">
+              <td colspan="9" class="px-5 py-12 text-center text-slate-400 dark:text-slate-500 text-sm">
+                <RefreshCw class="w-6 h-6 mx-auto mb-2 animate-spin text-indigo-500" />
+                <p class="font-semibold">Memuat laporan penjualan...</p>
+              </td>
+            </tr>
+
             <tr 
               v-for="(trx, idx) in paginatedTransactions" :key="trx.id"
               class="hover:bg-slate-50/60 dark:hover:bg-slate-700/30 transition-colors"
@@ -451,7 +489,7 @@ const handlePrint = () => {
             </tr>
 
             <!-- Empty state -->
-            <tr v-if="filteredTransactions.length === 0">
+            <tr v-if="!isLoading && transactions.length === 0">
               <td colspan="9" class="px-5 py-12 text-center text-slate-400 dark:text-slate-500 text-sm">
                 <div class="max-w-xs mx-auto space-y-2">
                   <Receipt class="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto" />
@@ -521,19 +559,19 @@ const handlePrint = () => {
           </div>
         </div>
 
-        <div v-if="filteredTransactions.length === 0" class="p-8 text-center text-slate-400 text-xs">
+        <div v-if="!isLoading && transactions.length === 0" class="p-8 text-center text-slate-400 text-xs">
           Tidak ada data transaksi yang sesuai filter.
         </div>
       </div>
 
       <!-- PAGINATION FOOTER -->
       <GlobalPagination
-        v-if="filteredTransactions.length > 0"
+        v-if="totalItems > 0"
         :current-page="currentPage"
         :total-items="totalItems"
         :page-size="pageSize"
-        @update:current-page="currentPage = $event"
-        @update:page-size="pageSize = $event"
+        @update:current-page="handlePageChange"
+        @update:page-size="handlePageSizeChange"
       />
     </section>
 
@@ -615,7 +653,7 @@ const handlePrint = () => {
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-100 dark:divide-slate-700/40">
-                <tr v-for="item in selectedTrx.items" :key="item.id" class="text-slate-800 dark:text-slate-200">
+                <tr v-for="(item, itemIdx) in selectedTrx.items" :key="itemIdx" class="text-slate-800 dark:text-slate-200">
                   <td class="px-3.5 py-3 font-medium">{{ item.name }}</td>
                   <td class="px-3.5 py-3 text-center text-slate-500 dark:text-slate-400">{{ formatCurrency(item.price) }}</td>
                   <td class="px-3.5 py-3 text-center font-bold">{{ item.qty }}</td>
