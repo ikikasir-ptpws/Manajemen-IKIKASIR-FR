@@ -4,6 +4,9 @@ export interface CreateCustomerDto {
   email: string;
   phone: string;
   address?: string;
+  village?: string;
+  district?: string;
+  city?: string;
   packageId?: string;
   billingCycleMonths?: number;
   paymentMethod?: string;
@@ -15,6 +18,11 @@ export interface CreateCustomerDto {
   appPassword?: string;
   technicianStatus?: string;
   notes?: string;
+  /** Kode referral yang dipakai client (halaman Tambah Client, sumber = Referral) */
+  referralCode?: string;
+  /** Sumber pendaftaran client: Manual, Referral, Aplikasi, Formulir Pendaftaran */
+  source?: string;
+  referralSource?: string;
 }
 
 export interface UpdateCustomerDto {
@@ -23,6 +31,9 @@ export interface UpdateCustomerDto {
   email?: string;
   phone?: string;
   address?: string;
+  village?: string;
+  district?: string;
+  city?: string;
   packageId?: string | null;
   notes?: string;
   paymentProofUrl?: string;
@@ -33,6 +44,12 @@ export interface UpdateCustomerDto {
   appUsername?: string;
   appPassword?: string;
   technicianStatus?: string;
+  referralCode?: string | null;
+  referredByCustomerId?: string | null;
+  referredByCustomerName?: string;
+  referredByBusinessName?: string;
+  referralBoundAt?: Date | null;
+  referralSource?: string;
 }
 
 export interface RenewSubscriptionDto {
@@ -51,6 +68,10 @@ export interface CustomerResponseDto {
   email: string;
   phone: string;
   address: string;
+  village: string;
+  district: string;
+  city: string;
+  fullAddress: string;
   packageId: string | null;
   packageName: string;
   packagePrice: number;
@@ -72,6 +93,12 @@ export interface CustomerResponseDto {
   appUsername: string;
   appPassword: string;
   technicianStatus: string;
+  referralCode: string;
+  referredByCustomerId: string | null;
+  referredByCustomerName: string;
+  referredByBusinessName: string;
+  referralBoundAt: string | null;
+  referralSource: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -108,6 +135,8 @@ export interface SubscriptionCheckResponseDto {
     durationMonths: number;
     features: string[];
   };
+  customerId?: string;
+  referralCode?: string;
   message: string;
   serverTime: string;
 }

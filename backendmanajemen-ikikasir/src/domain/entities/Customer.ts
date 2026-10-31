@@ -5,6 +5,9 @@ export interface CustomerProps {
   email: string;
   phone: string;
   address?: string | null;
+  village?: string | null;
+  district?: string | null;
+  city?: string | null;
   packageId?: string | null;
   packageName?: string | null;
   packagePrice?: number | null;
@@ -27,6 +30,14 @@ export interface CustomerProps {
   appUsername?: string | null;
   appPassword?: string | null;
   technicianStatus?: string | null;
+
+  // Referral (Kode Referal & Upline)
+  referralCode?: string | null;
+  referredByCustomerId?: string | null;
+  referredByCustomerName?: string | null;
+  referredByBusinessName?: string | null;
+  referralBoundAt?: Date | null;
+  referralSource?: string | null;
 }
 
 export class Customer {
@@ -56,6 +67,17 @@ export class Customer {
   public readonly appPassword: string;
   public readonly technicianStatus: string;
 
+  public readonly village: string;
+  public readonly district: string;
+  public readonly city: string;
+
+  public readonly referralCode: string;
+  public readonly referredByCustomerId: string | null;
+  public readonly referredByCustomerName: string;
+  public readonly referredByBusinessName: string;
+  public readonly referralBoundAt: Date | null;
+  public readonly referralSource: string;
+
   constructor(props: CustomerProps) {
     this.id = props.id;
     this.name = props.name;
@@ -82,6 +104,27 @@ export class Customer {
     this.appUsername = props.appUsername ?? '';
     this.appPassword = props.appPassword ?? '';
     this.technicianStatus = props.technicianStatus ?? 'completed';
+
+    this.village = props.village ?? '';
+    this.district = props.district ?? '';
+    this.city = props.city ?? '';
+
+    this.referralCode = props.referralCode ?? '';
+    this.referredByCustomerId = props.referredByCustomerId ?? null;
+    this.referredByCustomerName = props.referredByCustomerName ?? '';
+    this.referredByBusinessName = props.referredByBusinessName ?? '';
+    this.referralBoundAt = props.referralBoundAt ?? null;
+    this.referralSource = props.referralSource ?? '';
+  }
+
+  /**
+   * Alamat lengkap gabungan (jalan, desa/kelurahan, kecamatan, kabupaten/kota)
+   */
+  public getFullAddress(): string {
+    return [this.address, this.village, this.district, this.city]
+      .map((part) => (part || '').trim())
+      .filter((part) => part.length > 0)
+      .join(', ');
   }
 
   /**
@@ -139,6 +182,10 @@ export class Customer {
       email: this.email,
       phone: this.phone,
       address: this.address,
+      village: this.village,
+      district: this.district,
+      city: this.city,
+      fullAddress: this.getFullAddress(),
       packageId: this.packageId,
       packageName: this.packageName,
       packagePrice: this.packagePrice,
@@ -160,6 +207,12 @@ export class Customer {
       appUsername: this.appUsername,
       appPassword: this.appPassword,
       technicianStatus: this.technicianStatus,
+      referralCode: this.referralCode,
+      referredByCustomerId: this.referredByCustomerId,
+      referredByCustomerName: this.referredByCustomerName,
+      referredByBusinessName: this.referredByBusinessName,
+      referralBoundAt: this.referralBoundAt ? this.referralBoundAt.toISOString() : null,
+      referralSource: this.referralSource,
       createdAt: this.createdAt.toISOString(),
       updatedAt: this.updatedAt.toISOString(),
     };

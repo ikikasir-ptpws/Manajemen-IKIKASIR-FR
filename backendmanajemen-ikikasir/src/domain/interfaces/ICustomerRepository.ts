@@ -7,6 +7,9 @@ export interface CreateCustomerData {
   email: string;
   phone: string;
   address?: string;
+  village?: string;
+  district?: string;
+  city?: string;
   packageId?: string | null;
   packageName?: string;
   packagePrice?: number;
@@ -23,6 +26,12 @@ export interface CreateCustomerData {
   appUsername?: string;
   appPassword?: string;
   technicianStatus?: string;
+  referralCode?: string | null;
+  referredByCustomerId?: string | null;
+  referredByCustomerName?: string;
+  referredByBusinessName?: string;
+  referralBoundAt?: Date | null;
+  referralSource?: string;
 }
 
 export interface UpdateCustomerData {
@@ -31,6 +40,9 @@ export interface UpdateCustomerData {
   email?: string;
   phone?: string;
   address?: string;
+  village?: string;
+  district?: string;
+  city?: string;
   packageId?: string | null;
   packageName?: string;
   packagePrice?: number;
@@ -46,6 +58,12 @@ export interface UpdateCustomerData {
   appUsername?: string;
   appPassword?: string;
   technicianStatus?: string;
+  referralCode?: string | null;
+  referredByCustomerId?: string | null;
+  referredByCustomerName?: string;
+  referredByBusinessName?: string;
+  referralBoundAt?: Date | null;
+  referralSource?: string;
 }
 
 export interface CustomerFilter {
@@ -72,6 +90,7 @@ export interface ICustomerRepository {
   findAll(filter?: CustomerFilter): Promise<Customer[]>;
   findById(id: string): Promise<Customer | null>;
   findByEmail(email: string): Promise<Customer | null>;
+  findByReferralCode(referralCode: string): Promise<Customer | null>;
   create(data: CreateCustomerData): Promise<Customer>;
   update(id: string, data: UpdateCustomerData): Promise<Customer>;
   delete(id: string): Promise<void>;

@@ -52,6 +52,11 @@ const router = createRouter({
       component: () => import('../views/crm-client/SemuaPelangganIndex.vue')
     },
     {
+      path: '/tambah-client',
+      name: 'tambah-client',
+      component: () => import('../views/crm-client/TambahClientIndex.vue')
+    },
+    {
       path: '/langganan',
       name: 'langganan',
       component: () => import('../views/crm-client/LanggananIndex.vue')
@@ -172,6 +177,7 @@ router.beforeEach((to, _from, next) => {
     '/kelola-paket': 'kelolaPaket',
     '/calon-client': 'calonClient',
     '/semua-pelanggan': 'semuaPelanggan',
+    '/tambah-client': 'semuaPelanggan',
     '/langganan': 'langganan',
     '/expired': 'expired',
     '/arus-kas': 'arusKas',

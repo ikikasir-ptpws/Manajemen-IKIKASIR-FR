@@ -10,9 +10,11 @@ import packageRoutes from './presentation/routes/package.routes.js';
 import customerRoutes from './presentation/routes/customer.routes.js';
 import subscriptionRoutes from './presentation/routes/subscription.routes.js';
 import leadRoutes from './presentation/routes/lead.routes.js';
+import referralRoutes from './presentation/routes/referral.routes.js';
 import uploadRoutes from './presentation/routes/upload.routes.js';
 import cashTransactionRoutes from './presentation/routes/cash-transaction.routes.js';
 import laporanRoutes from './presentation/routes/laporan.routes.js';
+import neracaItemRoutes from './presentation/routes/neraca-items.routes.js';
 import { errorHandler } from './presentation/middlewares/error.middleware.js';
 import { NotFoundError } from './domain/errors/AppError.js';
 
@@ -60,10 +62,12 @@ export function createApp(): Application {
   app.use('/api/v1/subscriptions', subscriptionRoutes);
   app.use('/api/leads', leadRoutes);
   app.use('/api/calon-client', leadRoutes);
+  app.use('/api/referrals', referralRoutes);
   app.use('/api/upload', uploadRoutes);
   app.use('/api/cashflow', cashTransactionRoutes);
   app.use('/api/arus-kas', cashTransactionRoutes);
   app.use('/api/laporan', laporanRoutes);
+  app.use('/api/neraca-items', neracaItemRoutes);
 
   // Penanganan rute 404 Not Found
   app.use((req: Request, _res: Response, next: NextFunction) => {

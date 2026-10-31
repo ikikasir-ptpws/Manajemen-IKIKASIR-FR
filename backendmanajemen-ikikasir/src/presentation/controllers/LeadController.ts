@@ -2,12 +2,14 @@ import { Request, Response, NextFunction } from 'express';
 import { PrismaLeadRepository } from '../../repositories/PrismaLeadRepository.js';
 import { PrismaCustomerRepository } from '../../repositories/PrismaCustomerRepository.js';
 import { PrismaPackageRepository } from '../../repositories/PrismaPackageRepository.js';
+import { PrismaReferralRepository } from '../../repositories/PrismaReferralRepository.js';
 import { LeadUseCases } from '../../application/usecases/LeadUseCases.js';
 
 const leadRepository = new PrismaLeadRepository();
 const customerRepository = new PrismaCustomerRepository();
 const packageRepository = new PrismaPackageRepository();
-const leadUseCases = new LeadUseCases(leadRepository, customerRepository, packageRepository);
+const referralRepository = new PrismaReferralRepository();
+const leadUseCases = new LeadUseCases(leadRepository, customerRepository, packageRepository, referralRepository);
 
 export const getAll = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {

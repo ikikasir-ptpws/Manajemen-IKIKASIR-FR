@@ -1352,7 +1352,8 @@ export function useAppData() {
   const renewCustomerSubscription = (data: {
     customerId: string
     packageType: PackageType
-    billingCycleMonths: number
+    packageId?: string
+    billingCycleMonths?: number
     paymentMethod: string
     markPaidImmediately?: boolean
   }) => {
@@ -1360,12 +1361,35 @@ export function useAppData() {
     const customer = customers.value.find(c => c.id === data.customerId)
     if (!customer) return null
 
+    // Look up package from packages list
+    const foundPkg = packages.value.find(p => 
+      (data.packageId && p.id === data.packageId) ||
+      (data.packageType && (p.id === data.packageType || p.name.toLowerCase() === String(data.packageType).toLowerCase()))
+    )
+
+    const finalPackageName = foundPkg ? foundPkg.name : (data.packageType || customer.packageType || 'Basic')
+    const finalPackageId = foundPkg?.id || data.packageId || customer.packageId
+
     // Update customer package if changed
-    customer.packageType = data.packageType
+    customer.packageType = finalPackageName
+    customer.packageName = finalPackageName
+    if (finalPackageId) customer.packageId = finalPackageId
+
+    // Duration from package or parameter
+    const duration = data.billingCycleMonths && data.billingCycleMonths > 0
+      ? data.billingCycleMonths
+      : (foundPkg ? getPackageDurationMonths(foundPkg) : 1)
 
     // 2. Create new Invoice for the SAME customer (Rule 13)
-    const amountPerMonth = data.packageType === 'Basic' ? 250000 : 500000
-    const totalAmount = amountPerMonth * data.billingCycleMonths
+    let totalAmount = 250000
+    if (foundPkg) {
+      totalAmount = foundPkg.isConsultation ? 0 : (foundPkg.price ?? 250000)
+    } else {
+      const amountPerMonth = finalPackageName === 'Basic' ? 250000 : 500000
+      totalAmount = amountPerMonth * duration
+    }
+
+    customer.amount = totalAmount
 
     const isPaid = data.markPaidImmediately !== false // default Paid on manual renewal
 
@@ -1373,11 +1397,11 @@ export function useAppData() {
       id: 'INV-' + Date.now().toString().slice(-8),
       customerId: customer.id,
       customerName: customer.name || '',
-      businessName: customer.businessName || '',
+      businessName: customer.businessName || (customer as any).business || '',
       phone: customer.phone || '',
-      package: data.packageType,
+      package: finalPackageName,
       amount: totalAmount,
-      billingCycleMonths: data.billingCycleMonths,
+      billingCycleMonths: duration,
       date: getTodayFormatted(),
       paymentMethod: data.paymentMethod || 'QRIS',
       status: isPaid ? 'Paid' : 'Pending'
@@ -1400,15 +1424,19 @@ export function useAppData() {
         }
       }
 
-      baseDate.setMonth(baseDate.getMonth() + data.billingCycleMonths)
+      baseDate.setMonth(baseDate.getMonth() + duration)
       customer.expiredDate = baseDate.toISOString().substring(0, 10)
       customer.status = 'active'
+      customer.daysExpired = 0
+      customer.daysLeft = Math.ceil((baseDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
 
       saveStorage(STORAGE_KEY_CUSTOMERS, customers.value)
 
       // Sync renewal to backend
+      const isUuid = (val?: string) => !!val && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(val)
       customersApi.renew(customer.id, {
-        billingCycleMonths: data.billingCycleMonths,
+        packageId: isUuid(finalPackageId) ? finalPackageId : undefined,
+        billingCycleMonths: duration,
         paymentMethod: data.paymentMethod,
         customAmount: totalAmount
       }).catch(err => {

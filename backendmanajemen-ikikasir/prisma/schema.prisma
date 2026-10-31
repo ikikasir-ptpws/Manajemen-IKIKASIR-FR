@@ -91,6 +91,10 @@ model Customer {
   email                 String                @unique
   phone                 String
   address               String?               @default("")
+  // Alamat Terstruktur (dipakai pada halaman Tambah Client)
+  village               String?               @default("")
+  district              String?               @default("")
+  city                  String?               @default("")
   packageId             String?
   package               Package?              @relation(fields: [packageId], references: [id], onDelete: SetNull)
   status                String                @default("ACTIVE") // ACTIVE, EXPIRED, SUSPENDED
@@ -112,7 +116,18 @@ model Customer {
   appPassword           String?               @default("")
   technicianStatus      String?               @default("completed") // pending_setup, in_progress, completed, issue
 
+  // Referral (Kode Referal & Upline)
+  referralCode           String?               @unique
+  referredByCustomerId   String?
+  referredByCustomerName String?               @default("")
+  referredByBusinessName String?               @default("")
+  referralBoundAt        DateTime?
+  referralSource         String?               @default("") // Manual, Aplikasi, Formulir Pendaftaran
+
   subscriptionHistories SubscriptionHistory[]
+  referralCommissionsAsUpline   ReferralCommission[] @relation("ReferralUpline")
+  referralCommissionsAsDownline ReferralCommission[] @relation("ReferralDownline")
+  referralWithdrawals           ReferralWithdrawal[]
 
   @@index([email])
   @@index([status])
@@ -219,6 +234,43 @@ model Lead {
   @@map("leads")
 }
 
+model ReferralCommission {
+  id          String   @id @default(uuid())
+  uplineId    String
+  upline      Customer @relation("ReferralUpline", fields: [uplineId], references: [id], onDelete: Cascade)
+  downlineId  String
+  downline    Customer @relation("ReferralDownline", fields: [downlineId], references: [id], onDelete: Cascade)
+  amount      Float    @default(15000)
+  status      String   @default("MENUNGGU_VERIFIKASI") // MENUNGGU_VERIFIKASI, AKTIF, DITOLAK
+  notes       String   @default("")
+  createdAt   DateTime @default(now())
+  activatedAt DateTime?
+
+  @@unique([uplineId, downlineId])
+  @@index([uplineId])
+  @@index([downlineId])
+  @@map("referral_commissions")
+}
+
+model ReferralWithdrawal {
+  id            String   @id @default(uuid())
+  customerId    String
+  customer      Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  amount        Float    @default(0)
+  bankOrWallet  String   @default("")
+  accountNumber String   @default("")
+  accountHolder String   @default("")
+  requestDate   DateTime @default(now())
+  completedDate DateTime?
+  status        String   @default("MENUNGGU_VERIFIKASI") // MENUNGGU_VERIFIKASI, SELESAI, DITOLAK
+  notes         String   @default("")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([customerId])
+  @@map("referral_withdrawals")
+}
+
 model LeadFollowUp {
   id        String   @id @default(uuid())
   leadId    String
@@ -258,3 +310,17 @@ model CashTransaction {
   @@map("cash_transactions")
 }
 
+/// Pos-pos Neraca yang diinput manual oleh pengguna
+/// group: "aset_tetap" | "kewajiban_lancar" | "kewajiban_jangka_panjang"
+model NeracaItem {
+  id        String   @id @default(uuid())
+  group     String
+  name      String
+  amount    Float    @default(0)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([group])
+  @@map("neraca_items")
+}

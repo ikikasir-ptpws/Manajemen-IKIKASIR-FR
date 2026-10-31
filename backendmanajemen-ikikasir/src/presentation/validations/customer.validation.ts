@@ -18,6 +18,9 @@ export const createCustomerSchema = z.object({
     .trim()
     .min(6, 'Nomor telepon / WhatsApp minimal terdiri dari 6 karakter.'),
   address: z.string().trim().optional(),
+  village: z.string().trim().optional(),
+  district: z.string().trim().optional(),
+  city: z.string().trim().optional(),
   packageId: z.string().trim().optional().nullable(),
   billingCycleMonths: z
     .number()
@@ -33,6 +36,14 @@ export const createCustomerSchema = z.object({
   appPassword: z.string().trim().optional(),
   technicianStatus: z.string().trim().optional(),
   notes: z.string().trim().optional(),
+  referralCode: z
+    .string()
+    .trim()
+    .max(40, 'Kode referral terlalu panjang.')
+    .optional()
+    .or(z.literal('')),
+  source: z.string().trim().optional(),
+  referralSource: z.string().trim().optional(),
 });
 
 export const updateCustomerSchema = z.object({
@@ -57,6 +68,9 @@ export const updateCustomerSchema = z.object({
     .min(6, 'Nomor telepon / WhatsApp minimal terdiri dari 6 karakter.')
     .optional(),
   address: z.string().trim().optional(),
+  village: z.string().trim().optional(),
+  district: z.string().trim().optional(),
+  city: z.string().trim().optional(),
   packageId: z.string().trim().optional().nullable(),
   notes: z.string().trim().optional(),
   paymentMethod: z.string().trim().optional(),

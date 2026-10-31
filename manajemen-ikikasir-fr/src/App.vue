@@ -504,6 +504,18 @@ const confirmLogout = () => {
             <div class="space-y-1">
               <RouterLink
                 v-if="canAccessMenu('semuaPelanggan')"
+                to="/tambah-client"
+                @click="isMobileDrawerOpen = false"
+                class="flex items-center gap-3 px-3.5 py-2 rounded-xl text-sm font-medium transition-all duration-200 group"
+                :class="
+                  route.path === '/tambah-client'
+                    ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-semibold'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50 hover:text-slate-900 dark:hover:text-slate-200'
+                "
+              >
+              </RouterLink>
+              <RouterLink
+                v-if="canAccessMenu('semuaPelanggan')"
                 to="/semua-pelanggan"
                 @click="isMobileDrawerOpen = false"
                 class="flex items-center justify-between px-3.5 py-2 rounded-xl text-sm font-medium transition-all duration-200 group"
@@ -546,7 +558,7 @@ const confirmLogout = () => {
                 <Receipt
                   class="w-4 h-4 text-slate-400 group-hover:text-slate-600"
                 />
-                <span>Langganan</span>
+                <span>Riwayat Invoice</span>
               </RouterLink>
               <RouterLink
                 v-if="canAccessMenu('expired')"

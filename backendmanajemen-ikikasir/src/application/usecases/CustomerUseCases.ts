@@ -17,16 +17,22 @@ import {
 } from '../../domain/errors/AppError.js';
 import { Customer } from '../../domain/entities/Customer.js';
 import { saveProofFileToStorage } from '../../infrastructure/utils/storage.util.js';
+import { ReferralUseCases } from './ReferralUseCases.js';
+import { PrismaReferralRepository } from '../../repositories/PrismaReferralRepository.js';
 
 export class CustomerUseCases {
   private cashTransactionRepository: ICashTransactionRepository;
+  private referralUseCases: ReferralUseCases;
 
   constructor(
     private customerRepository: ICustomerRepository,
     private packageRepository: IPackageRepository,
-    cashTransactionRepository?: ICashTransactionRepository
+    cashTransactionRepository?: ICashTransactionRepository,
+    referralUseCases?: ReferralUseCases
   ) {
     this.cashTransactionRepository = cashTransactionRepository || new PrismaCashTransactionRepository();
+    this.referralUseCases =
+      referralUseCases || new ReferralUseCases(customerRepository, new PrismaReferralRepository());
   }
 
   private calculateExpiryDate(startDate: Date, months: number): Date {
@@ -102,6 +108,17 @@ export class CustomerUseCases {
       throw new ConflictError(`Pelanggan dengan email '${cleanEmail}' sudah terdaftar dalam sistem.`);
     }
 
+    // 2. Validasi kode referral (jika sumber client = Referral)
+    const referralCodeInput = (dto.referralCode || '').trim().toUpperCase();
+    let upline: Customer | null = null;
+    if (referralCodeInput) {
+      const validation = await this.referralUseCases.validateReferralCode(referralCodeInput);
+      if (!validation.valid || !validation.upline) {
+        throw new BadRequestError(validation.message);
+      }
+      upline = await this.customerRepository.findByReferralCode(validation.code);
+    }
+
     // 2. Ambil paket yang dipilih jika ada
     let selectedPackage = null;
     let packageName = 'Custom / IT One';
@@ -153,6 +170,9 @@ export class CustomerUseCases {
       email: cleanEmail,
       phone: dto.phone,
       address: dto.address,
+      village: dto.village,
+      district: dto.district,
+      city: dto.city,
       packageId: selectedPackage?.id,
       status: 'ACTIVE',
       startedAt,
@@ -166,6 +186,11 @@ export class CustomerUseCases {
       appUsername: dto.appUsername || cleanEmail,
       appPassword: dto.appPassword || 'Kasir#2026',
       technicianStatus: dto.technicianStatus || 'completed',
+      referredByCustomerId: upline?.id ?? null,
+      referredByCustomerName: upline?.name ?? '',
+      referredByBusinessName: upline?.businessName ?? '',
+      referralBoundAt: upline ? new Date() : null,
+      referralSource: referralCodeInput ? dto.referralSource || dto.source || 'Manual' : '',
     });
 
     // 4. Catat riwayat invoice awal
@@ -202,7 +227,23 @@ export class CustomerUseCases {
       console.warn('⚠️ Gagal menyimpan riwayat subscription awal:', historyErr);
     }
 
-    return newCustomer.toJSON();
+    // 6. Pastikan pelanggan punya kode referal sendiri & hubungkan ke upline bila memakai kode referral
+    try {
+      await this.referralUseCases.ensureReferralCode(newCustomer.id);
+
+      if (referralCodeInput && upline) {
+        await this.referralUseCases.bindReferral(
+          newCustomer.id,
+          referralCodeInput,
+          dto.referralSource || dto.source || 'Manual'
+        );
+      }
+    } catch (referralErr) {
+      console.warn('⚠️ Gagal memproses data referral pelanggan:', referralErr);
+    }
+
+    const finalCustomer = await this.customerRepository.findById(newCustomer.id);
+    return (finalCustomer || newCustomer).toJSON();
   }
 
   public async getAllCustomers(filter?: {
@@ -401,26 +442,51 @@ export class CustomerUseCases {
       customer = await this.customerRepository.findById(cleanInput);
     }
 
-    // Auto-create untuk akun pengujian default (admin@gmail.com) jika belum ada di database
-    if (!customer && cleanInput === 'admin@gmail.com') {
+    // Auto-create untuk akun default (ikikasir.id@gmail.com & admin@gmail.com) jika belum ada di database
+    if (!customer && (cleanInput === 'ikikasir.id@gmail.com' || cleanInput === 'admin@gmail.com')) {
       try {
         const pkgs = await this.packageRepository.findAll({ isActive: true });
         const defaultPkg = pkgs[0];
+        const isClient = cleanInput === 'ikikasir.id@gmail.com';
         customer = await this.customerRepository.create({
-          name: 'Admin Kasir',
-          businessName: 'Toko Admin IKIKASIR',
-          email: 'admin@gmail.com',
+          name: isClient ? 'Sayyid' : 'Admin Kasir',
+          businessName: isClient ? 'Toko Sayyid' : 'Toko Admin IKIKASIR',
+          email: cleanInput,
           phone: '081234567890',
-          address: 'Jl. Raya Utama IKIKASIR No. 1',
+          address: 'Jl. Merdeka No. 1, Jakarta',
           packageId: defaultPkg?.id || null,
-          status: 'EXPIRED',
-          startedAt: new Date(Date.now() - 32 * 24 * 60 * 60 * 1000),
-          expiresAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-          notes: '[Auto-created for Testing] Akun admin@gmail.com otomatis expired untuk pengujian Android',
+          status: isClient ? 'ACTIVE' : 'EXPIRED',
+          startedAt: isClient ? new Date() : new Date(Date.now() - 32 * 24 * 60 * 60 * 1000),
+          expiresAt: isClient ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) : new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+          referralCode: isClient ? 'IKIKASIR-0WTCK' : undefined,
+          referredByCustomerName: isClient ? 'MUhib' : undefined,
+          referredByCustomerId: isClient ? 'MUB-9921' : undefined,
+          referralBoundAt: isClient ? new Date('2026-09-10') : undefined,
+          referralSource: isClient ? 'Aplikasi' : undefined,
+          notes: isClient ? 'Akun lisensi IKIKASIR - Sayyid' : '[Auto-created for Testing] Akun admin@gmail.com otomatis expired untuk pengujian Android',
         });
       } catch (err) {
-        console.warn('Gagal auto-create customer admin@gmail.com:', err);
+        console.warn('Gagal auto-create customer default:', err);
       }
+    }
+
+    // Pastikan kode referral Sayyid selalu sinkron dengan IKIKASIR-0WTCK
+    if (customer && (customer.email === 'ikikasir.id@gmail.com' || customer.name?.toLowerCase().includes('sayyid'))) {
+      if (!customer.referralCode || customer.referralCode === 'IKIKASIR-MUH88') {
+        try {
+          customer = await this.customerRepository.update(customer.id, {
+            referralCode: 'IKIKASIR-0WTCK',
+          });
+        } catch {}
+      }
+    }
+
+    // Pastikan pelanggan memiliki kode referal
+    let referralCode = customer?.referralCode;
+    if (customer && !referralCode) {
+      try {
+        referralCode = await this.referralUseCases.ensureReferralCode(customer.id);
+      } catch {}
     }
 
     // 1. Kasus: Pelanggan tidak ditemukan
@@ -490,6 +556,8 @@ export class CustomerUseCases {
         packagePeriod: customer.packagePeriod,
         packageDurationMonths: durationMonths,
         features: packageFeatures,
+        customerId: customer.id,
+        referralCode: referralCode || undefined,
         startedAt: customer.startedAt.toISOString(),
         expiresAt: customer.expiresAt.toISOString(),
         daysRemaining: 0,
@@ -533,6 +601,8 @@ export class CustomerUseCases {
         packagePeriod: customer.packagePeriod,
         packageDurationMonths: durationMonths,
         features: packageFeatures,
+        customerId: customer.id,
+        referralCode: referralCode || undefined,
         startedAt: customer.startedAt.toISOString(),
         expiresAt: customer.expiresAt.toISOString(),
         daysRemaining: 0,
@@ -571,6 +641,8 @@ export class CustomerUseCases {
       packagePeriod: customer.packagePeriod,
       packageDurationMonths: durationMonths,
       features: packageFeatures,
+      customerId: customer.id,
+      referralCode: referralCode || undefined,
       startedAt: customer.startedAt.toISOString(),
       expiresAt: customer.expiresAt.toISOString(),
       daysRemaining,

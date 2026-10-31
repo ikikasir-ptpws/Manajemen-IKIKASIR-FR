@@ -9,13 +9,18 @@ import {
   X,
 } from "lucide-vue-next";
 import { computed, ref, watch, onMounted } from "vue";
-import { getCustomerWaUrl, useAppData } from "../../composables/useAppData";
+import {
+  getCustomerWaUrl,
+  useAppData,
+  getPackageDurationMonths,
+} from "../../composables/useAppData";
 import { usePagination } from "../../composables/usePagination";
 import GlobalPagination from "../../components/common/GlobalPagination.vue";
 import DateRangePicker from "../../components/common/DateRangePicker.vue";
 import type { PackageType } from "../../types/dashboard";
 
-const { expiredCustomers, renewCustomerSubscription, syncWithBackend } = useAppData();
+const { expiredCustomers, renewCustomerSubscription, syncWithBackend, packages } =
+  useAppData();
 
 onMounted(() => {
   syncWithBackend(true);
@@ -26,10 +31,44 @@ const startDate = ref("");
 const endDate = ref("");
 const showRenewModal = ref(false);
 const selectedCustomer = ref<any>(null);
-const selectedMonths = ref(1); // 1, 3, 6, 12 months
-const selectedPackage = ref<PackageType>("Basic");
+const selectedPackageId = ref<string>("");
 const paymentMethod = ref("QRIS");
 const toastMessage = ref<string | null>(null);
+
+const availablePackages = computed(() => {
+  const active = packages.value.filter((p) => p.isActive !== false);
+  if (active.length > 0) return active;
+  if (packages.value.length > 0) return packages.value;
+  return [
+    { id: "basic", name: "Basic", price: 250000, period: "/bulan" },
+    { id: "custom", name: "Custom / IT One", isConsultation: true, price: 0, period: "" },
+  ];
+});
+
+const currentSelectedPackage = computed(() => {
+  return (
+    availablePackages.value.find((p) => p.id === selectedPackageId.value) ||
+    availablePackages.value[0] ||
+    null
+  );
+});
+
+const packageDurationMonths = computed(() => {
+  return getPackageDurationMonths(currentSelectedPackage.value);
+});
+
+const formatPackageLabel = (pkg: any) => {
+  if (pkg.isConsultation || pkg.price === 0) return "Konsultasi";
+  const priceStr = `Rp ${Number(pkg.price || 0).toLocaleString("id-ID")}`;
+  const periodStr = pkg.period
+    ? pkg.period.startsWith("/")
+      ? pkg.period
+      : `/${pkg.period}`
+    : pkg.periodType === "tahunan"
+      ? "/tahun"
+      : "/bulan";
+  return `${priceStr}${periodStr}`;
+};
 
 const showToast = (msg: string) => {
   toastMessage.value = msg;
@@ -92,26 +131,37 @@ const sendWhatsAppFollowUp = (cust: any) => {
 
 const openRenew = (cust: any) => {
   selectedCustomer.value = cust;
-  selectedPackage.value = cust.type || "Basic";
-  selectedMonths.value = 1;
-  paymentMethod.value = "QRIS";
+  const raw = cust.rawCustomer || cust;
+  const matched = availablePackages.value.find(
+    (p) =>
+      (raw.packageId && p.id === raw.packageId) ||
+      p.id === cust.type ||
+      p.name.toLowerCase() === (cust.type || "").toLowerCase(),
+  );
+  selectedPackageId.value = matched
+    ? matched.id
+    : availablePackages.value[0]?.id || "";
+  paymentMethod.value = raw.paymentMethod || "QRIS";
   showRenewModal.value = true;
 };
 
 // Rule 13 & 19: Renew subscription without creating duplicate customer
 const confirmRenew = () => {
-  if (selectedCustomer.value) {
+  if (selectedCustomer.value && currentSelectedPackage.value) {
+    const pkg = currentSelectedPackage.value;
+    const duration = packageDurationMonths.value;
     const invoice = renewCustomerSubscription({
       customerId: selectedCustomer.value.id,
-      packageType: selectedPackage.value,
-      billingCycleMonths: selectedMonths.value,
+      packageType: pkg.name,
+      packageId: pkg.id,
+      billingCycleMonths: duration,
       paymentMethod: paymentMethod.value,
       markPaidImmediately: true,
     });
 
     if (invoice) {
       showToast(
-        `✅ Masa aktif "${selectedCustomer.value.name}" berhasil diperpanjang ${selectedMonths.value} Bulan! Invoice baru: ${invoice.id}`,
+        `✅ Masa aktif "${selectedCustomer.value.name}" berhasil diperpanjang ${duration} Bulan (${pkg.name})! Invoice baru: ${invoice.id}`,
       );
     }
     showRenewModal.value = false;
@@ -395,29 +445,27 @@ const confirmRenew = () => {
               >Paket Langganan</label
             >
             <select
-              v-model="selectedPackage"
-              class="w-full px-3 py-2 rounded-xl border border-slate-200 font-medium text-slate-800"
+              v-model="selectedPackageId"
+              class="w-full px-3 py-2 rounded-xl border border-slate-200 font-medium text-slate-800 bg-white focus:outline-none focus:border-indigo-500 cursor-pointer"
             >
-              <option value="Basic">Basic (Rp 250.000/bln)</option>
-              <option value="Custom / IT One">
-                Custom / IT One (Konsultasi)
+              <option
+                v-for="pkg in availablePackages"
+                :key="pkg.id"
+                :value="pkg.id"
+              >
+                {{ pkg.name }} ({{ formatPackageLabel(pkg) }})
               </option>
             </select>
-          </div>
-
-          <div>
-            <label class="font-bold text-slate-700 mb-1 block"
-              >Durasi Perpanjangan</label
+            <p
+              v-if="currentSelectedPackage"
+              class="text-[11px] text-slate-500 mt-1.5 flex items-center gap-1.5"
             >
-            <select
-              v-model="selectedMonths"
-              class="w-full px-3 py-2 rounded-xl border border-slate-200 font-medium text-slate-800"
-            >
-              <option :value="1">1 Bulan</option>
-              <option :value="3">3 Bulan</option>
-              <option :value="6">6 Bulan</option>
-              <option :value="12">12 Bulan (1 Tahun)</option>
-            </select>
+              <span>Durasi langganan:</span>
+              <span
+                class="font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md"
+                >{{ packageDurationMonths }} Bulan</span
+              >
+            </p>
           </div>
         </div>
 

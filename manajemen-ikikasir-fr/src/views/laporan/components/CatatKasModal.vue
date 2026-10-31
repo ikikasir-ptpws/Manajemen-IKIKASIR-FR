@@ -385,8 +385,8 @@ const handleSubmit = () => {
             <input
               v-model="form.amount"
               type="number"
-              min="1"
-              step="1000"
+              min="1000"
+              step="1"
               inputmode="numeric"
               placeholder="0"
               class="w-full pl-11 pr-4 py-2.5 rounded-2xl border text-base font-extrabold text-slate-800 focus:outline-none transition-all placeholder:text-slate-300"

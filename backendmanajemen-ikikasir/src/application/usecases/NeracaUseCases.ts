@@ -2,34 +2,9 @@ import { IFinancialReportRepository } from '../../domain/interfaces/IFinancialRe
 import { NeracaReport } from '../../domain/entities/FinancialReport.js';
 import { LabaRugiUseCases, formatRawDate } from './LabaRugiUseCases.js';
 import { LaporanFilterDto } from '../dtos/laporan.dto.js';
+import { PrismaNeracaItemRepository } from '../../repositories/PrismaNeracaItemRepository.js';
 
-/**
- * Saldo awal kas (modal awal perusahaan) yang menjadi titik awal perhitungan kas pada Neraca
- */
-const SALDO_AWAL_KAS = 30000000;
-
-/**
- * Nilai aset tetap & kewajiban yang belum memiliki sumber pencatatan di modul keuangan.
- * Seluruh data keuangan会社 dicatat melalui arus kas, sehingga pos-pos di bawah
- * merupakan konfigurasi nilai tetap perusahaan.
- */
-const PERLENGKAPAN_KANTOR = 3200000;
-
-const ASET_TETAP = [
-  { name: 'Peralatan Komputer & Server', amount: 35000000 },
-  { name: 'Peralatan Kantor', amount: 8500000 },
-  { name: 'Akumulasi Penyusutan', amount: -12500000 },
-];
-
-const KEWAJIBAN_LANCAR = [
-  { name: 'Utang Usaha', amount: 5000000 },
-  { name: 'Pendapatan Diterima Dimuka', amount: 8500000 },
-  { name: 'Utang Pajak', amount: 1200000 },
-];
-
-const KEWAJIBAN_JANGKA_PANJANG = [
-  { name: 'Utang Bank (Kredit Usaha)', amount: 15000000 },
-];
+const neracaItemRepo = new PrismaNeracaItemRepository();
 
 export class NeracaUseCases {
   constructor(
@@ -40,29 +15,50 @@ export class NeracaUseCases {
   /**
    * Menyusun neraca (balance sheet) pada tanggal akhir periode.
    *
-   * Catatan: karena sistem belum memiliki buku besar dengan jurnal ganda,
-   * nilai ekuitas dihitung sebagai selisih antara total aset dan total kewajiban
-   * agar neraca tetap seimbang, sementara "Laba Periode Berjalan" diambil
-   * langsung dari laporan laba rugi periode berjalan.
+   * Sumber data:
+   * - Kas & Setara Kas      : dihitung dari total cashflow (masuk settled - keluar)
+   * - Piutang               : total pemasukan berstatus Pending
+   * - Aset Tetap            : dari tabel neraca_items (group = "aset_tetap")
+   * - Kewajiban Lancar      : dari tabel neraca_items (group = "kewajiban_lancar")
+   * - Kewajiban Jangka Panjang: dari tabel neraca_items (group = "kewajiban_jangka_panjang")
+   * - Ekuitas               : dihitung sebagai Total Aset - Total Kewajiban
+   * - Laba Berjalan         : dari laporan laba rugi periode yang sama
    */
   async getNeraca(filter?: LaporanFilterDto): Promise<NeracaReport> {
     const endDate = filter?.endDate || formatRawDate(new Date());
 
-    const [saldoKas, piutang, labaRugi] = await Promise.all([
-      this.reportRepo.getCashBalance(endDate),
-      this.reportRepo.getReceivableAmount(endDate),
-      this.labaRugiUseCases.getLabaRugi(filter),
-    ]);
+    const [saldoKas, piutang, labaRugi, asetTetapItems, kewajibanLancarItems, kewajibanJPItems] =
+      await Promise.all([
+        this.reportRepo.getCashBalance(endDate),
+        this.reportRepo.getReceivableAmount(endDate),
+        this.labaRugiUseCases.getLabaRugi(filter),
+        neracaItemRepo.findByGroup('aset_tetap'),
+        neracaItemRepo.findByGroup('kewajiban_lancar'),
+        neracaItemRepo.findByGroup('kewajiban_jangka_panjang'),
+      ]);
 
-    const asetLancar = [
-      { name: 'Kas & Setara Kas', amount: SALDO_AWAL_KAS + saldoKas },
+    // Aset Lancar: dari cashflow nyata di database
+    const asetLancarRaw = [
+      { name: 'Kas & Setara Kas', amount: saldoKas },
       { name: 'Piutang Usaha / Penjualan (Pending)', amount: piutang },
-      { name: 'Perlengkapan Kantor', amount: PERLENGKAPAN_KANTOR },
     ];
+    const asetLancar = asetLancarRaw.filter((item) => item.amount !== 0);
 
-    const asetTetap = ASET_TETAP.map((item) => ({ ...item }));
-    const kewajibanLancar = KEWAJIBAN_LANCAR.map((item) => ({ ...item }));
-    const kewajibanJangkaPanjang = KEWAJIBAN_JANGKA_PANJANG.map((item) => ({ ...item }));
+    // Aset Tetap: dari DB (user input)
+    const asetTetap = asetTetapItems.map((item) => ({
+      name: item.name,
+      amount: item.amount,
+    }));
+
+    // Kewajiban: dari DB (user input)
+    const kewajibanLancar = kewajibanLancarItems.map((item) => ({
+      name: item.name,
+      amount: item.amount,
+    }));
+    const kewajibanJangkaPanjang = kewajibanJPItems.map((item) => ({
+      name: item.name,
+      amount: item.amount,
+    }));
 
     const totalAsetLancar = asetLancar.reduce((sum, item) => sum + item.amount, 0);
     const totalAsetTetap = asetTetap.reduce((sum, item) => sum + item.amount, 0);

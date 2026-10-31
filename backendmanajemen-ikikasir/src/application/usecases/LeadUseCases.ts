@@ -1,6 +1,7 @@
 import { ILeadRepository, LeadFilter, LeadStatistics } from '../../domain/interfaces/ILeadRepository.js';
 import { ICustomerRepository } from '../../domain/interfaces/ICustomerRepository.js';
 import { IPackageRepository } from '../../domain/interfaces/IPackageRepository.js';
+import { IReferralRepository } from '../../domain/interfaces/IReferralRepository.js';
 import {
   CreateLeadDto,
   UpdateLeadDto,
@@ -18,7 +19,8 @@ export class LeadUseCases {
   constructor(
     private leadRepository: ILeadRepository,
     private customerRepository?: ICustomerRepository,
-    private packageRepository?: IPackageRepository
+    private packageRepository?: IPackageRepository,
+    private referralRepository?: IReferralRepository
   ) {}
 
   private async resolvePackage(packageId?: string | null, packageInterest?: string | null): Promise<{ packageId: string | null; packageName: string; packagePrice: number }> {
@@ -139,13 +141,35 @@ export class LeadUseCases {
     const pkgInfo = await this.resolvePackage(dto.packageId, dto.packageInterest);
     const estimatedDeal = dto.estimatedDeal && dto.estimatedDeal > 0 ? dto.estimatedDeal : pkgInfo.packagePrice;
 
-    const newLead = await this.leadRepository.create({
+    // Sinkronisasi data upline referral jika ada kode referral atau ID pelanggan pengundang
+    let refUpline = null;
+    if (this.customerRepository) {
+      if (dto.referredByCustomerId) {
+        refUpline = await this.customerRepository.findById(dto.referredByCustomerId);
+      } else if (dto.referralCode) {
+        refUpline = await this.customerRepository.findByReferralCode(dto.referralCode.trim().toUpperCase());
+      }
+    }
+
+    const leadData: CreateLeadDto = {
       ...dto,
       packageId: pkgInfo.packageId ?? undefined,
       packageInterest: pkgInfo.packageName,
       estimatedDeal: estimatedDeal,
       paymentProofUrl: dto.paymentProofUrl ? saveProofFileToStorage(dto.paymentProofUrl) : undefined,
-    });
+    };
+
+    if (refUpline) {
+      leadData.referredByCustomerId = refUpline.id;
+      leadData.referredByCustomerName = refUpline.name;
+      leadData.referredByBusinessName = refUpline.businessName;
+      leadData.referralCode = refUpline.referralCode || dto.referralCode;
+      if (!dto.source || dto.source === 'Website') {
+        leadData.source = 'Referral';
+      }
+    }
+
+    const newLead = await this.leadRepository.create(leadData);
 
     const json = newLead.toJSON();
     json.packageId = pkgInfo.packageId ?? json.packageId;
@@ -289,6 +313,12 @@ export class LeadUseCases {
             appUsername: lead.appUsername || existingCust.appUsername || cleanEmail,
             appPassword: lead.appPassword || existingCust.appPassword || 'Kasir#2026',
             technicianStatus: lead.technicianStatus || existingCust.technicianStatus || 'completed',
+            referralCode: existingCust.referralCode || lead.referralCode || undefined,
+            referredByCustomerId: existingCust.referredByCustomerId || lead.referredByCustomerId || undefined,
+            referredByCustomerName: existingCust.referredByCustomerName || lead.referredByCustomerName || undefined,
+            referredByBusinessName: existingCust.referredByBusinessName || lead.referredByBusinessName || undefined,
+            referralBoundAt: existingCust.referralBoundAt || (lead.referredByCustomerId ? now : undefined),
+            referralSource: existingCust.referralSource || lead.source || 'Referral',
           });
         } else {
           // Buat pelanggan baru
@@ -313,6 +343,12 @@ export class LeadUseCases {
             appUsername: lead.appUsername || cleanEmail,
             appPassword: lead.appPassword || 'Kasir#2026',
             technicianStatus: lead.technicianStatus || 'completed',
+            referralCode: lead.referralCode || undefined,
+            referredByCustomerId: lead.referredByCustomerId || undefined,
+            referredByCustomerName: lead.referredByCustomerName || undefined,
+            referredByBusinessName: lead.referredByBusinessName || undefined,
+            referralBoundAt: lead.referredByCustomerId ? now : undefined,
+            referralSource: lead.source || 'Referral',
           });
 
           // Catat history invoice pertama
@@ -329,6 +365,31 @@ export class LeadUseCases {
             startedAt: now,
             expiresAt,
           });
+        }
+
+        // Catat/Aktifkan komisi referral untuk upline jika calon client diajukan via referral
+        const uplineId = lead.referredByCustomerId || (createdCustomer ? createdCustomer.referredByCustomerId : null);
+        if (uplineId && this.referralRepository && createdCustomer) {
+          try {
+            const existingComm = await this.referralRepository.findCommissionByUplineAndDownline(uplineId, createdCustomer.id);
+            if (!existingComm) {
+              await this.referralRepository.createCommission({
+                uplineId: uplineId,
+                downlineId: createdCustomer.id,
+                amount: 15000,
+                status: 'AKTIF',
+                notes: `Komisi referral dari persetujuan calon client: ${lead.businessName || lead.name}`,
+              });
+            } else if (existingComm.status !== 'AKTIF') {
+              await this.referralRepository.updateCommissionStatus(
+                existingComm.id,
+                'AKTIF',
+                'Komisi aktif setelah pendaftaran calon client disetujui'
+              );
+            }
+          } catch (refErr) {
+            console.warn('⚠️ Gagal mencatat komisi referral upline:', refErr);
+          }
         }
 
         // Catat Arus Kas Pemasukan Otomatis

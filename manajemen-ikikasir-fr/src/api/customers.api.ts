@@ -7,6 +7,10 @@ export interface CustomerItem {
   email: string
   phone: string
   address?: string
+  village?: string
+  district?: string
+  city?: string
+  fullAddress?: string
   packageId?: string | null
   packageName?: string
   packagePrice?: number
@@ -28,6 +32,12 @@ export interface CustomerItem {
   appUsername?: string
   appPassword?: string
   technicianStatus?: string
+  referralCode?: string
+  referredByCustomerId?: string | null
+  referredByCustomerName?: string
+  referredByBusinessName?: string
+  referralBoundAt?: string | null
+  referralSource?: string
   createdAt?: string
   updatedAt?: string
 }
@@ -59,6 +69,9 @@ export interface CreateCustomerPayload {
   email: string
   phone: string
   address?: string
+  village?: string
+  district?: string
+  city?: string
   packageId?: string
   billingCycleMonths?: number
   paymentMethod?: string
@@ -70,6 +83,11 @@ export interface CreateCustomerPayload {
   appPassword?: string
   technicianStatus?: string
   notes?: string
+  /** Kode referral yang dipakai client (sumber = Referral) */
+  referralCode?: string
+  /** Sumber client: Manual, Referral, Aplikasi, Formulir Pendaftaran */
+  source?: string
+  referralSource?: string
 }
 
 export interface UpdateCustomerPayload {

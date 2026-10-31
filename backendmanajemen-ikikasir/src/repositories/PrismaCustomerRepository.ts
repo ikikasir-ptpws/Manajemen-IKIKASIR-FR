@@ -19,6 +19,9 @@ export class PrismaCustomerRepository implements ICustomerRepository {
       email: record.email,
       phone: record.phone,
       address: record.address,
+      village: record.village,
+      district: record.district,
+      city: record.city,
       packageId: record.packageId,
       packageName: record.package?.name ?? 'Custom',
       packagePrice: record.package?.price ?? 0,
@@ -35,6 +38,12 @@ export class PrismaCustomerRepository implements ICustomerRepository {
       appUsername: record.appUsername ?? '',
       appPassword: record.appPassword ?? '',
       technicianStatus: record.technicianStatus ?? 'completed',
+      referralCode: record.referralCode ?? '',
+      referredByCustomerId: record.referredByCustomerId ?? null,
+      referredByCustomerName: record.referredByCustomerName ?? '',
+      referredByBusinessName: record.referredByBusinessName ?? '',
+      referralBoundAt: record.referralBoundAt ?? null,
+      referralSource: record.referralSource ?? '',
       createdAt: record.createdAt,
       updatedAt: record.updatedAt,
     });
@@ -131,6 +140,19 @@ export class PrismaCustomerRepository implements ICustomerRepository {
     }
   }
 
+  public async findByReferralCode(referralCode: string): Promise<Customer | null> {
+    try {
+      const record = await prisma.customer.findUnique({
+        where: { referralCode: referralCode.trim().toUpperCase() },
+        include: { package: true },
+      });
+
+      return record ? this.mapToDomain(record) : null;
+    } catch (error) {
+      throw new InternalServerError(`Gagal mencari pelanggan berdasarkan kode referal: ${(error as Error).message}`);
+    }
+  }
+
   public async create(data: CreateCustomerData): Promise<Customer> {
     try {
       const record = await prisma.customer.create({
@@ -140,6 +162,9 @@ export class PrismaCustomerRepository implements ICustomerRepository {
           email: data.email.toLowerCase().trim(),
           phone: data.phone.trim(),
           address: data.address ?? '',
+          village: data.village ?? '',
+          district: data.district ?? '',
+          city: data.city ?? '',
           packageId: data.packageId ?? null,
           status: data.status ?? 'ACTIVE',
           startedAt: data.startedAt ?? new Date(),
@@ -153,6 +178,12 @@ export class PrismaCustomerRepository implements ICustomerRepository {
           appUsername: data.appUsername ?? '',
           appPassword: data.appPassword ?? '',
           technicianStatus: data.technicianStatus ?? 'completed',
+          referralCode: data.referralCode ?? null,
+          referredByCustomerId: data.referredByCustomerId ?? null,
+          referredByCustomerName: data.referredByCustomerName ?? '',
+          referredByBusinessName: data.referredByBusinessName ?? '',
+          referralBoundAt: data.referralBoundAt ?? null,
+          referralSource: data.referralSource ?? '',
         },
         include: { package: true },
       });
@@ -171,6 +202,9 @@ export class PrismaCustomerRepository implements ICustomerRepository {
       if (data.email !== undefined) updateData.email = data.email.toLowerCase().trim();
       if (data.phone !== undefined) updateData.phone = data.phone.trim();
       if (data.address !== undefined) updateData.address = data.address;
+      if (data.village !== undefined) updateData.village = data.village;
+      if (data.district !== undefined) updateData.district = data.district;
+      if (data.city !== undefined) updateData.city = data.city;
       if (data.packageId !== undefined) updateData.packageId = data.packageId;
       if (data.status !== undefined) updateData.status = data.status;
       if (data.expiresAt !== undefined) updateData.expiresAt = data.expiresAt;
@@ -183,6 +217,12 @@ export class PrismaCustomerRepository implements ICustomerRepository {
       if (data.appUsername !== undefined) updateData.appUsername = data.appUsername;
       if (data.appPassword !== undefined) updateData.appPassword = data.appPassword;
       if (data.technicianStatus !== undefined) updateData.technicianStatus = data.technicianStatus;
+      if (data.referralCode !== undefined) updateData.referralCode = data.referralCode;
+      if (data.referredByCustomerId !== undefined) updateData.referredByCustomerId = data.referredByCustomerId;
+      if (data.referredByCustomerName !== undefined) updateData.referredByCustomerName = data.referredByCustomerName;
+      if (data.referredByBusinessName !== undefined) updateData.referredByBusinessName = data.referredByBusinessName;
+      if (data.referralBoundAt !== undefined) updateData.referralBoundAt = data.referralBoundAt;
+      if (data.referralSource !== undefined) updateData.referralSource = data.referralSource;
 
       const record = await prisma.customer.update({
         where: { id },
