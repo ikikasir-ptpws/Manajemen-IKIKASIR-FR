@@ -37,6 +37,7 @@ model RoleMenuAccess {
   neraca            Boolean  @default(false)
   laporanPenjualan  Boolean  @default(false)
   landingPage       Boolean  @default(false)
+  penarikanReferral Boolean  @default(false)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
@@ -253,21 +254,28 @@ model ReferralCommission {
 }
 
 model ReferralWithdrawal {
-  id            String   @id @default(uuid())
-  customerId    String
-  customer      Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  amount        Float    @default(0)
-  bankOrWallet  String   @default("")
-  accountNumber String   @default("")
-  accountHolder String   @default("")
-  requestDate   DateTime @default(now())
-  completedDate DateTime?
-  status        String   @default("MENUNGGU_VERIFIKASI") // MENUNGGU_VERIFIKASI, SELESAI, DITOLAK
-  notes         String   @default("")
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id                String    @id @default(uuid())
+  customerId        String
+  customer          Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  amount            Float     @default(0)
+  bankOrWallet      String    @default("")
+  accountNumber     String    @default("")
+  accountHolder     String    @default("")
+  requestDate       DateTime  @default(now())
+  completedDate     DateTime?
+  status            String    @default("MENUNGGU_VERIFIKASI") // MENUNGGU_VERIFIKASI, SELESAI, DITOLAK
+  notes             String    @default("")
+  invoiceNo         String?   @unique
+  processedBy       String    @default("")
+  transferReference String    @default("")
+  waSentAt          DateTime?
+  rejectionReason   String    @default("")
+  rejectedAt        DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
   @@index([customerId])
+  @@index([status])
   @@map("referral_withdrawals")
 }
 

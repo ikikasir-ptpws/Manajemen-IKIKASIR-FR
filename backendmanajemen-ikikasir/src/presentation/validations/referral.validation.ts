@@ -17,3 +17,21 @@ export const updateReferralWithdrawalSchema = z.object({
   }),
   notes: z.string().trim().optional(),
 });
+
+/**
+ * Konfirmasi pembayaran pencairan oleh finance (webbase):
+ * status SELESAI -> dana sudah dikirim, DITOLAK -> pengajuan ditolak
+ */
+export const confirmWithdrawalSchema = z
+  .object({
+    status: z.enum(['SELESAI', 'DITOLAK'], {
+      message: 'Status pencairan tidak valid.',
+    }),
+    transferReference: z.string().trim().optional(),
+    notes: z.string().trim().optional(),
+    rejectionReason: z.string().trim().optional(),
+  })
+  .refine((data) => data.status !== 'DITOLAK' || !!data.rejectionReason, {
+    message: 'Alasan penolakan wajib diisi.',
+    path: ['rejectionReason'],
+  });

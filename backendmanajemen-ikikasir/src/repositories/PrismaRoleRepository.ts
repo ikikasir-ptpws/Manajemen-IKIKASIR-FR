@@ -50,6 +50,7 @@ export class PrismaRoleRepository implements IRoleRepository {
       neraca: Boolean(input?.neraca),
       laporanPenjualan: Boolean(input?.laporanPenjualan),
       landingPage: Boolean(input?.landingPage),
+      penarikanReferral: Boolean(input?.penarikanReferral),
     };
   }
 
@@ -75,15 +76,25 @@ export class PrismaRoleRepository implements IRoleRepository {
           neraca: record.menuAccess.neraca,
           laporanPenjualan: record.menuAccess.laporanPenjualan,
           landingPage: record.menuAccess.landingPage,
+          penarikanReferral: record.menuAccess.penarikanReferral,
         }
       : this.defaultMenuAccess();
+
+    // Role lama belum punya key menu baru di JSON permissions ->
+    // lengkapi dari menuAccess supaya tidak terkunci oleh switch baru.
+    const mergedPermissions: RolePermissions = { ...(permissions ?? {}) };
+    for (const key of Role.defaultMenuKeys) {
+      if (!mergedPermissions[key]) {
+        mergedPermissions[key] = Role.generateDefaultPermissions(menuAccess)[key];
+      }
+    }
 
     return new Role({
       id: record.id,
       name: record.name,
       description,
       menuAccess,
-      permissions: permissions ?? Role.generateDefaultPermissions(menuAccess),
+      permissions: mergedPermissions,
       userCount: record._count ? record._count.users : 0,
       createdAt: record.createdAt,
       updatedAt: record.updatedAt,

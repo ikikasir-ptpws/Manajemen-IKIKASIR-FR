@@ -4,18 +4,24 @@ import { ILeadRepository } from '../../domain/interfaces/ILeadRepository.js';
 import {
   NotFoundError,
   BadRequestError,
+  ConflictError,
 } from '../../domain/errors/AppError.js';
 import {
   ValidateReferralCodeResponseDto,
   ReferralOverviewDto,
   ReferralUserItemDto,
   ReferralWithdrawalItemDto,
+  ReferralWithdrawalListDto,
+  ReferralWithdrawalListItemDto,
+  ReferralWithdrawalFilterDto,
+  ConfirmWithdrawalPayoutDto,
   RequestReferralWithdrawalDto,
   UpdateReferralWithdrawalDto,
   SubmitClientByReferralDto,
   ClientWithdrawalDto,
 } from '../dtos/referral.dto.js';
 import { Customer } from '../../domain/entities/Customer.js';
+import { ReferralWithdrawal } from '../../domain/entities/ReferralWithdrawal.js';
 
 /**
  * Hadiah komisi referral per pelanggan aktif (sama dengan nilai pada halaman Referral aplikasi IKIKASIR)
@@ -45,6 +51,33 @@ const referralStatusLabel = (status: string): string => {
       return 'Menunggu Verifikasi';
   }
 };
+
+const toWithdrawalItemDto = (w: ReferralWithdrawal): ReferralWithdrawalItemDto => ({
+  id: w.id,
+  amount: w.amount,
+  bankOrWallet: w.bankOrWallet,
+  accountNumber: w.accountNumber,
+  accountHolder: w.accountHolder,
+  requestDate: formatDateID(w.requestDate),
+  completedDate: w.completedDate ? formatDateID(w.completedDate) : null,
+  status: w.status,
+  notes: w.notes,
+  invoiceNo: w.invoiceNo,
+  processedBy: w.processedBy,
+  transferReference: w.transferReference,
+  waSentAt: w.waSentAt ? formatDateID(w.waSentAt) : null,
+  rejectionReason: w.rejectionReason,
+});
+
+const toWithdrawalListItemDto = (w: ReferralWithdrawal): ReferralWithdrawalListItemDto => ({
+  ...toWithdrawalItemDto(w),
+  customerId: w.customerId,
+  customerName: w.customerName,
+  customerBusinessName: w.customerBusinessName,
+  customerPhone: w.customerPhone,
+  customerEmail: w.customerEmail,
+  customerReferralCode: w.customerReferralCode,
+});
 
 export class ReferralUseCases {
   constructor(
@@ -83,7 +116,10 @@ export class ReferralUseCases {
     // Khusus akun simulasi real Sayyid (ikikasir.id@gmail.com)
     if (customer.email === 'ikikasir.id@gmail.com' || customer.name?.toLowerCase().includes('sayyid')) {
       if (customer.referralCode !== 'IKIKASIR-0WTCK') {
-        await this.customerRepository.update(customerId, { referralCode: 'IKIKASIR-0WTCK' });
+        const owner = await this.customerRepository.findByReferralCode('IKIKASIR-0WTCK');
+        if (!owner || owner.id === customer.id) {
+          await this.customerRepository.update(customerId, { referralCode: 'IKIKASIR-0WTCK' });
+        }
       }
       return 'IKIKASIR-0WTCK';
     }
@@ -288,28 +324,32 @@ export class ReferralUseCases {
       .filter((w) => w.status === 'SELESAI')
       .reduce((sum, w) => sum + w.amount, 0);
 
-    const withdrawalItems: ReferralWithdrawalItemDto[] = withdrawals.map((w) => ({
-      id: w.id,
-      amount: w.amount,
-      bankOrWallet: w.bankOrWallet,
-      accountNumber: w.accountNumber,
-      accountHolder: w.accountHolder,
-      requestDate: formatDateID(w.requestDate),
-      completedDate: w.completedDate ? formatDateID(w.completedDate) : null,
-      status: w.status,
-      notes: w.notes,
-    }));
+    // Pengajuan yang masih menunggu verifikasi tetap mereservasi saldo
+    const totalPending = withdrawals
+      .filter((w) => w.status === 'MENUNGGU_VERIFIKASI')
+      .reduce((sum, w) => sum + w.amount, 0);
+
+    const withdrawalItems: ReferralWithdrawalItemDto[] = withdrawals.map(toWithdrawalItemDto);
+
+    // Kode referral milik upline (bukan ID pelanggan)
+    let uplineCode = '';
+    if (customer.referredByCustomerId) {
+      const upline = await this.customerRepository.findById(customer.referredByCustomerId);
+      uplineCode = upline?.referralCode ?? '';
+    }
 
     const referralInfo = {
       customerId: customer.id,
       referralCode,
       uplineName: customer.referredByCustomerName || 'Belum Terikat',
-      uplineCode: customer.referredByCustomerId ?? '',
+      uplineCode,
+      uplineCustomerId: customer.referredByCustomerId ?? '',
       uplineBoundDate: customer.referralBoundAt ? formatDateID(customer.referralBoundAt) : null,
       isBound: !!(customer.referredByCustomerId || customer.referredByCustomerName),
-      availableBalance: Math.max(totalEarnings - totalWithdrawn, 0),
+      availableBalance: Math.max(totalEarnings - totalWithdrawn - totalPending, 0),
       totalEarnings,
       totalWithdrawn,
+      totalPending,
       rewardPerActiveUser: REFERRAL_REWARD_PER_ACTIVE_USER,
     };
 
@@ -452,17 +492,7 @@ export class ReferralUseCases {
       notes: dto.notes?.trim() || 'Penarikan saldo komisi referral',
     });
 
-    return {
-      id: withdrawal.id,
-      amount: withdrawal.amount,
-      bankOrWallet: withdrawal.bankOrWallet,
-      accountNumber: withdrawal.accountNumber,
-      accountHolder: withdrawal.accountHolder,
-      requestDate: formatDateID(withdrawal.requestDate),
-      completedDate: withdrawal.completedDate ? formatDateID(withdrawal.completedDate) : null,
-      status: withdrawal.status,
-      notes: withdrawal.notes,
-    };
+    return toWithdrawalItemDto(withdrawal);
   }
 
   /**
@@ -495,6 +525,7 @@ export class ReferralUseCases {
 
   /**
    * Verifikasi pencairan oleh finance (MENUNGGU_VERIFIKASI -> SELESAI / DITOLAK)
+   * Deprecated: gunakan confirmWithdrawalPayout agar nomor invoice & arus kas ikut tercatat.
    */
   public async updateWithdrawalStatus(
     id: string,
@@ -512,16 +543,141 @@ export class ReferralUseCases {
 
     const updated = await this.referralRepository.updateWithdrawalStatus(id, dto.status, dto.notes);
 
-    return {
-      id: updated.id,
-      amount: updated.amount,
-      bankOrWallet: updated.bankOrWallet,
-      accountNumber: updated.accountNumber,
-      accountHolder: updated.accountHolder,
-      requestDate: formatDateID(updated.requestDate),
-      completedDate: updated.completedDate ? formatDateID(updated.completedDate) : null,
-      status: updated.status,
-      notes: updated.notes,
+    return toWithdrawalItemDto(updated);
+  }
+
+  /**
+   * Daftar seluruh permintaan pencairan referral (halaman Penarikan Referral di webbase)
+   */
+  public async getAllWithdrawals(filter?: ReferralWithdrawalFilterDto): Promise<ReferralWithdrawalListDto> {
+    const page = filter?.page && filter.page > 0 ? filter.page : 1;
+    const limit = filter?.limit && filter.limit > 0 ? filter.limit : 20;
+
+    const [{ items, total }, all] = await Promise.all([
+      this.referralRepository.findWithdrawals({
+        status: filter?.status,
+        search: filter?.search,
+        page,
+        limit,
+      }),
+      this.referralRepository.findWithdrawals({}),
+    ]);
+
+    const summary = {
+      pendingCount: all.items.filter((w) => w.status === 'MENUNGGU_VERIFIKASI').length,
+      pendingAmount: all.items
+        .filter((w) => w.status === 'MENUNGGU_VERIFIKASI')
+        .reduce((sum, w) => sum + w.amount, 0),
+      paidCount: all.items.filter((w) => w.status === 'SELESAI').length,
+      paidAmount: all.items
+        .filter((w) => w.status === 'SELESAI')
+        .reduce((sum, w) => sum + w.amount, 0),
+      rejectedCount: all.items.filter((w) => w.status === 'DITOLAK').length,
     };
+
+    return {
+      items: items.map(toWithdrawalListItemDto),
+      total,
+      page,
+      limit,
+      summary,
+    };
+  }
+
+  /**
+   * Konfirmasi pembayaran pencairan oleh finance:
+   * - status SELESAI  : generate nomor invoice, catat transaksi kas keluar, isi data proses
+   * - status DITOLAK  : simpan alasan penolakan, saldo dilepas kembali
+   */
+  public async confirmWithdrawalPayout(
+    id: string,
+    dto: ConfirmWithdrawalPayoutDto,
+    processedBy = ''
+  ): Promise<ReferralWithdrawalListItemDto> {
+    const withdrawal = await this.referralRepository.findWithdrawalById(id);
+    if (!withdrawal) {
+      throw new NotFoundError(`Permintaan pencairan dengan ID '${id}' tidak ditemukan.`);
+    }
+
+    if (withdrawal.status !== 'MENUNGGU_VERIFIKASI') {
+      throw new ConflictError(
+        `Permintaan pencairan ini sudah berstatus '${withdrawal.status}' sehingga tidak dapat diproses lagi.`
+      );
+    }
+
+    if (dto.status === 'DITOLAK') {
+      const rejected = await this.referralRepository.updateWithdrawal(id, {
+        status: 'DITOLAK',
+        notes: dto.notes,
+        rejectionReason: dto.rejectionReason?.trim() || 'Tidak lolos verifikasi finance',
+        rejectedAt: new Date(),
+        processedBy,
+      });
+      return toWithdrawalListItemDto(rejected);
+    }
+
+    // Pastikan saldo masih cukup (permintaan lain yang menunggu verifikasi ikut direservasi)
+    const overview = await this.getOverview(withdrawal.customerId);
+    const availableForThis = overview.availableBalance + withdrawal.amount;
+    if (withdrawal.amount > availableForThis) {
+      throw new BadRequestError(
+        'Saldo referral pelanggan tidak mencukupi anymore untuk pencairan ini. Periksa pencairan lain yang sedang diproses.'
+      );
+    }
+
+    const invoiceNo = await this.generateWithdrawalInvoiceNo();
+    const customerLabel = withdrawal.customerBusinessName
+      ? `${withdrawal.customerBusinessName} (${withdrawal.customerName})`
+      : withdrawal.customerName;
+
+    const updated = await this.referralRepository.confirmWithdrawalPayout(id, {
+      status: 'SELESAI',
+      notes: dto.notes,
+      invoiceNo,
+      processedBy,
+      transferReference: dto.transferReference?.trim() ?? '',
+      completedDate: new Date(),
+      cashAmount: withdrawal.amount,
+      cashDescription: `Pencairan saldo referral - ${customerLabel || 'Pelanggan'}`,
+      cashCustomer: customerLabel || withdrawal.customerName,
+      cashPaymentMethod: withdrawal.bankOrWallet || 'Transfer',
+      cashNotes: `Pencairan saldo referral ke ${withdrawal.accountHolder} (${withdrawal.bankOrWallet} ${withdrawal.accountNumber})${
+        dto.transferReference ? ` - Ref: ${dto.transferReference.trim()}` : ''
+      }`,
+    });
+
+    return toWithdrawalListItemDto(updated);
+  }
+
+  /**
+   * Tandai bukti penarikan sudah dikirim ke pelanggan via WhatsApp
+   */
+  public async markWithdrawalWaSent(id: string): Promise<ReferralWithdrawalListItemDto> {
+    const withdrawal = await this.referralRepository.findWithdrawalById(id);
+    if (!withdrawal) {
+      throw new NotFoundError(`Permintaan pencairan dengan ID '${id}' tidak ditemukan.`);
+    }
+
+    const updated = await this.referralRepository.updateWithdrawal(id, { waSentAt: new Date() });
+    return toWithdrawalListItemDto(updated);
+  }
+
+  /**
+   * Generate nomor invoice pencairan yang unik, contoh: INV-20261031-WD-4821
+   */
+  private async generateWithdrawalInvoiceNo(): Promise<string> {
+    const now = new Date();
+    const rawDate = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+
+    for (let attempt = 0; attempt < 10; attempt++) {
+      const suffix = Math.floor(1000 + Math.random() * 9000);
+      const candidate = `INV-${rawDate}-WD-${suffix}`;
+      const existing = await this.referralRepository.findWithdrawals({ search: candidate, limit: 1 });
+      if (!existing.items.length) {
+        return candidate;
+      }
+    }
+
+    return `INV-${rawDate}-WD-${Date.now().toString().slice(-6)}`;
   }
 }

@@ -57,6 +57,7 @@ export class PrismaUserRepository implements IUserRepository {
             neraca: record.roleRef.menuAccess.neraca,
             laporanPenjualan: record.roleRef.menuAccess.laporanPenjualan,
             landingPage: record.roleRef.menuAccess.landingPage,
+            penarikanReferral: record.roleRef.menuAccess.penarikanReferral,
           }
         : undefined;
 

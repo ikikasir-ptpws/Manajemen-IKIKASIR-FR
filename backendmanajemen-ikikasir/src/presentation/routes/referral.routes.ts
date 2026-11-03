@@ -7,13 +7,17 @@ import {
   clientWithdraw,
   requestWithdrawal,
   updateWithdrawalStatus,
+  getWithdrawals,
+  confirmWithdrawal,
+  markWithdrawalWaSent,
 } from '../controllers/ReferralController.js';
 import { validateBody } from '../middlewares/validation.middleware.js';
 import {
   requestReferralWithdrawalSchema,
   updateReferralWithdrawalSchema,
+  confirmWithdrawalSchema,
 } from '../validations/referral.validation.js';
-import { authenticate, authorizeRoles } from '../middlewares/auth.middleware.js';
+import { authenticate, authorizeRoles, authorizeMenuAccess } from '../middlewares/auth.middleware.js';
 
 const router = Router();
 
@@ -67,9 +71,43 @@ router.post(
  */
 router.patch(
   '/withdrawals/:id',
-  authorizeRoles('SUPERADMIN', 'Super Admin', 'ADMIN', 'Admin'),
+  authorizeRoles('SUPERADMIN', 'Super Admin', 'ADMIN', 'Admin', 'FINANCE', 'Finance'),
   validateBody(updateReferralWithdrawalSchema),
   updateWithdrawalStatus
+);
+
+/**
+ * Route: Daftar seluruh permintaan pencairan referral (halaman Penarikan Referral)
+ * GET /api/referrals/withdrawals?status=&search=&page=&limit=
+ */
+router.get(
+  '/withdrawals',
+  authorizeRoles('SUPERADMIN', 'Super Admin', 'ADMIN', 'Admin', 'FINANCE', 'Finance'),
+  authorizeMenuAccess('penarikanReferral'),
+  getWithdrawals
+);
+
+/**
+ * Route: Konfirmasi pembayaran pencairan referral (dana dikirim manual oleh finance)
+ * PATCH /api/referrals/withdrawals/:id/payment
+ */
+router.patch(
+  '/withdrawals/:id/payment',
+  authorizeRoles('SUPERADMIN', 'Super Admin', 'ADMIN', 'Admin', 'FINANCE', 'Finance'),
+  authorizeMenuAccess('penarikanReferral'),
+  validateBody(confirmWithdrawalSchema),
+  confirmWithdrawal
+);
+
+/**
+ * Route: Tandai bukti penarikan sudah dikirim ke pelanggan via WhatsApp
+ * POST /api/referrals/withdrawals/:id/wa-sent
+ */
+router.post(
+  '/withdrawals/:id/wa-sent',
+  authorizeRoles('SUPERADMIN', 'Super Admin', 'ADMIN', 'Admin', 'FINANCE', 'Finance'),
+  authorizeMenuAccess('penarikanReferral'),
+  markWithdrawalWaSent
 );
 
 export default router;

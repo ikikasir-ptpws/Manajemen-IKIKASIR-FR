@@ -40,6 +40,51 @@ export interface ReferralWithdrawalItem {
   completedDate: string | null
   status: ReferralWithdrawalStatus
   notes: string
+  invoiceNo?: string | null
+  processedBy?: string | null
+  transferReference?: string | null
+  waSentAt?: string | null
+  rejectionReason?: string | null
+}
+
+/** Baris daftar penarikan referral di halaman Penarikan Referral (webbase) */
+export interface ReferralWithdrawalListItem extends ReferralWithdrawalItem {
+  customerId: string
+  customerName: string
+  customerBusinessName: string
+  customerPhone: string
+  customerEmail: string
+  customerReferralCode: string
+}
+
+export interface ReferralWithdrawalSummary {
+  pendingCount: number
+  pendingAmount: number
+  paidCount: number
+  paidAmount: number
+  rejectedCount: number
+}
+
+export interface ReferralWithdrawalList {
+  items: ReferralWithdrawalListItem[]
+  total: number
+  page: number
+  limit: number
+  summary: ReferralWithdrawalSummary
+}
+
+export interface ConfirmWithdrawalPayload {
+  status: 'SELESAI' | 'DITOLAK'
+  transferReference?: string
+  notes?: string
+  rejectionReason?: string
+}
+
+export interface ReferralWithdrawalQuery {
+  status?: string
+  search?: string
+  page?: number
+  limit?: number
 }
 
 export interface ReferralOverview {
@@ -47,11 +92,13 @@ export interface ReferralOverview {
   referralCode: string
   uplineName: string
   uplineCode: string
+  uplineCustomerId?: string
   uplineBoundDate: string | null
   isBound: boolean
   availableBalance: number
   totalEarnings: number
   totalWithdrawn: number
+  totalPending?: number
   rewardPerActiveUser: number
   referredUsers: ReferralUserItem[]
   withdrawals: ReferralWithdrawalItem[]

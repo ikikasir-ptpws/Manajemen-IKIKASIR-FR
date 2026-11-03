@@ -146,6 +146,12 @@ export function authorizeMenuAccess(menuKey: keyof MenuAccessProps) {
         return next();
       }
 
+      // User lama tanpa role detail (hanya menyimpan nama role) tetap boleh,
+      // agar akun lama tidak terkunci oleh switch menu baru.
+      if (!user.roleDetail) {
+        return next();
+      }
+
       // Cek izin boolean pada switch menu role pengguna
       const menuAccess = user.roleDetail?.menuAccess;
       const hasPermission = Boolean(menuAccess && (menuAccess as any)[menuKey]);

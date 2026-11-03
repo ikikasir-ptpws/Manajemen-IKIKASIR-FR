@@ -4,12 +4,20 @@ import { PrismaCustomerRepository } from '../../repositories/PrismaCustomerRepos
 import { PrismaPackageRepository } from '../../repositories/PrismaPackageRepository.js';
 import { PrismaReferralRepository } from '../../repositories/PrismaReferralRepository.js';
 import { LeadUseCases } from '../../application/usecases/LeadUseCases.js';
+import { ReferralUseCases } from '../../application/usecases/ReferralUseCases.js';
 
 const leadRepository = new PrismaLeadRepository();
 const customerRepository = new PrismaCustomerRepository();
 const packageRepository = new PrismaPackageRepository();
 const referralRepository = new PrismaReferralRepository();
-const leadUseCases = new LeadUseCases(leadRepository, customerRepository, packageRepository, referralRepository);
+const referralUseCases = new ReferralUseCases(customerRepository, referralRepository, leadRepository);
+const leadUseCases = new LeadUseCases(
+  leadRepository,
+  customerRepository,
+  packageRepository,
+  referralRepository,
+  referralUseCases
+);
 
 export const getAll = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {

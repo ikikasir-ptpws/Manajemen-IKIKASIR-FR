@@ -15,6 +15,7 @@ export const menuAccessSchema = z.object({
   neraca: z.boolean().optional(),
   laporanPenjualan: z.boolean().optional(),
   landingPage: z.boolean().optional(),
+  penarikanReferral: z.boolean().optional(),
 });
 
 export const menuCrudPermissionSchema = z.object({

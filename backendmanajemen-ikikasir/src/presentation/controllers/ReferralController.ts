@@ -149,3 +149,78 @@ export const updateWithdrawalStatus = async (req: Request, res: Response, next: 
     next(error);
   }
 };
+
+/**
+ * Daftar seluruh permintaan pencairan referral (halaman Penarikan Referral)
+ * GET /api/referrals/withdrawals?status=&search=&page=&limit=
+ */
+export const getWithdrawals = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const page = req.query.page ? Number(req.query.page) : undefined;
+    const limit = req.query.limit ? Number(req.query.limit) : undefined;
+
+    const result = await referralUseCases.getAllWithdrawals({
+      status: (req.query.status as string) || undefined,
+      search: (req.query.search as string) || undefined,
+      page: page && !Number.isNaN(page) ? page : undefined,
+      limit: limit && !Number.isNaN(limit) ? limit : undefined,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Daftar permintaan pencairan referral berhasil diambil.',
+      data: result.items,
+      total: result.total,
+      page: result.page,
+      limit: result.limit,
+      summary: result.summary,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Konfirmasi pembayaran pencairan (dana dikirim manual oleh finance)
+ * PATCH /api/referrals/withdrawals/:id/payment
+ */
+export const confirmWithdrawal = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const id = req.params.id as string;
+    const processedBy = req.user?.name || '';
+
+    const withdrawal = await referralUseCases.confirmWithdrawalPayout(id, req.body, processedBy);
+
+    const message =
+      withdrawal.status === 'SELESAI'
+        ? `Pembayaran pencairan referral '${withdrawal.invoiceNo || ''}' berhasil dikonfirmasi.`
+        : `Permintaan pencairan referral berhasil ditolak.`;
+
+    res.status(200).json({
+      success: true,
+      message,
+      data: withdrawal,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Tandai bukti penarikan sudah dikirim ke pelanggan via WhatsApp
+ * POST /api/referrals/withdrawals/:id/wa-sent
+ */
+export const markWithdrawalWaSent = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const id = req.params.id as string;
+    const withdrawal = await referralUseCases.markWithdrawalWaSent(id);
+
+    res.status(200).json({
+      success: true,
+      message: 'Bukti penarikan ditandai sudah dikirim ke pelanggan.',
+      data: withdrawal,
+    });
+  } catch (error) {
+    next(error);
+  }
+};

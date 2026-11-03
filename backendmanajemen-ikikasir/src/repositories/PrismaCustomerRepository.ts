@@ -8,7 +8,10 @@ import {
 } from '../domain/interfaces/ICustomerRepository.js';
 import { Customer } from '../domain/entities/Customer.js';
 import { SubscriptionHistory } from '../domain/entities/SubscriptionHistory.js';
-import { InternalServerError } from '../domain/errors/AppError.js';
+import { InternalServerError, ConflictError } from '../domain/errors/AppError.js';
+
+const isUniqueConstraintError = (error: unknown): boolean =>
+  (error as { code?: string })?.code === 'P2002';
 
 export class PrismaCustomerRepository implements ICustomerRepository {
   private mapToDomain(record: any): Customer {
@@ -190,6 +193,9 @@ export class PrismaCustomerRepository implements ICustomerRepository {
 
       return this.mapToDomain(record);
     } catch (error) {
+      if (isUniqueConstraintError(error)) {
+        throw new ConflictError('Gagal menyimpan pelanggan baru: email atau kode referral sudah dipakai pelanggan lain.');
+      }
       throw new InternalServerError(`Gagal menyimpan data pelanggan baru: ${(error as Error).message}`);
     }
   }
@@ -232,6 +238,9 @@ export class PrismaCustomerRepository implements ICustomerRepository {
 
       return this.mapToDomain(record);
     } catch (error) {
+      if (isUniqueConstraintError(error)) {
+        throw new ConflictError('Gagal memperbarui pelanggan: email atau kode referral sudah dipakai pelanggan lain.');
+      }
       throw new InternalServerError(`Gagal memperbarui data pelanggan: ${(error as Error).message}`);
     }
   }

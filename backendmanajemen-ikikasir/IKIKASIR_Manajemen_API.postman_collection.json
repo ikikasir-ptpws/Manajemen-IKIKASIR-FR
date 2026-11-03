@@ -2027,6 +2027,102 @@
             "description": "Finance memverifikasi pencairan referral. Status: MENUNGGU_VERIFIKASI -> SELESAI atau DITOLAK."
           },
           "response": []
+        },
+        {
+          "name": "GET Ringkasan Referral (Aplikasi Android)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/referrals/overview?email={{testCustomerEmail}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "referrals",
+                "overview"
+              ],
+              "query": [
+                {
+                  "key": "email",
+                  "value": "{{testCustomerEmail}}"
+                }
+              ]
+            },
+            "description": "Ringkasan halaman Referral untuk aplikasi Android (menggunakan email lisensi pelanggan). Mengembalikan referralCode, upline, saldo komisi, daftar downline (referredUsers dan alias userReferrals), serta riwayat pencairan."
+          },
+          "response": []
+        },
+        {
+          "name": "POST Ajukan Calon Client dari Aplikasi (Referral)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"referralCode\": \"IKIKASIR-XXXXX\",\n  \"userEmail\": \"pelanggan@tokosaya.com\",\n  \"customerId\": \"CUS-XXXX\",\n  \"name\": \"Nama Calon Client\",\n  \"businessName\": \"Toko Calon Client\",\n  \"phone\": \"081234567890\",\n  \"email\": \"calon.client@email.com\",\n  \"notes\": \"Diajukan dari aplikasi kasir\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/referrals/submit-client",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "referrals",
+                "submit-client"
+              ]
+            },
+            "description": "Mengajukan calon client baru dari aplikasi Android. Kode referral / email / ID pelanggan pengundang dikirim otomatis dari token referral global di APK sehingga backend dapat mendeteksi siapa pengundangnya. Calon client masuk sebagai Lead tertaut ke pelanggan pengundang."
+          },
+          "response": []
+        },
+        {
+          "name": "POST Permintaan Pencairan (Aplikasi Android)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"pelanggan@tokosaya.com\",\n  \"customerId\": \"CUS-XXXX\",\n  \"amount\": 15000,\n  \"bankOrWallet\": \"BCA\",\n  \"accountNumber\": \"8230192841\",\n  \"accountHolder\": \"Nama Pemilik Rekening\",\n  \"notes\": \"Penarikan saldo komisi referral\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/referrals/withdraw",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "referrals",
+                "withdraw"
+              ]
+            },
+            "description": "Permintaan pencairan saldo komisi referral dari aplikasi Android (menggunakan email lisensi pelanggan)."
+          },
+          "response": []
         }
       ]
     }

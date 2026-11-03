@@ -36,6 +36,39 @@ export interface ReferralWithdrawalItemDto {
   completedDate: string | null;
   status: string;
   notes: string;
+  invoiceNo?: string | null;
+  processedBy?: string;
+  transferReference?: string;
+  waSentAt?: string | null;
+  rejectionReason?: string;
+}
+
+/**
+ * Daftar pencairan referral untuk halaman Penarikan Referral (webbase)
+ */
+export interface ReferralWithdrawalListItemDto extends ReferralWithdrawalItemDto {
+  customerId: string;
+  customerName: string;
+  customerBusinessName: string;
+  customerPhone: string;
+  customerEmail: string;
+  customerReferralCode: string;
+}
+
+export interface ReferralWithdrawalSummaryDto {
+  pendingCount: number;
+  pendingAmount: number;
+  paidCount: number;
+  paidAmount: number;
+  rejectedCount: number;
+}
+
+export interface ReferralWithdrawalListDto {
+  items: ReferralWithdrawalListItemDto[];
+  total: number;
+  page: number;
+  limit: number;
+  summary: ReferralWithdrawalSummaryDto;
 }
 
 /**
@@ -46,11 +79,13 @@ export interface ReferralInfoDto {
   referralCode: string;
   uplineName: string;
   uplineCode: string;
+  uplineCustomerId?: string;
   uplineBoundDate: string | null;
   isBound: boolean;
   availableBalance: number;
   totalEarnings: number;
   totalWithdrawn: number;
+  totalPending?: number;
   rewardPerActiveUser: number;
 }
 
@@ -79,6 +114,25 @@ export interface RequestReferralWithdrawalDto {
 export interface UpdateReferralWithdrawalDto {
   status: string; // MENUNGGU_VERIFIKASI, SELESAI, DITOLAK
   notes?: string;
+}
+
+/**
+ * Konfirmasi pembayaran pencairan oleh finance (webbase)
+ */
+export interface ConfirmWithdrawalPayoutDto {
+  status: 'SELESAI' | 'DITOLAK';
+  /** Nomor referensi transfer dana ke pelanggan */
+  transferReference?: string;
+  notes?: string;
+  /** Alasan penolakan (wajib bila status DITOLAK) */
+  rejectionReason?: string;
+}
+
+export interface ReferralWithdrawalFilterDto {
+  status?: string;
+  search?: string;
+  page?: number;
+  limit?: number;
 }
 
 export interface SubmitClientByReferralDto {

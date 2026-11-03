@@ -14,13 +14,15 @@ import { NotFoundError, BadRequestError } from '../../domain/errors/AppError.js'
 import { Lead, LeadFollowUp } from '../../domain/entities/Lead.js';
 import { saveProofFileToStorage } from '../../infrastructure/utils/storage.util.js';
 import { PrismaCashTransactionRepository } from '../../repositories/PrismaCashTransactionRepository.js';
+import { ReferralUseCases } from './ReferralUseCases.js';
 
 export class LeadUseCases {
   constructor(
     private leadRepository: ILeadRepository,
     private customerRepository?: ICustomerRepository,
     private packageRepository?: IPackageRepository,
-    private referralRepository?: IReferralRepository
+    private referralRepository?: IReferralRepository,
+    private referralUseCases?: ReferralUseCases
   ) {}
 
   private async resolvePackage(packageId?: string | null, packageInterest?: string | null): Promise<{ packageId: string | null; packageName: string; packagePrice: number }> {
@@ -313,7 +315,7 @@ export class LeadUseCases {
             appUsername: lead.appUsername || existingCust.appUsername || cleanEmail,
             appPassword: lead.appPassword || existingCust.appPassword || 'Kasir#2026',
             technicianStatus: lead.technicianStatus || existingCust.technicianStatus || 'completed',
-            referralCode: existingCust.referralCode || lead.referralCode || undefined,
+            referralCode: existingCust.referralCode || undefined,
             referredByCustomerId: existingCust.referredByCustomerId || lead.referredByCustomerId || undefined,
             referredByCustomerName: existingCust.referredByCustomerName || lead.referredByCustomerName || undefined,
             referredByBusinessName: existingCust.referredByBusinessName || lead.referredByBusinessName || undefined,
@@ -343,7 +345,8 @@ export class LeadUseCases {
             appUsername: lead.appUsername || cleanEmail,
             appPassword: lead.appPassword || 'Kasir#2026',
             technicianStatus: lead.technicianStatus || 'completed',
-            referralCode: lead.referralCode || undefined,
+            // lead.referralCode berisi kode milik UPLINE, bukan kode pelanggan ini.
+            // Kodenya dibuat sendiri oleh ensureReferralCode() di bawah.
             referredByCustomerId: lead.referredByCustomerId || undefined,
             referredByCustomerName: lead.referredByCustomerName || undefined,
             referredByBusinessName: lead.referredByBusinessName || undefined,
@@ -365,6 +368,15 @@ export class LeadUseCases {
             startedAt: now,
             expiresAt,
           });
+        }
+
+        // Pastikan pelanggan hasil konversi punya kode referral sendiri yang unik
+        if (createdCustomer && !createdCustomer.referralCode && this.referralUseCases) {
+          try {
+            await this.referralUseCases.ensureReferralCode(createdCustomer.id);
+          } catch (codeErr) {
+            console.warn('⚠️ Gagal membuat kode referral untuk pelanggan hasil konversi:', codeErr);
+          }
         }
 
         // Catat/Aktifkan komisi referral untuk upline jika calon client diajukan via referral

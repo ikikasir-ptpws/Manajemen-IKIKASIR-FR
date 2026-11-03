@@ -528,3 +528,101 @@ private key ke Git. `.env` harus masuk `.gitignore`; hanya
 Dokumen ini mendefinisikan kontrak awal API, bukan menyatakan endpoint
 tersebut sudah tersedia. Implementasi harus mengikuti struktur dan
 konvensi aktual backend Manajemen IKIKASIR.
+
+------------------------------------------------------------------------
+
+## 12. API Referral (Kode Referal & Komisi) — Integrasi Aplikasi Android
+
+Fitur **Program Referral** pada aplikasi Android terhubung ke Website
+Manajemen IKIKASIR lewat endpoint di bawah. Polanya mengikuti fitur
+*expired*: aplikasi menyimpan **token referral global** pelanggan di
+perangkat, lalu mengirimkannya setiap kali dibutuhkan server.
+
+### 12.1 Token Referral Global di Perangkat (APK)
+
+Token disimpan di `SharedPreferences` (`ReferralSessionManager`) dengan isi:
+
+| Field | Sumber | Kegunaan |
+|-------|--------|----------|
+| `email` | Respons `/api/subscriptions/check` | Identitas lisensi pelanggan |
+| `customerId` | Respons `/api/subscriptions/check` | ID pelanggan di backend |
+| `referralCode` | Respons `/api/subscriptions/check` / `/api/referrals/overview` | Kode referral milik pelanggan |
+| `customerName`, `businessName` | Respons server | Personalisasi pesan share |
+| `uplineName`, `uplineCode`, `uplineBoundDate`, `isBound` | `/api/referrals/overview` | Info pelanggan yang mengundang |
+
+Variabel global (dipakai tanpa passing manual antar layar):
+
+``` text
+SubscriptionApiConfig.CLIENT_EMAIL
+SubscriptionApiConfig.CUSTOMER_ID
+SubscriptionApiConfig.CUSTOMER_NAME
+SubscriptionApiConfig.REFERRAL_CODE
+SubscriptionApiConfig.BUSINESS_NAME
+SubscriptionApiConfig.REFERRAL_UPLINE_NAME
+SubscriptionApiConfig.REFERRAL_UPLINE_CODE
+```
+
+### 12.2 `GET /api/referrals/overview`
+
+Mengambil ringkasan halaman Referral (kode, upline, saldo komisi, daftar
+downline, riwayat pencairan) berdasarkan email lisensi pelanggan.
+
+``` text
+GET /api/referrals/overview?email=ikikasir.id@gmail.com
+```
+
+Respons `data` tersedia dalam dua struktur (kompatibel dengan APK lama):
+
+-   Struktur datar: `referralCode`, `uplineName`, `uplineCode`,
+    `uplineBoundDate`, `isBound`, `availableBalance`, `totalEarnings`,
+    `totalWithdrawn`, `rewardPerActiveUser`, `referredUsers[]`,
+    `withdrawals[]`.
+-   Alias object: `referralInfo { ... }` dan `userReferrals[]`.
+
+### 12.3 `POST /api/referrals/submit-client`
+
+Mengajukan calon client baru dari aplikasi. Token referral global dikirim
+otomatis sehingga backend dapat mendeteksi **siapa pengundangnya**.
+
+``` json
+{
+  "referralCode": "IKIKASIR-XXXXX",
+  "userEmail": "pelanggan@tokosaya.com",
+  "customerId": "CUS-XXXX",
+  "name": "Nama Calon Client",
+  "businessName": "Toko Calon Client",
+  "phone": "081234567890",
+  "email": "calon.client@email.com",
+  "notes": "Diajukan dari aplikasi kasir"
+}
+```
+
+Aturan deteksi pengundang:
+
+1.  Jika `referralCode` diisi → cari pelanggan pemilik kode tersebut.
+2.  Jika kosong → cari pelanggan berdasarkan `userEmail`, lalu
+    `customerId`.
+3.  Pengundang yang ditemukan otomatis dibuatkan kode referral bila belum
+    punya.
+4.  Calon client disimpan sebagai *Lead* dengan `source = Referral` dan
+    tertaut ke pelanggan pengundang (`referredByCustomerId`).
+5.  Setelah calon client disetujui menjadi pelanggan, komisi Rp 15.000
+    tercatat otomatis pada pengundang.
+
+### 12.4 `POST /api/referrals/withdraw`
+
+Permintaan pencairan saldo komisi dari aplikasi Android.
+
+``` json
+{
+  "email": "pelanggan@tokosaya.com",
+  "amount": 15000,
+  "bankOrWallet": "BCA",
+  "accountNumber": "8230192841",
+  "accountHolder": "Nama Pemilik Rekening",
+  "notes": "Penarikan saldo komisi referral"
+}
+```
+
+Status pencairan: `MENUNGGU_VERIFIKASI` → `SELESAI` / `DITOLAK`
+(diverifikasi admin/finance lewat `PATCH /api/referrals/withdrawals/:id`).

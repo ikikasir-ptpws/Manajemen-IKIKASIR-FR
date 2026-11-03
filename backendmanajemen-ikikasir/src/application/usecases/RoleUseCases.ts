@@ -102,6 +102,13 @@ export const MENU_CATALOG: MenuItemCatalog[] = [
     route: '/landing',
     description: 'Akses ke halaman depan publik profil IKIKASIR',
   },
+  {
+    key: 'penarikanReferral',
+    label: 'Penarikan Referral',
+    section: 'REFERENAL',
+    route: '/penarikan-referral',
+    description: 'Konfirmasi pembayaran dan kirim bukti penarikan saldo referral ke pelanggan',
+  },
 ];
 
 /**

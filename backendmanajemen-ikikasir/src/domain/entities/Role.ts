@@ -13,6 +13,7 @@ export interface MenuAccessProps {
   neraca: boolean;
   laporanPenjualan: boolean;
   landingPage: boolean;
+  penarikanReferral: boolean; // Halaman penarikan saldo referral
 }
 
 export interface MenuCrudPermission {
@@ -64,6 +65,7 @@ export class Role {
     'neraca',
     'laporanPenjualan',
     'landingPage',
+    'penarikanReferral',
   ];
 
   constructor(props: RoleProps) {
@@ -114,6 +116,7 @@ export class Role {
         neraca: false,
         laporanPenjualan: false,
         landingPage: false,
+        penarikanReferral: false,
       },
       permissions: this.permissions,
       userCount: this.userCount,
