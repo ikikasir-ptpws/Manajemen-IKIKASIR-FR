@@ -32,7 +32,7 @@ import {
   X,
   Zap,
 } from "lucide-vue-next";
-import { computed, onMounted, onUnmounted, ref } from "vue";
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import { RouterLink } from "vue-router";
 import HeroImage from "../../components/HeroImage.vue";
 import IkiKasirLogo from "../../components/IkiKasirLogo.vue";
@@ -96,6 +96,41 @@ let lenisRafId: number | null = null;
 let observer: IntersectionObserver | null = null;
 let secObserver: IntersectionObserver | null = null;
 
+// Elemen reveal yang sudah pernah di-observe (agar tidak observing ulang)
+const observedRevealEls = new WeakSet<Element>();
+
+/**
+ * Meng-observe elemen reveal yang baru saja masuk DOM.
+ * Wajib dipanggil ulang setiap kali konten dinamis (mis. kartu paket dari API)
+ * dirender, karena observer hanya bisa menangkap elemen yang ada saat di-scan.
+ */
+function observeRevealElements() {
+  const elements = document.querySelectorAll(
+    ".reveal-up, .reveal-left, .reveal-right, .reveal-scale",
+  );
+
+  elements.forEach((el) => {
+    if (observedRevealEls.has(el)) return;
+
+    // Kalau elemen sudah berada di viewport saat.observe(), langsung tampilkan
+    // (IntersectionObserver kadang tidak firing untuk elemen yang ter-render belakangan)
+    const rect = el.getBoundingClientRect();
+    const inViewport = rect.top < window.innerHeight && rect.bottom > 0;
+    if (inViewport) {
+      observedRevealEls.add(el);
+      el.setAttribute("data-revealed", "true");
+      el.classList.add("is-revealed");
+      return;
+    }
+
+    // Observer belum siap (dipanggil sebelum initScrollObserver) → coba lagi nanti
+    if (!observer) return;
+
+    observedRevealEls.add(el);
+    observer.observe(el);
+  });
+}
+
 function initScrollObserver() {
   const options = {
     root: null,
@@ -113,10 +148,7 @@ function initScrollObserver() {
     });
   }, options);
 
-  const elements = document.querySelectorAll(
-    ".reveal-up, .reveal-left, .reveal-right, .reveal-scale",
-  );
-  elements.forEach((el) => observer?.observe(el));
+  observeRevealElements();
 }
 
 function initActiveSectionObserver() {
@@ -263,6 +295,17 @@ const rightFeatures = [
 // Dynamic Pricing Plans — diambil dari API paket (GET /api/packages)
 const { pricingPlans, loading: isPricingLoading, error: pricingError, fetchPackages } =
   usePaketHarga();
+
+// Kartu paket dirender setelah response API datang (setelah observer awal selesai scan),
+// jadi elemen reveal-nya harus di-observe ulang agar tidak tertahan di opacity: 0.
+watch(
+  pricingPlans,
+  async () => {
+    await nextTick();
+    observeRevealElements();
+  },
+  { deep: false },
+);
 
 // Registration Modal state
 const isRegistrationModalOpen = ref(false);
