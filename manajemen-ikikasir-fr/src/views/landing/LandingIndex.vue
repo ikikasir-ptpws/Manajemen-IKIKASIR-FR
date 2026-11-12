@@ -5,14 +5,12 @@ import {
   ArrowRight,
   Award,
   BarChart3,
-  Box,
   Boxes,
   Calculator,
   Check,
   CheckCircle2,
   ChevronDown,
   Clock,
-  Crown,
   Grid,
   Headset,
   HelpCircle,
@@ -39,7 +37,10 @@ import { RouterLink } from "vue-router";
 import HeroImage from "../../components/HeroImage.vue";
 import IkiKasirLogo from "../../components/IkiKasirLogo.vue";
 import RegistrationModal from "../../components/RegistrationModal.vue";
-import { useAppData } from "../../composables/useAppData";
+import {
+  getPaketWaUrl,
+  usePaketHarga,
+} from "../../composables/usePaketHarga";
 import bannerImg from "../../images/hero-user.jpg";
 import phoneMockup from "../../images/phone-mockup.png";
 
@@ -259,17 +260,9 @@ const rightFeatures = [
   },
 ];
 
-// Dynamic Pricing Plans Data Array
-const { packages } = useAppData();
-
-const pricingPlans = computed(() => {
-  return packages.value
-    .filter((p) => p.isActive)
-    .map((p) => ({
-      ...p,
-      icon: p.icon === "Crown" ? Crown : Box,
-    }));
-});
+// Dynamic Pricing Plans — diambil dari API paket (GET /api/packages)
+const { pricingPlans, loading: isPricingLoading, error: pricingError, fetchPackages } =
+  usePaketHarga();
 
 // Registration Modal state
 const isRegistrationModalOpen = ref(false);
@@ -658,12 +651,35 @@ const openRegistrationModal = (pkgName?: string) => {
             Pilih Paket Sesuai Kebutuhan Bisnis Anda
           </h2>
           <p class="pricing-subtitle">
-            Pilih paket Basic yang praktis atau paket Custom / IT One untuk
-            kebutuhan fitur khusus bisnis Anda.
+            Pilih paket yang sesuai dengan kebutuhan bisnis Anda, atau hubungi
+            tim kami untuk solusi khusus.
           </p>
         </div>
 
-        <div class="pricing-grid">
+        <!-- Loading State -->
+        <div v-if="isPricingLoading" class="pricing-state">
+          <div class="pricing-state-spinner"></div>
+          <p class="pricing-state-text">Memuat daftar paket...</p>
+        </div>
+
+        <!-- Error State -->
+        <div v-else-if="pricingError" class="pricing-state pricing-state-error">
+          <p class="pricing-state-text">{{ pricingError }}</p>
+          <button class="btn-secondary-md" @click="fetchPackages()">
+            Coba Lagi
+            <ArrowRight class="icon-sm" />
+          </button>
+        </div>
+
+        <!-- Empty State -->
+        <div v-else-if="!pricingPlans.length" class="pricing-state">
+          <p class="pricing-state-text">
+            Belum ada paket yang tersedia saat ini. Silakan hubungi kami untuk
+            informasi lebih lanjut.
+          </p>
+        </div>
+
+        <div v-else class="pricing-grid">
           <div
             v-for="(plan, idx) in pricingPlans"
             :key="plan.id"
@@ -676,7 +692,7 @@ const openRegistrationModal = (pkgName?: string) => {
                 <div
                   :class="[
                     'card-icon',
-                    plan.isConsultation ? 'white-trans' : 'blue',
+                    plan.isHighlighted ? 'white-trans' : 'blue',
                   ]"
                 >
                   <component :is="plan.icon" class="icon-md" />
@@ -685,7 +701,7 @@ const openRegistrationModal = (pkgName?: string) => {
                   <h3
                     :class="[
                       'card-name',
-                      plan.isConsultation ? 'text-white' : '',
+                      plan.isHighlighted ? 'text-white' : '',
                     ]"
                   >
                     {{ plan.name }}
@@ -693,7 +709,7 @@ const openRegistrationModal = (pkgName?: string) => {
                   <p
                     :class="[
                       'card-sub',
-                      plan.isConsultation ? 'text-blue-light' : '',
+                      plan.isHighlighted ? 'text-blue-light' : '',
                     ]"
                   >
                     {{ plan.cardSub }}
@@ -723,13 +739,13 @@ const openRegistrationModal = (pkgName?: string) => {
 
               <!-- Features List -->
               <ul
-                :class="['features-list', plan.isConsultation ? 'white' : '']"
+                :class="['features-list', plan.isHighlighted ? 'white' : '']"
               >
                 <li v-for="(feat, fIdx) in plan.features" :key="fIdx">
                   <Check
                     :class="[
                       'icon-check',
-                      plan.isConsultation ? 'text-white' : 'blue',
+                      plan.isHighlighted ? 'text-white' : 'blue',
                     ]"
                   />
                   <span>{{ feat }}</span>
@@ -737,16 +753,19 @@ const openRegistrationModal = (pkgName?: string) => {
               </ul>
             </div>
 
-            <!-- Action Button opening Registration Modal -->
-            <button
-              @click="openRegistrationModal(plan.name)"
+            <!-- Action Button → redirect ke WhatsApp IKI KASIR -->
+            <a
+              :href="getPaketWaUrl(plan.name)"
+              target="_blank"
+              rel="noopener noreferrer"
               :class="[
                 plan.btnClass,
-                'cursor-pointer w-full text-center flex items-center justify-center gap-2',
+                'w-full text-center flex items-center justify-center gap-2',
               ]"
             >
               {{ plan.btnText }}
-            </button>
+              <ArrowRight class="icon-sm" />
+            </a>
           </div>
         </div>
       </div>
@@ -2004,6 +2023,49 @@ const openRegistrationModal = (pkgName?: string) => {
   margin: 0 auto;
   align-items: stretch;
 }
+
+/* Loading / Error / Empty state untuk daftar paket */
+.pricing-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  text-align: center;
+  padding: 3.5rem 2rem;
+  max-width: 520px;
+  margin: 0 auto;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 1.5rem;
+  box-shadow: 0 4px 14px -4px rgba(15, 23, 42, 0.08);
+}
+.pricing-state-text {
+  font-size: 0.95rem;
+  color: #475569;
+  line-height: 1.6;
+  margin: 0;
+}
+.pricing-state-error {
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+.pricing-state-error .pricing-state-text {
+  color: #b91c1c;
+}
+.pricing-state-spinner {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 3px solid #dbeafe;
+  border-top-color: #2563eb;
+  animation: pricing-spin 0.8s linear infinite;
+}
+@keyframes pricing-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 .price-card {
   border-radius: 1.75rem;
   padding: 2.25rem;
@@ -2012,16 +2074,115 @@ const openRegistrationModal = (pkgName?: string) => {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
   position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  /* Layered soft shadow — modern & elevated */
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 4px 10px -2px rgba(15, 23, 42, 0.06),
+    0 12px 28px -8px rgba(15, 23, 42, 0.1);
+  transition:
+    transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+    translate 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.35s ease,
+    border-color 0.35s ease;
 }
+
+/* Reveal animation tetap bekerja, sementara hover memakai `translate` (bukan `transform`)
+   sehingga tidak saling menimpa. */
+.pricing-grid .price-card {
+  transition:
+    opacity 0.85s cubic-bezier(0.16, 1, 0.3, 1) var(--reveal-delay, 0s),
+    transform 0.85s cubic-bezier(0.16, 1, 0.3, 1) var(--reveal-delay, 0s),
+    translate 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.35s ease,
+    border-color 0.35s ease;
+}
+
+/* Subtle glow sheen di atas kartu */
+.price-card::before {
+  content: "";
+  position: absolute;
+  top: -60px;
+  left: 50%;
+  width: 220px;
+  height: 220px;
+  transform: translateX(-50%);
+  background: radial-gradient(
+    circle,
+    rgba(37, 99, 235, 0.14) 0%,
+    rgba(56, 189, 248, 0.06) 45%,
+    transparent 70%
+  );
+  filter: blur(18px);
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.price-card:hover {
+  translate: 0 -6px;
+  border-color: rgba(37, 99, 235, 0.28);
+  box-shadow:
+    0 2px 4px rgba(15, 23, 42, 0.05),
+    0 10px 22px -4px rgba(37, 99, 235, 0.14),
+    0 24px 48px -12px rgba(15, 23, 42, 0.18);
+}
+
+.price-card:hover::before {
+  opacity: 1;
+}
+
+/* Kartu unggulan (harga tertinggi) */
 .price-card.pro {
-  background: #2563eb;
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 55%, #4f46e5 100%);
   border-color: #2563eb;
   color: #ffffff;
-  position: relative;
-  box-shadow: 0 20px 40px -10px rgba(37, 99, 235, 0.35);
-  transform: translateY(-8px);
+  translate: 0 -8px;
+  box-shadow:
+    0 2px 4px rgba(30, 58, 138, 0.12),
+    0 12px 24px -6px rgba(37, 99, 235, 0.4),
+    0 32px 56px -16px rgba(37, 99, 235, 0.45);
+}
+
+.price-card.pro:hover {
+  translate: 0 -14px;
+  border-color: #3b82f6;
+  box-shadow:
+    0 4px 8px rgba(30, 58, 138, 0.16),
+    0 18px 34px -6px rgba(37, 99, 235, 0.5),
+    0 44px 72px -16px rgba(37, 99, 235, 0.55);
+}
+
+/* Kartu konsultasi (gradasi gelap) */
+.price-card.consultation {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 55%, #1e3a8a 100%);
+  border-color: #1e293b;
+  color: #ffffff;
+  box-shadow:
+    0 2px 4px rgba(15, 23, 42, 0.16),
+    0 14px 28px -8px rgba(15, 23, 42, 0.4),
+    0 36px 60px -18px rgba(15, 23, 42, 0.5);
+}
+
+.price-card.consultation:hover {
+  translate: 0 -6px;
+  border-color: rgba(96, 165, 250, 0.45);
+  box-shadow:
+    0 4px 8px rgba(15, 23, 42, 0.2),
+    0 20px 38px -8px rgba(15, 23, 42, 0.5),
+    0 48px 76px -20px rgba(15, 23, 42, 0.6);
+}
+
+.price-card.consultation::before {
+  background: radial-gradient(
+    circle,
+    rgba(56, 189, 248, 0.22) 0%,
+    rgba(99, 102, 241, 0.1) 45%,
+    transparent 70%
+  );
 }
 .badge-populer {
   position: absolute;
@@ -2100,6 +2261,11 @@ const openRegistrationModal = (pkgName?: string) => {
   font-size: 0.875rem;
   color: #64748b;
 }
+/* Harga pada kartu berlatar gelap/gradien */
+.price-card.pro .period,
+.price-card.consultation .period {
+  color: rgba(255, 255, 255, 0.75);
+}
 .features-list {
   list-style: none;
   padding: 0;
@@ -2143,8 +2309,7 @@ const openRegistrationModal = (pkgName?: string) => {
   justify-content: center;
   transition: all 0.2s ease;
   box-sizing: border-box;
-}
-.btn-outline-blue:hover {
+}.btn-outline-blue:hover {
   background: #eff6ff;
   border-color: #1d4ed8;
   transform: translateY(-1px);
@@ -2926,6 +3091,14 @@ const openRegistrationModal = (pkgName?: string) => {
   .pricing-grid {
     grid-template-columns: 1fr;
     max-width: 400px;
+  }
+  .price-card.pro {
+    translate: 0 0;
+  }
+  .price-card.pro:hover,
+  .price-card:hover,
+  .price-card.consultation:hover {
+    translate: 0 -4px;
   }
   .footer-grid {
     grid-template-columns: 1fr;
