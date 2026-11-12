@@ -38,6 +38,7 @@ import HeroImage from "../../components/HeroImage.vue";
 import IkiKasirLogo from "../../components/IkiKasirLogo.vue";
 import RegistrationModal from "../../components/RegistrationModal.vue";
 import {
+  getIkiKasirWaUrl,
   getPaketWaUrl,
   usePaketHarga,
 } from "../../composables/usePaketHarga";
@@ -395,15 +396,15 @@ const openRegistrationModal = (pkgName?: string) => {
           <LogIn class="w-4 h-4 text-indigo-600" />
           <span>Masuk ke Akun</span>
         </RouterLink>
-        <button
-          @click="
-            openRegistrationModal();
-            isMobileMenuOpen = false;
-          "
-          class="btn-primary-mobile cursor-pointer"
+        <a
+          :href="getIkiKasirWaUrl()"
+          target="_blank"
+          rel="noopener noreferrer"
+          @click="isMobileMenuOpen = false"
+          class="btn-primary-mobile"
         >
           Mulai Langganan
-        </button>
+        </a>
       </div>
     </nav>
 

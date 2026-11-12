@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { defineComponent, h } from 'vue'
 import { mount } from '@vue/test-utils'
 
-import { getPaketWaUrl, IKIKASIR_WA_NUMBER, usePaketHarga } from '../composables/usePaketHarga'
+import { getIkiKasirWaUrl, getPaketWaUrl, IKIKASIR_WA_NUMBER, usePaketHarga } from '../composables/usePaketHarga'
 import { packagesApi } from '../api'
 
 vi.mock('../api', () => ({
@@ -120,5 +120,18 @@ describe('getPaketWaUrl', () => {
     const url = getPaketWaUrl()
     expect(url).toContain(`https://wa.me/${IKIKASIR_WA_NUMBER}`)
     expect(url).toContain(encodeURIComponent('paket langganan'))
+  })
+})
+
+describe('getIkiKasirWaUrl', () => {
+  it('membuat link WhatsApp menuju nomor IKI KASIR', () => {
+    const url = getIkiKasirWaUrl()
+    expect(url).toContain(`https://wa.me/${IKIKASIR_WA_NUMBER}`)
+    expect(url).toContain('text=')
+  })
+
+  it('menggunakan pesan kustom jika diberikan', () => {
+    const url = getIkiKasirWaUrl('Halo, saya mau berlangganan')
+    expect(url).toContain(encodeURIComponent('Halo, saya mau berlangganan'))
   })
 })

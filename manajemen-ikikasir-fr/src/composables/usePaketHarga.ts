@@ -28,11 +28,22 @@ export interface LandingPackageCard {
 /** Nomor WhatsApp IKI KASIR untuk tombol "Hubungi Kami" */
 export const IKIKASIR_WA_NUMBER = "628132538603";
 
+/**
+ * Membuat link WhatsApp menuju nomor IKI KASIR.
+ * @param message pesan bawaan (opsional)
+ */
+export function getIkiKasirWaUrl(message?: string) {
+  const text =
+    message ??
+    "Halo tim IKI KASIR, saya ingin menanyakan paket langganan untuk bisnis saya.";
+  return `https://wa.me/${IKIKASIR_WA_NUMBER}?text=${encodeURIComponent(text)}`;
+}
+
 export function getPaketWaUrl(packageName?: string) {
   const text = packageName
     ? `Halo tim IKI KASIR, saya ingin konsultasi mengenai paket ${packageName}.`
     : "Halo tim IKI KASIR, saya ingin konsultasi mengenai paket langganan.";
-  return `https://wa.me/${IKIKASIR_WA_NUMBER}?text=${encodeURIComponent(text)}`;
+  return getIkiKasirWaUrl(text);
 }
 
 function mapPackageToCard(p: PackageItem, isFeatured: boolean): LandingPackageCard {
