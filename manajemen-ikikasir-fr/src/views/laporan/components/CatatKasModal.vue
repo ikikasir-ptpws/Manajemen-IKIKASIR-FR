@@ -221,7 +221,7 @@ const formatDisplayDate = (dateStr: string) => {
   const parts = dateStr.split('-')
   if (parts.length !== 3) return dateStr
   const year = parts[0]
-  const monthIdx = parseInt(parts[1], 10) - 1
+  const monthIdx = parseInt(parts[1] ?? '', 10) - 1
   const day = parts[2]
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
   return `${day} ${months[monthIdx] || parts[1]} ${year}`

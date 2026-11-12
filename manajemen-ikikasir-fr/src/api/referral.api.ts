@@ -37,9 +37,9 @@ export const referralApi = {
 
   /** Konfirmasi pembayaran pencairan (SELESAI) atau penolakan (DITOLAK) */
   confirmWithdrawal: (id: string, payload: ConfirmWithdrawalPayload) =>
-    httpClient.patch<ReferralWithdrawalItem>(`/referrals/withdrawals/${id}/payment`, payload),
+    httpClient.patch<ReferralWithdrawalListItem>(`/referrals/withdrawals/${id}/payment`, payload),
 
   /** Tandai bukti penarikan sudah dikirim ke pelanggan via WhatsApp */
   markWithdrawalWaSent: (id: string) =>
-    httpClient.post<ReferralWithdrawalItem>(`/referrals/withdrawals/${id}/wa-sent`)
+    httpClient.post<ReferralWithdrawalListItem>(`/referrals/withdrawals/${id}/wa-sent`)
 }

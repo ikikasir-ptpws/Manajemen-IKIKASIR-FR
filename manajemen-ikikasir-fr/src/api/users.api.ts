@@ -1,5 +1,7 @@
 import { httpClient } from './httpClient'
 
+export type UserStatus = 'Active' | 'Inactive'
+
 export interface UserItem {
   id: string
   name: string
@@ -8,6 +10,7 @@ export interface UserItem {
   roleId?: string | null
   phone?: string | null
   isActive: boolean
+  status?: UserStatus
   lastLogin?: string | null
   createdAt?: string
   updatedAt?: string
@@ -21,6 +24,7 @@ export interface CreateUserPayload {
   roleId?: string
   phone?: string
   isActive?: boolean
+  status?: UserStatus
 }
 
 export interface UpdateUserPayload {
@@ -31,6 +35,7 @@ export interface UpdateUserPayload {
   roleId?: string
   phone?: string
   isActive?: boolean
+  status?: UserStatus
 }
 
 export const usersApi = {
@@ -39,6 +44,7 @@ export const usersApi = {
   getById: (id: string) => httpClient.get<UserItem>(`/users/${id}`),
   create: (payload: CreateUserPayload) => httpClient.post<UserItem>('/users', payload),
   update: (id: string, payload: UpdateUserPayload) => httpClient.put<UserItem>(`/users/${id}`, payload),
-  toggleStatus: (id: string) => httpClient.patch<UserItem>(`/users/${id}/status`),
+  toggleStatus: (id: string, status?: UserStatus) =>
+    httpClient.patch<UserItem>(`/users/${id}/status`, status ? { status } : undefined),
   delete: (id: string) => httpClient.delete(`/users/${id}`)
 }

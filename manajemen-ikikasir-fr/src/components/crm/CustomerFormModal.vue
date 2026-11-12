@@ -128,6 +128,7 @@ watch(() => props.customerToEdit, (val) => {
 watch(availablePackages, (newPkgs) => {
   if (!props.customerToEdit && newPkgs.length > 0 && !formData.value.packageId) {
     const p = newPkgs[0]
+    if (!p) return
     formData.value.packageId = p.id
     formData.value.packageType = p.name
     formData.value.amount = p.price ?? 250000
@@ -239,9 +240,8 @@ const handleSubmit = () => {
 
     if (props.customerToEdit) {
       const idx = customers.value.findIndex(c => c.id === props.customerToEdit?.id)
-      if (idx !== -1) {
-        const curr = customers.value[idx]
-
+      const curr = idx !== -1 ? customers.value[idx] : undefined
+      if (curr) {
         let updatedExpDate = curr.expiredDate
         if (formData.value.packageId !== curr.packageId || formData.value.packageType !== curr.packageType) {
           const exp = new Date()
@@ -328,8 +328,8 @@ const handleSubmit = () => {
       customersApi.create({
         name: savedCustomer.name,
         businessName: savedCustomer.businessName || '',
-        email: savedCustomer.email,
-        phone: savedCustomer.phone,
+        email: savedCustomer.email || '',
+        phone: savedCustomer.phone || '',
         address: savedCustomer.address,
         packageId: formData.value.packageId || undefined,
         billingCycleMonths: durationMonths,

@@ -63,9 +63,9 @@ const formatDisplay = (isoStr?: string) => {
   if (!isoStr) return ''
   const parts = isoStr.split('-')
   if (parts.length !== 3) return isoStr
-  const day = parseInt(parts[2], 10)
-  const monthIdx = parseInt(parts[1], 10) - 1
-  const year = parts[0]
+  const day = parseInt(parts[2] ?? '', 10)
+  const monthIdx = parseInt(parts[1] ?? '', 10) - 1
+  const year = parts[0] ?? ''
   return `${day} ${monthShortNames[monthIdx] || ''} ${year}`
 }
 

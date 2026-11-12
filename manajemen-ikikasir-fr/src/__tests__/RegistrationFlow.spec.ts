@@ -109,7 +109,7 @@ describe('Registration Flow & Calon Client Integration', () => {
     document.body.querySelector('form')?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
     await flushPromises()
 
-    const savedLeads = JSON.parse(localStorage.getItem('ikikasir_leads_v3') || '[]')
+    const savedLeads = JSON.parse(localStorage.getItem('ikikasir_leads_v4') || '[]')
     const savedLead = savedLeads.find((lead: any) => lead.email === 'test-registration@example.com')
     expect(savedLead).toMatchObject({
       name: 'Test Pendaftar',
@@ -151,7 +151,7 @@ describe('Registration Flow & Calon Client Integration', () => {
     expect(found?.status).toBe('New')
 
     // Verify persistence in localStorage
-    const savedLeads = JSON.parse(localStorage.getItem('ikikasir_leads_v3') || '[]')
+    const savedLeads = JSON.parse(localStorage.getItem('ikikasir_leads_v4') || '[]')
     const savedItem = savedLeads.find((l: any) => l.id === newLead.id)
     expect(savedItem).toBeDefined()
     expect(savedItem.name).toBe('Juky Zky')

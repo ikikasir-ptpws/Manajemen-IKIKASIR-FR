@@ -45,7 +45,7 @@ import ClientDetailModal from '../../components/crm/ClientDetailModal.vue'
 import GoogleFormIntegrationModal from '../../components/crm/GoogleFormIntegrationModal.vue'
 import { uploadApi } from '../../api/upload.api'
 import DateRangePicker from '../../components/common/DateRangePicker.vue'
-import { useAppData } from '../../composables/useAppData'
+import { useAppData, SAMPLE_RECEIPT_BCA } from '../../composables/useAppData'
 import type { ClientLead, LeadStatus, LeadSource } from '../../types/crm'
 
 const router = useRouter()
@@ -67,8 +67,6 @@ const {
   confirmPaymentByFinance,
   rejectPaymentByFinance,
   syncWithBackend,
-  SAMPLE_RECEIPT_BCA,
-  SAMPLE_RECEIPT_QRIS,
   getCustomerWaUrl
 } = useAppData()
 
@@ -132,9 +130,9 @@ const parseDateToMs = (dateStr?: string): number | null => {
   }
   const parts = clean.split(/\s+/)
   if (parts.length >= 3) {
-    const day = parseInt(parts[0], 10)
-    const monthStr = parts[1].toLowerCase()
-    const year = parseInt(parts[2], 10)
+    const day = parseInt(parts[0] ?? '', 10)
+    const monthStr = (parts[1] ?? '').toLowerCase()
+    const year = parseInt(parts[2] ?? '', 10)
     const monthMap: Record<string, number> = {
       jan: 0, januari: 0,
       feb: 1, februari: 1,

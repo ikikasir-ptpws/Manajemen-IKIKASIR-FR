@@ -35,12 +35,13 @@ export function getAdminWaUrl(customText?: string) {
   return `https://api.whatsapp.com/send?phone=${ADMIN_WA_NUMBER}&text=${text}`
 }
 
-export function getCustomerWaUrl(phone: string, text: string) {
+export function getCustomerWaUrl(phone: string, text: string): string {
   const cleanPhone = phone.replace(/[^0-9]/g, '')
   const formattedPhone = cleanPhone.startsWith('0')
     ? '62' + cleanPhone.slice(1)
     : (cleanPhone.startsWith('62') ? cleanPhone : '62' + cleanPhone)
   const encodedText = encodeURIComponent(text)
+  return `https://wa.me/${formattedPhone}?text=${encodedText}`
 }
 
 // PACKAGE DURATION HELPER
@@ -89,6 +90,8 @@ export interface SubscriptionInvoice {
   customerName: string
   businessName: string
   phone: string
+  email?: string
+  address?: string
   package: PackageType
   amount: number
   billingCycleMonths: number
@@ -96,6 +99,7 @@ export interface SubscriptionInvoice {
   paymentMethod: string
   status: 'Paid' | 'Pending' | 'Failed'
   paymentProofUrl?: string
+  notes?: string
 }
 
 // INITIAL SEED DATA
@@ -596,7 +600,7 @@ function isTokenValid(token: string | null): boolean {
   if (!token) return false
   try {
     const parts = token.split('.')
-    if (parts.length !== 3) return false
+    if (parts.length !== 3 || !parts[1]) return false
     const payload = JSON.parse(atob(parts[1]))
     if (payload.exp && Date.now() >= (payload.exp * 1000) - 30000) {
       return false
@@ -1011,7 +1015,6 @@ export function useAppData() {
       source: newLead.source,
       packageInterest: newLead.packageInterest,
       packageId: selectedPackage?.id,
-      packagePrice: newLead.harga_paket,
       estimatedDeal: newLead.estimatedDeal,
       notes: newLead.notes,
       followUpSchedule: newLead.followUpSchedule,
@@ -1235,7 +1238,7 @@ export function useAppData() {
       saveStorage(STORAGE_KEY_LEADS, leads.value)
 
       // Sync follow up log to backend
-      leadsApi.addFollowUp(clientId, { notes, channel }).catch(err => {
+      leadsApi.addFollowUp(clientId, channel, notes).catch(err => {
         console.warn('Backend leadsApi.addFollowUp warning:', err)
       })
     }
@@ -1557,7 +1560,7 @@ export function useAppData() {
       phone: string
       email: string
       packageType: string
-      technicianStatus: 'pending_setup' | 'in_progress' | 'completed'
+      technicianStatus: 'pending_setup' | 'in_progress' | 'completed' | 'issue'
       technicianAssignedTo?: string
       appUsername?: string
       appPassword?: string

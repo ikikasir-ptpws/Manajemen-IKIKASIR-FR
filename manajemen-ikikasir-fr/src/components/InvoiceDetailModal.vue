@@ -63,7 +63,7 @@ function numberToIndonesianWords(n: number): string {
   const bilangan = ['', 'Satu', 'Dua', 'Tiga', 'Empat', 'Lima', 'Enam', 'Tujuh', 'Delapan', 'Sembilan', 'Sepuluh', 'Sebelas']
   if (n < 0) return 'Minus ' + numberToIndonesianWords(Math.abs(n))
   if (n === 0) return 'Nol'
-  if (n < 12) return bilangan[n]
+  if (n < 12) return bilangan[n] ?? ''
   if (n < 20) return numberToIndonesianWords(n - 10) + ' Belas'
   if (n < 100) return numberToIndonesianWords(Math.floor(n / 10)) + ' Puluh' + (n % 10 !== 0 ? ' ' + numberToIndonesianWords(n % 10) : '')
   if (n < 200) return 'Seratus' + (n - 100 !== 0 ? ' ' + numberToIndonesianWords(n - 100) : '')

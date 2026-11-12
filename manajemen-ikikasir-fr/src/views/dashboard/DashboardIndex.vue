@@ -223,7 +223,9 @@ const MONTHS_SHORT = [
 const formatTanggal = (iso: string) => {
   const parts = iso.split("-").map((value) => parseInt(value, 10));
   if (parts.length !== 3 || parts.some((value) => Number.isNaN(value))) return iso;
-  return `${parts[2]} ${MONTHS_SHORT[parts[1] - 1]} ${parts[0]}`;
+  const [year, month, day] = parts;
+  if (year === undefined || month === undefined || day === undefined) return iso;
+  return `${day} ${MONTHS_SHORT[month - 1]} ${year}`;
 };
 
 const activeRangeLabel = computed(() => {

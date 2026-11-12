@@ -32,6 +32,8 @@ export interface ClientLead {
   lastFollowUp: string
   packageInterest?: 'Basic' | 'Add on' | 'Custom' | 'Pro' | 'Custom / IT One' | string
   paket?: string
+  /** ID paket yang dipilih (relasi ke tabel Package) */
+  packageId?: string
   harga_paket?: number
   estimatedDeal?: number
   notes?: string
@@ -102,7 +104,7 @@ export interface ClientLead {
 
   // === WORKFLOW: TEKNISI (PENYIAPAN APLIKASI & DOKUMEN SEWA) ===
   /** Status pengerjaan penyiapan aplikasi oleh Teknisi */
-  technicianStatus?: 'pending_setup' | 'in_progress' | 'completed'
+  technicianStatus?: 'pending_setup' | 'in_progress' | 'completed' | 'issue'
   /** Nama teknisi yang ditugaskan / mengerjakan */
   technicianAssignedTo?: string
   /** Username akun kasir yang dibuatkan teknisi */

@@ -115,7 +115,7 @@ const selectReferringCustomer = (customerId: string) => {
     formData.value.referralCode = cust.referralCode || getOrCreateCustomerReferralCode(cust)
     formData.value.referredByCustomerId = cust.id
     formData.value.referredByCustomerName = cust.name
-    formData.value.referredByBusinessName = cust.businessName
+    formData.value.referredByBusinessName = cust.businessName ?? ''
   }
 }
 
@@ -124,7 +124,7 @@ watch(matchedCustomer, (cust) => {
   if (cust) {
     formData.value.referredByCustomerId = cust.id
     formData.value.referredByCustomerName = cust.name
-    formData.value.referredByBusinessName = cust.businessName
+    formData.value.referredByBusinessName = cust.businessName ?? ''
   }
 })
 

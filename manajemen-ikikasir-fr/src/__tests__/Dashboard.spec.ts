@@ -99,9 +99,9 @@ describe('Dashboard Composable', () => {
     expect(mockedApi.getDashboard).toHaveBeenCalledTimes(1)
     expect(summary.value?.totalPelanggan).toBe(10)
     expect(expiringCustomers.value).toHaveLength(1)
-    expect(expiredCustomers.value[0].status).toBe('expired')
-    expect(activities.value[0].type).toBe('payment')
-    expect(cashFlowChart.value[0].income).toBe(500000)
+    expect(expiredCustomers.value[0]?.status).toBe('expired')
+    expect(activities.value[0]?.type).toBe('payment')
+    expect(cashFlowChart.value[0]?.income).toBe(500000)
 
     expect(metrics.value).toEqual({
       totalPelanggan: 10,

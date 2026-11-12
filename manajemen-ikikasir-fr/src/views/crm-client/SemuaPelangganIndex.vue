@@ -136,11 +136,11 @@ const pendingTeknisiCount = computed(() => {
 })
 
 const readyForSetupCount = computed(() => {
-  return customers.value.filter(u => u.technicianStatus === 'pending_setup' && !u.emailIssueReported && u.technicianStatus !== 'issue').length
+  return customers.value.filter(u => u.technicianStatus !== 'issue' && u.technicianStatus === 'pending_setup' && !u.emailIssueReported).length
 })
 
 const inProgressCount = computed(() => {
-  return customers.value.filter(u => u.technicianStatus === 'in_progress' && !u.emailIssueReported && u.technicianStatus !== 'issue').length
+  return customers.value.filter(u => u.technicianStatus !== 'issue' && u.technicianStatus === 'in_progress' && !u.emailIssueReported).length
 })
 
 const issueCount = computed(() => {
@@ -148,14 +148,14 @@ const issueCount = computed(() => {
 })
 
 const completedCount = computed(() => {
-  return customers.value.filter(u => u.technicianStatus === 'completed' && !u.emailIssueReported && u.technicianStatus !== 'issue').length
+  return customers.value.filter(u => u.technicianStatus !== 'issue' && u.technicianStatus === 'completed' && !u.emailIssueReported).length
 })
 
 const activeCompletedCount = computed(() => {
-  return customers.value.filter(u => 
-    u.technicianStatus === 'completed' && 
-    !u.emailIssueReported && 
+  return customers.value.filter(u =>
     u.technicianStatus !== 'issue' &&
+    u.technicianStatus === 'completed' &&
+    !u.emailIssueReported &&
     getComputedCustomerStatus(u).computedStatus !== 'expired'
   ).length
 })
@@ -186,13 +186,13 @@ const filteredCustomers = computed(() => {
 
   // Filter Status Teknisi & Langganan
   if (filterTeknisiStatus.value === 'Siap Dikerjakan') {
-    list = list.filter(c => c.technicianStatus === 'pending_setup' && !c.emailIssueReported && c.technicianStatus !== 'issue')
+    list = list.filter(c => c.technicianStatus !== 'issue' && c.technicianStatus === 'pending_setup' && !c.emailIssueReported)
   } else if (filterTeknisiStatus.value === 'Sedang Dikerjakan') {
-    list = list.filter(c => c.technicianStatus === 'in_progress' && !c.emailIssueReported && c.technicianStatus !== 'issue')
+    list = list.filter(c => c.technicianStatus !== 'issue' && c.technicianStatus === 'in_progress' && !c.emailIssueReported)
   } else if (filterTeknisiStatus.value === 'Ada Kendala') {
     list = list.filter(c => c.emailIssueReported || c.technicianStatus === 'issue')
   } else if (filterTeknisiStatus.value === 'Selesai') {
-    list = list.filter(c => c.technicianStatus === 'completed' && !c.emailIssueReported && c.technicianStatus !== 'issue' && c.computedStatus !== 'expired')
+    list = list.filter(c => c.technicianStatus !== 'issue' && c.technicianStatus === 'completed' && !c.emailIssueReported && c.computedStatus !== 'expired')
   } else if (filterTeknisiStatus.value === 'Expired') {
     list = list.filter(c => c.computedStatus === 'expired')
   }

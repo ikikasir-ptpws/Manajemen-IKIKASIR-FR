@@ -20,7 +20,7 @@ export interface Customer {
   category?: string
   amount?: number
   paymentMethod?: string
-  technicianStatus?: 'pending_setup' | 'in_progress' | 'completed'
+  technicianStatus?: 'pending_setup' | 'in_progress' | 'completed' | 'issue'
   technicianAssignedTo?: string
   appUsername?: string
   appPassword?: string

@@ -106,13 +106,18 @@ export interface UpdateCustomerPayload {
   appUsername?: string
   appPassword?: string
   technicianStatus?: string
+  /** Status pelanggan (ACTIVE / EXPIRED / SUSPENDED) */
+  status?: string
 }
 
 export interface RenewSubscriptionPayload {
   packageId?: string
   billingCycleMonths?: number
   paymentMethod?: string
+  paymentProofUrl?: string
   notes?: string
+  /** Nominal yang dibayar (bila berbeda dari harga paket) */
+  customAmount?: number
 }
 
 export const customersApi = {

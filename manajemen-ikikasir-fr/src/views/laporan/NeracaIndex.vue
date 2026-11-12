@@ -48,8 +48,8 @@ const openPanel = ref<Record<string, boolean>>({
   kewajiban_jangka_panjang: false,
 })
 
-// Form tambah pos baru
-const addForm = ref<Record<string, { name: string; amount: string }>>({
+// Form tambah pos baru (selalu terisi default value per grup)
+const addForm = ref<Record<NeracaGroup, { name: string; amount: string }>>({
   aset_tetap: { name: '', amount: '' },
   kewajiban_lancar: { name: '', amount: '' },
   kewajiban_jangka_panjang: { name: '', amount: '' },

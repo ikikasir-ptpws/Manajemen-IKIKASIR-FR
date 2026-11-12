@@ -676,8 +676,14 @@ const openEditModal = (role: RoleItem) => {
   const clonedPerms: RolePermissions = createBlankPermissions()
 
   MENU_CATALOG.forEach(m => {
-    if (role.permissions && role.permissions[m.key]) {
-      clonedPerms[m.key] = { ...role.permissions[m.key] }
+    const existingPerm = role.permissions?.[m.key]
+    if (existingPerm) {
+      clonedPerms[m.key] = {
+        create: existingPerm.create,
+        read: existingPerm.read,
+        update: existingPerm.update,
+        delete: existingPerm.delete
+      }
     } else {
       const isAcc = Boolean(clonedAccess[m.key])
       clonedPerms[m.key] = {
@@ -718,16 +724,26 @@ const openDeleteConfirm = (role: RoleItem) => {
   isDeleteConfirmOpen.value = true
 }
 
+// Pastikan entri permission sebuah menu selalu ada (default: seluruh aksi nonaktif)
+const ensurePermission = (key: keyof RoleMenuAccess): MenuCrudPermission => {
+  const existing = form.value.permissions[key]
+  if (existing) return existing
+  const created: MenuCrudPermission = { create: false, read: false, update: false, delete: false }
+  form.value.permissions[key] = created
+  return created
+}
+
 // Checkbox and Menu Access Logic
 const toggleMenuAccess = (key: keyof RoleMenuAccess) => {
   const current = form.value.menuAccess[key]
   const next = !current
   form.value.menuAccess[key] = next
 
+  const perms = ensurePermission(key)
   if (next) {
     // Enable at least read permission
-    if (!form.value.permissions[key].read) {
-      form.value.permissions[key].read = true
+    if (!perms.read) {
+      perms.read = true
     }
   } else {
     // Disable all CRUD
@@ -741,13 +757,14 @@ const toggleMenuAccess = (key: keyof RoleMenuAccess) => {
 }
 
 const togglePermission = (key: keyof RoleMenuAccess, action: keyof MenuCrudPermission) => {
-  const current = Boolean(form.value.permissions[key]?.[action])
+  const perms = ensurePermission(key)
+  const current = Boolean(perms[action])
   const next = !current
-  form.value.permissions[key][action] = next
+  perms[action] = next
 
   // If user toggles create, update, or delete ON, ensure read and menuAccess are also ON
   if (next && (action === 'create' || action === 'update' || action === 'delete')) {
-    form.value.permissions[key].read = true
+    perms.read = true
     form.value.menuAccess[key] = true
   }
 
@@ -757,7 +774,7 @@ const togglePermission = (key: keyof RoleMenuAccess, action: keyof MenuCrudPermi
   }
 
   // If all CRUD are false, toggle menuAccess OFF
-  const p = form.value.permissions[key]
+  const p = perms
   if (!p.read && !p.create && !p.update && !p.delete) {
     form.value.menuAccess[key] = false
   }
@@ -765,7 +782,7 @@ const togglePermission = (key: keyof RoleMenuAccess, action: keyof MenuCrudPermi
 
 // Toggle all CRUD for a single menu row
 const toggleRowAllCrud = (key: keyof RoleMenuAccess) => {
-  const p = form.value.permissions[key]
+  const p = ensurePermission(key)
   const isAllChecked = p.create && p.read && p.update && p.delete
 
   if (isAllChecked) {
@@ -865,9 +882,10 @@ const handleSaveRole = async () => {
 
       // Update local state
       const idx = roles.value.findIndex(r => r.id === form.value.id)
-      if (idx !== -1) {
+      const existingRole = idx !== -1 ? roles.value[idx] : undefined
+      if (existingRole) {
         roles.value[idx] = {
-          ...roles.value[idx],
+          ...existingRole,
           name: trimmedName,
           description: form.value.description.trim() || '',
           menuAccess: finalMenuAccess,
