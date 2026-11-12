@@ -388,14 +388,14 @@ const openRegistrationModal = (pkgName?: string) => {
         >
           {{ link.name }}
         </a>
-        <RouterLink
+        <!-- <RouterLink
           to="/login"
           @click="isMobileMenuOpen = false"
           class="btn-secondary-mobile flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border border-slate-200 font-semibold text-slate-700 bg-slate-50"
         >
           <LogIn class="w-4 h-4 text-indigo-600" />
           <span>Masuk ke Akun</span>
-        </RouterLink>
+        </RouterLink> -->
         <a
           :href="getIkiKasirWaUrl()"
           target="_blank"
