@@ -444,13 +444,15 @@ const openRegistrationModal = (pkgName?: string) => {
           </p>
 
           <div class="hero-cta-group">
-            <button
-              @click="openRegistrationModal()"
+            <a
+              :href="getIkiKasirWaUrl()"
+              target="_blank"
+              rel="noopener noreferrer"
               class="btn-primary-lg cursor-pointer"
             >
               Mulai Langganan
               <ArrowRight class="icon-md" />
-            </button>
+            </a>
             <button class="btn-secondary-lg">
               <div class="play-icon-circle">
                 <Play class="icon-play" />
