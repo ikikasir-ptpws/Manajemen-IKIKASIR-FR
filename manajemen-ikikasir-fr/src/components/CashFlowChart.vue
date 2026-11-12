@@ -1,107 +1,38 @@
 <script setup lang="ts">
-import { ChevronDown } from "lucide-vue-next";
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
+import type { DashboardCashFlowPoint } from "../types/dashboard";
+import DateRangePicker from "./common/DateRangePicker.vue";
 
-const selectedPeriod = ref("30 Hari");
-const showPeriodDropdown = ref(false);
+const props = withDefaults(
+  defineProps<{
+    data?: DashboardCashFlowPoint[];
+    loading?: boolean;
+    startDate?: string;
+    endDate?: string;
+  }>(),
+  {
+    data: () => [],
+    loading: false,
+    startDate: "",
+    endDate: "",
+  },
+);
+
+const emit = defineEmits<{
+  (e: "update:startDate", val: string): void;
+  (e: "update:endDate", val: string): void;
+}>();
+
 const hoveredIndex = ref<number | null>(null);
 
-const periods = ["7 Hari", "30 Hari", "90 Hari", "Tahun 2026"];
+const dataPoints = computed<DashboardCashFlowPoint[]>(() => props.data ?? []);
 
-// Chart data points matching the screenshot visual progression
-const dataPoints = ref([
-  {
-    label: "7 Agu",
-    fullDate: "07 Agustus 2026",
-    income: 42,
-    expense: 18,
-    balance: 68,
+watch(
+  () => props.data,
+  () => {
+    hoveredIndex.value = null;
   },
-  {
-    label: "10 Agu",
-    fullDate: "10 Agustus 2026",
-    income: 45,
-    expense: 20,
-    balance: 72,
-  },
-  {
-    label: "12 Agu",
-    fullDate: "12 Agustus 2026",
-    income: 55,
-    expense: 22,
-    balance: 90,
-  },
-  {
-    label: "14 Agu",
-    fullDate: "14 Agustus 2026",
-    income: 78,
-    expense: 33,
-    balance: 118,
-  },
-  {
-    label: "17 Agu",
-    fullDate: "17 Agustus 2026",
-    income: 75,
-    expense: 32,
-    balance: 110,
-  },
-  {
-    label: "19 Agu",
-    fullDate: "19 Agustus 2026",
-    income: 60,
-    expense: 25,
-    balance: 98,
-  },
-  {
-    label: "21 Agu",
-    fullDate: "21 Agustus 2026",
-    income: 64,
-    expense: 28,
-    balance: 104,
-  },
-  {
-    label: "24 Agu",
-    fullDate: "24 Agustus 2026",
-    income: 72,
-    expense: 35,
-    balance: 119,
-  },
-  {
-    label: "26 Agu",
-    fullDate: "26 Agustus 2026",
-    income: 66,
-    expense: 30,
-    balance: 112,
-  },
-  {
-    label: "28 Agu",
-    fullDate: "28 Agustus 2026",
-    income: 80,
-    expense: 38,
-    balance: 125,
-  },
-  {
-    label: "31 Agu",
-    fullDate: "31 Agustus 2026",
-    income: 88,
-    expense: 42,
-    balance: 120,
-  },
-  {
-    label: "2 Sep",
-    fullDate: "02 September 2026",
-    income: 84,
-    expense: 48,
-    balance: 138,
-  },
-  {
-    label: "4 Sep",
-    fullDate: "04 September 2026",
-    income: 98,
-    expense: 52,
-    balance: 144,
-  },
-]);
+);
 
 // SVG chart dimensions & calculations
 const width = 640;
@@ -111,18 +42,28 @@ const padding = { top: 25, right: 25, bottom: 35, left: 55 };
 const chartWidth = width - padding.left - padding.right;
 const chartHeight = height - padding.top - padding.bottom;
 
-// Scale: 0 to 160 (covering 0 to 150 jt comfortably)
-const maxVal = 160;
+// Skala dinamis mengikuti nilai tertinggi dari data yang dimuat
+const maxVal = computed(() => {
+  const peak = dataPoints.value.reduce((max, point) => {
+    return Math.max(max, point.income, point.expense, point.balance);
+  }, 0);
+  if (peak <= 0) return 1;
+  // Bulatkan ke atas ke angka yang enak dibaca
+  const magnitude = 10 ** Math.floor(Math.log10(peak));
+  return Math.ceil(peak / magnitude) * magnitude;
+});
 
 const getX = (index: number) => {
-  return padding.left + (index / (dataPoints.value.length - 1)) * chartWidth;
+  const total = dataPoints.value.length;
+  if (total <= 1) return padding.left;
+  return padding.left + (index / (total - 1)) * chartWidth;
 };
 
 const getY = (val: number) => {
-  return padding.top + chartHeight - (val / maxVal) * chartHeight;
+  return padding.top + chartHeight - (val / maxVal.value) * chartHeight;
 };
 
-// Catmull-Rom or Cardinal Spline for super smooth curves matching the screenshot
+// Catmull-Rom atau Cardinal Spline untuk garis yang mulus
 function getSmoothPath(points: { x: number; y: number }[]): string {
   if (points.length === 0 || !points[0]) return "";
   let d = `M ${points[0].x},${points[0].y}`;
@@ -177,21 +118,41 @@ const hoveredDataPoint = computed(() => {
   return dataPoints.value[hoveredIndex.value] || null;
 });
 
-const yAxisLabels = [
-  { val: 150, text: "150 jt" },
-  { val: 100, text: "100 jt" },
-  { val: 50, text: "50 jt" },
-  { val: 0, text: "0" },
-];
+// Label sumbu Y disederhanakan menjadi satuan jt / rb
+const formatAxis = (value: number) => {
+  if (value >= 1_000_000_000) return `${Math.round(value / 1_000_000_000)} M`;
+  if (value >= 1_000_000) return `${Math.round(value / 1_000_000)} jt`;
+  if (value >= 1_000) return `${Math.round(value / 1_000)} rb`;
+  return String(Math.round(value));
+};
 
-const xAxisIndices = [0, 3, 6, 9, 12]; // 7 Agu, 14 Agu, 21 Agu, 28 Agu, 4 Sep
+const yAxisLabels = computed(() => {
+  const peak = maxVal.value;
+  return [
+    { val: peak, text: formatAxis(peak) },
+    { val: peak * 0.66, text: formatAxis(peak * 0.66) },
+    { val: peak * 0.33, text: formatAxis(peak * 0.33) },
+    { val: 0, text: "0" },
+  ];
+});
 
-const formatRupiah = (valInMillions: number) => {
+const xAxisIndices = computed(() => {
+  const total = dataPoints.value.length;
+  if (total === 0) return [];
+  if (total <= 6) return Array.from({ length: total }, (_, i) => i);
+
+  // Tampilkan maksimal 6 label, tersebar merata sesuai jumlah titik data
+  const maxLabels = 6;
+  const step = (total - 1) / (maxLabels - 1);
+  return Array.from({ length: maxLabels }, (_, i) => Math.round(i * step));
+});
+
+const formatRupiah = (value: number) => {
   return new Intl.NumberFormat("id-ID", {
     style: "currency",
     currency: "IDR",
     maximumFractionDigits: 0,
-  }).format(valInMillions * 1000000);
+  }).format(value);
 };
 </script>
 
@@ -200,7 +161,7 @@ const formatRupiah = (valInMillions: number) => {
     class="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-xs border border-slate-100 dark:border-slate-700 relative h-full"
   >
     <!-- Header of Chart Section -->
-    <div class="flex items-center justify-between mb-4">
+    <div class="flex items-center justify-between gap-3 mb-4 flex-wrap">
       <div>
         <h2
           class="text-base font-bold text-slate-800 dark:text-white tracking-tight"
@@ -209,42 +170,14 @@ const formatRupiah = (valInMillions: number) => {
         </h2>
       </div>
 
-      <!-- Period Filter Dropdown -->
-      <div class="relative">
-        <button
-          @click="showPeriodDropdown = !showPeriodDropdown"
-          class="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-2xs cursor-pointer"
-        >
-          <span>{{ selectedPeriod }}</span>
-          <ChevronDown class="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
-        </button>
-
-        <div
-          v-if="showPeriodDropdown"
-          class="absolute right-0 mt-1.5 w-32 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-100 dark:border-slate-700 py-1.5 z-30 animate-in fade-in zoom-in-95 duration-100"
-        >
-          <button
-            v-for="p in periods"
-            :key="p"
-            @click="
-              selectedPeriod = p;
-              showPeriodDropdown = false;
-            "
-            class="w-full text-left px-3.5 py-1.5 text-xs text-slate-700 dark:text-slate-300 hover:bg-indigo-50 dark:hover:bg-slate-700 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors font-medium flex items-center justify-between"
-            :class="
-              selectedPeriod === p
-                ? 'text-indigo-600 dark:text-indigo-400 font-semibold bg-indigo-50/50 dark:bg-slate-700/50'
-                : ''
-            "
-          >
-            <span>{{ p }}</span>
-            <span
-              v-if="selectedPeriod === p"
-              class="w-1.5 h-1.5 rounded-full bg-indigo-600"
-            ></span>
-          </button>
-        </div>
-      </div>
+      <!-- Filter Rentang Tanggal -->
+      <DateRangePicker
+        :startDate="props.startDate"
+        :endDate="props.endDate"
+        placeholder="Filter Rentang Tanggal"
+        @update:startDate="(val) => emit('update:startDate', val)"
+        @update:endDate="(val) => emit('update:endDate', val)"
+      />
     </div>
 
     <!-- Chart Legends (Responsive wrap on mobile) -->
@@ -271,14 +204,34 @@ const formatRupiah = (valInMillions: number) => {
         <span
           class="w-2.5 h-2.5 rounded-full bg-indigo-600 inline-block shadow-xs"
         ></span>
-        <span class="font-medium text-slate-600 dark:text-slate-400"
-          >Saldo</span
-        >
+        <span class="font-medium text-slate-600 dark:text-slate-400">Saldo</span>
       </div>
     </div>
 
+    <!-- Loading State -->
+    <div
+      v-if="loading"
+      class="h-[200px] flex items-center justify-center text-xs text-slate-400"
+    >
+      <span
+        class="w-5 h-5 rounded-full border-2 border-indigo-200 border-t-indigo-600 animate-spin mr-2"
+      ></span>
+      Memuat grafik arus kas...
+    </div>
+
+    <!-- Empty State -->
+    <div
+      v-else-if="dataPoints.length === 0"
+      class="h-[200px] flex flex-col items-center justify-center text-xs text-slate-400 gap-1"
+    >
+      <span>Belum ada data arus kas pada periode ini.</span>
+      <span class="text-[11px] text-slate-300 dark:text-slate-600">
+        Catat transaksi kas pada menu Arus Kas untuk menampilkan grafik.
+      </span>
+    </div>
+
     <!-- SVG Area Chart -->
-    <div class="relative w-full overflow-hidden select-none">
+    <div v-else class="relative w-full overflow-hidden select-none">
       <svg
         :viewBox="`0 0 ${width} ${height}`"
         class="w-full h-auto overflow-visible cursor-crosshair"

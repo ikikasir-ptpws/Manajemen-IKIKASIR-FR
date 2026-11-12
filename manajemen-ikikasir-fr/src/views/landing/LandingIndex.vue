@@ -310,7 +310,7 @@ const openRegistrationModal = (pkgName?: string) => {
         </div>
 
         <!-- Right CTA Button -->
-        <div class="nav-cta-desktop flex items-center gap-3">
+        <!-- <div class="nav-cta-desktop flex items-center gap-3">
           <RouterLink
             to="/login"
             class="btn-secondary-sm flex items-center gap-1.5 font-semibold text-slate-700 hover:text-indigo-600 px-3 py-1.5 rounded-lg border border-slate-200 hover:border-indigo-300 bg-white transition-all"
@@ -325,7 +325,7 @@ const openRegistrationModal = (pkgName?: string) => {
             Mulai Langganan
             <ArrowRight class="icon-sm" />
           </button>
-        </div>
+        </div> -->
 
         <!-- Mobile Menu Toggle -->
         <button

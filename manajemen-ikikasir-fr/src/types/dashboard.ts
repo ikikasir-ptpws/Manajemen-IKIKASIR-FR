@@ -49,6 +49,55 @@ export interface ActivityItem {
   type: 'convert' | 'payment' | 'warning' | 'followup' | 'export'
 }
 
+export interface DashboardCustomerRow {
+  id: string
+  name: string
+  businessName: string
+  packageType: string
+  expiredDate: string
+  daysLeft: number
+  daysExpired: number
+  status: 'active' | 'expiring' | 'expired'
+  phone: string
+  amount: number
+}
+
+export interface DashboardCashFlowPoint {
+  label: string
+  fullDate: string
+  income: number
+  expense: number
+  balance: number
+}
+
+export interface DashboardSummary {
+  totalPelanggan: number
+  pelangganAktif: number
+  akanExpired: number
+  pelangganExpired: number
+  totalLeads: number
+  newLeads: number
+  inProgressLeads: number
+  convertedLeads: number
+  rejectedLeads: number
+  totalInvoices: number
+  totalPaidRevenue: number
+  pertumbuhanTotalPelanggan: number
+  pertumbuhanPelangganAktif: number
+  periode: {
+    startDate: string
+    endDate: string
+  }
+}
+
+export interface DashboardData {
+  summary: DashboardSummary
+  expiringCustomers: DashboardCustomerRow[]
+  expiredCustomers: DashboardCustomerRow[]
+  activities: ActivityItem[]
+  cashFlowChart: DashboardCashFlowPoint[]
+}
+
 export interface CashFlowDataPoint {
   date: string
   income: number // in millions or rupiah

@@ -2125,6 +2125,149 @@
           "response": []
         }
       ]
+    },
+    {
+      "name": "DASHBOARD (RINGKASAN & KPI)",
+      "item": [
+        {
+          "name": "1. GET Semua Data Dashboard (KPI + Expired + Aktivitas + Grafik)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/dashboard",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "dashboard"
+              ],
+              "query": [
+                {
+                  "key": "startDate",
+                  "value": "2026-09-01",
+                  "description": "Tanggal awal rentang (YYYY-MM-DD). Kosongkan untuk memakai periode default 30 hari terakhir"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2026-09-30",
+                  "description": "Tanggal akhir rentang (YYYY-MM-DD)"
+                }
+              ]
+            },
+            "description": "Mengambil seluruh data dashboard dalam satu kali permintaan: ringkasan KPI, pelanggan akan expired & expired, aktivitas terbaru, dan grafik arus kas. Memerlukan role dengan akses menu dashboard. Query startDate & endDate (opsional) memfilter seluruh data dashboard pada rentang tanggal tersebut."
+          }
+        },
+        {
+          "name": "2. GET Ringkasan Metrik Dashboard (Summary)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/dashboard/summary",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "dashboard",
+                "summary"
+              ],
+              "query": [
+                {
+                  "key": "startDate",
+                  "value": "2026-09-01",
+                  "description": "Tanggal awal rentang (YYYY-MM-DD) untuk perhitungan periode"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2026-09-30",
+                  "description": "Tanggal akhir rentang (YYYY-MM-DD) untuk perhitungan periode"
+                }
+              ]
+            },
+            "description": "Mengambil ringkasan metrik dashboard saja (total pelanggan, pelanggan aktif, akan expired, expired, statistik calon client, revenue periode, dan pertumbuhan periode). Revenue & invoice dihitung dalam rentang tanggal bila startDate & endDate dikirim."
+          }
+        },
+        {
+          "name": "3. GET Grafik Arus Kas Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/dashboard/cashflow-chart?startDate=2026-09-01&endDate=2026-09-30",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "dashboard",
+                "cashflow-chart"
+              ],
+              "query": [
+                {
+                  "key": "startDate",
+                  "value": "2026-09-01",
+                  "description": "Tanggal awal rentang grafik (YYYY-MM-DD)"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2026-09-30",
+                  "description": "Tanggal akhir rentang grafik (YYYY-MM-DD)"
+                },
+                {
+                  "key": "chartDays",
+                  "value": "30",
+                  "description": "Jumlah hari terakhir yang diproses bila tanpa startDate & endDate (default 30)"
+                },
+                {
+                  "key": "chartPoints",
+                  "value": "14",
+                  "description": "Jumlah titik grafik bila diisi manual (default menyesuaikan panjang rentang)"
+                }
+              ]
+            },
+            "description": "Mengambil titik data grafik arus kas (pemasukan, pengeluaran, saldo berjalan). Bila startDate & endDate dikirim, grafik mengikuti rentang tersebut dan jumlah titik menyesuaikan panjang rentang."
+          }
+        },
+        {
+          "name": "4. GET Dashboard dengan Filter Rentang Tanggal Lengkap",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/dashboard?startDate=2026-11-01&endDate=2026-11-30&limit=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "dashboard"
+              ],
+              "query": [
+                {
+                  "key": "startDate",
+                  "value": "2026-11-01",
+                  "description": "Tanggal awal rentang (YYYY-MM-DD)"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2026-11-30",
+                  "description": "Tanggal akhir rentang (YYYY-MM-DD)"
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "description": "Jumlah baris daftar pelanggan & aktivitas (default 10)"
+                },
+                {
+                  "key": "expiringDays",
+                  "value": "14",
+                  "description": "Berapa hari ke depan pelanggan dianggap akan expired bila tanpa filter tanggal (default 14)"
+                }
+              ]
+            },
+            "description": "Mengambil data dashboard pada rentang tanggal tertentu: KPI & revenue periode, pelanggan yang masa aktifnya berakhir dalam rentang (dibagi akan expired & sudah expired), aktivitas pada rentang tersebut, dan grafik arus kas sesuai rentang."
+          }
+        }
+      ]
     }
   ]
 }

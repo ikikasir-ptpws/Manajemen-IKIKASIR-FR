@@ -613,34 +613,9 @@ async function ensureAuthenticated(): Promise<boolean> {
     return true
   }
 
-  // Do NOT auto-login as superadmin if on login page or landing page
-  const isAuthPage = typeof window !== 'undefined' && 
-    (window.location.pathname === '/login' || window.location.pathname === '/landing')
-  if (isAuthPage) {
-    return false
-  }
-
-  // Do NOT auto-login if user already has an active session/identity
-  const existingUser = authApi.getUser()
-  if (existingUser) {
-    return false
-  }
-
+  // Tidak ada sesi aktif: hapus token kadaluarsa & biarkan router mengarahkan ke /login
   tokenStorage.remove()
-  try {
-    const res = await authApi.loginSuperAdmin({
-      email: 'superadmin@ikikasir.com',
-      password: 'password123'
-    })
-    if (res.data?.user) {
-      currentUser.value = res.data.user
-      currentRole.value = res.data.user.role
-    }
-    return Boolean(res.data?.token)
-  } catch (err) {
-    console.warn('Auto-login Super Admin dev warning:', err)
-    return false
-  }
+  return false
 }
 
 function mapBackendCustomerToFrontend(c: any, index: number): Customer {
@@ -756,26 +731,15 @@ async function syncWithBackend(force = false) {
       customersApi.getAllHistories()
     ])
 
-    // If any request failed with 401, clear token, re-login, and retry once
+    // Jika token ditolak (401), bersihkan sesi & biarkan router mengarahkan ke /login
     const has401 = [leadsRes, custsRes, pkgsRes, historiesRes].some(
       r => r.status === 'rejected' && ((r.reason as any)?.status === 401 || String((r.reason as any)?.message).includes('401'))
     )
 
     if (has401) {
-      const existingUser = authApi.getUser()
-      if (!existingUser) {
-        console.log('🔄 Token 401 dev fallback, re-authenticating as Super Admin...')
-        tokenStorage.remove()
-        await ensureAuthenticated()
-        ;[leadsRes, custsRes, pkgsRes, historiesRes] = await Promise.allSettled([
-          leadsApi.getAll(),
-          customersApi.getAll(),
-          packagesApi.getAll(),
-          customersApi.getAllHistories()
-        ])
-      } else {
-        console.warn('⚠️ Sesi token 401 untuk pengguna:', existingUser.email)
-      }
+      console.warn('⚠️ Sesi token tidak valid, pengguna diarahkan ke halaman login.')
+      tokenStorage.remove()
+      authApi.removeUser()
     }
 
     if (leadsRes.status === 'fulfilled' && Array.isArray(leadsRes.value.data)) {

@@ -1,10 +1,21 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { tokenStorage } from '../api/httpClient'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
       path: '/',
+      name: 'landing',
+      component: () => import('../views/landing/LandingIndex.vue')
+    },
+    {
+      path: '/login',
+      name: 'login',
+      component: () => import('../views/auth/LoginIndex.vue')
+    },
+    {
+      path: '/dashboard',
       name: 'dashboard',
       component: () => import('../views/dashboard/DashboardIndex.vue')
     },
@@ -83,22 +94,21 @@ const router = createRouter({
     },
     {
       path: '/landing',
-      name: 'landing',
-      component: () => import('../views/landing/LandingIndex.vue')
-    },
-    {
-      path: '/login',
-      name: 'login',
-      component: () => import('../views/auth/LoginIndex.vue')
+      redirect: '/'
     },
     { path: '/:pathMatch(.*)*', redirect: '/' }
   ],
 })
 
 router.beforeEach((to, _from, next) => {
-  // Public routes
-  if (to.path === '/login' || to.path === '/landing') {
+  // Public routes: landing page & halaman auth
+  if (to.path === '/' || to.path === '/login' || to.path === '/landing') {
     return next()
+  }
+
+  // Route privat wajib memiliki sesi login (token JWT)
+  if (!tokenStorage.get()) {
+    return next({ path: '/login', query: { redirect: to.fullPath } })
   }
 
   // Get active role from user session or storage
@@ -170,7 +180,7 @@ router.beforeEach((to, _from, next) => {
   }
 
   const routeToMenuKey: Record<string, string> = {
-    '/': 'dashboard',
+    '/dashboard': 'dashboard',
     '/manajemen-pengguna': 'manajemenPengguna',
     '/manajemen-role': 'manajemenRole',
     '/manajemen-promo': 'manajemenPromo',
@@ -197,7 +207,7 @@ router.beforeEach((to, _from, next) => {
 
     // Not allowed to access to.path: redirect to first accessible route
     if (isMenuAllowed('dashboard')) {
-      return next('/')
+      return next('/dashboard')
     } else if (isMenuAllowed('calonClient')) {
       return next('/calon-client')
     } else if (isMenuAllowed('semuaPelanggan')) {

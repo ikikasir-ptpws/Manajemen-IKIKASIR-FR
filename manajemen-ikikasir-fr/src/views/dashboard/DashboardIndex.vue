@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 
 import {
+  AlertCircle,
   ArrowDown,
   ArrowUp,
   BarChart3,
   Bell,
-  Calendar,
   CheckCircle2,
   ChevronDown,
   ChevronRight,
@@ -15,6 +15,7 @@ import {
   CreditCard,
   Eye,
   FileText,
+  RefreshCw,
   Send,
   UserCheck,
   UserPlus,
@@ -24,40 +25,47 @@ import {
 } from "lucide-vue-next";
 import CashFlowChart from "../../components/CashFlowChart.vue";
 import CustomerDetailModal from "../../components/CustomerDetailModal.vue";
-import type { ActivityItem, Customer } from "../../types/dashboard";
+import DateRangePicker from "../../components/common/DateRangePicker.vue";
+import type { ActivityItem, Customer, DashboardCustomerRow } from "../../types/dashboard";
 
-import { useAppData } from "../../composables/useAppData";
+import { useDashboard } from "../../composables/useDashboard";
 
 const router = useRouter();
 const {
-  statistics,
+  summary,
+  metrics,
   expiringCustomers: rawExpiring,
   expiredCustomers: rawExpired,
-  syncWithBackend,
-} = useAppData();
+  activities,
+  cashFlowChart,
+  loading,
+  error,
+  fetchDashboard,
+} = useDashboard();
 
 // State for Modals
 const isDetailModalOpen = ref(false);
 const selectedCustomer = ref<Customer | null>(null);
 const showNotificationDropdown = ref(false);
-const showDateDropdown = ref(false);
 const showProfileDropdown = ref(false);
-const selectedDateLabel = ref("05 Sep 2026");
 const notificationsRead = ref(false);
+
+// Filter rentang tanggal (dipakai bersama oleh header & grafik arus kas)
+const startDate = ref("");
+const endDate = ref("");
 
 // Close all dropdowns on click outside
 const closeAllDropdowns = (e: MouseEvent) => {
   const target = e.target as HTMLElement;
   if (!target.closest(".dropdown-trigger")) {
     showNotificationDropdown.value = false;
-    showDateDropdown.value = false;
     showProfileDropdown.value = false;
   }
 };
 
 onMounted(() => {
   document.addEventListener("click", closeAllDropdowns);
-  syncWithBackend(true);
+  fetchDashboard();
 });
 onUnmounted(() => {
   document.removeEventListener("click", closeAllDropdowns);
@@ -66,11 +74,6 @@ onUnmounted(() => {
 const markAllRead = () => {
   notificationsRead.value = true;
   showNotificationDropdown.value = false;
-};
-
-const selectDate = (label: string) => {
-  selectedDateLabel.value = label;
-  showDateDropdown.value = false;
 };
 
 // Toast notification state
@@ -102,64 +105,30 @@ const currentDate = ref(
   }),
 );
 
-// KPI Metrics computed live from database store (Rule 16)
+// KPI Metrics dari API dashboard
 const displayMetrics = computed(() => ({
-  totalPelanggan: statistics.value.totalCustomers,
-  pelangganAktif: Math.max(
-    0,
-    statistics.value.totalCustomers - statistics.value.totalExpired,
-  ),
-  akanExpired: statistics.value.totalExpiringSoon,
-  pelangganExpired: statistics.value.totalExpired,
+  totalPelanggan: metrics.value.totalPelanggan,
+  pelangganAktif: metrics.value.pelangganAktif,
+  akanExpired: metrics.value.akanExpired,
+  pelangganExpired: metrics.value.pelangganExpired,
 }));
 
-// Live Table Lists computed from store (Rule 16)
+// Live Table Lists computed dari data API dashboard
 const akanExpiredList = computed(() =>
   rawExpiring.value.map((c, idx) => ({
-    id: c.id,
+    ...c,
     no: idx + 1,
-    name: c.name,
     businessName: c.businessName || "Toko",
-    packageType: c.packageType,
-    expiredDate: c.expiredDate,
-    daysLeft: c.daysLeft || 1,
-    status: "expiring" as const,
-    phone: c.phone,
   })),
 );
 
 const expiredList = computed(() =>
   rawExpired.value.map((c, idx) => ({
-    id: c.id,
+    ...c,
     no: idx + 1,
-    name: c.name,
     businessName: c.businessName || "Toko",
-    packageType: c.packageType,
-    expiredDate: c.expiredDate,
-    daysExpired: c.daysExpired || 1,
-    status: "expired" as const,
-    phone: c.phone,
   })),
 );
-
-const animateCounter = (
-  key: keyof typeof displayMetrics.value,
-  target: number,
-) => {
-  const duration = 800;
-  const steps = 30;
-  const increment = target / steps;
-  let current = 0;
-  const timer = setInterval(() => {
-    current += increment;
-    if (current >= target) {
-      displayMetrics.value[key] = target;
-      clearInterval(timer);
-    } else {
-      displayMetrics.value[key] = Math.round(current);
-    }
-  }, duration / steps);
-};
 
 // Copy phone number
 const copiedPhone = ref<string | null>(null);
@@ -171,85 +140,35 @@ const copyPhone = (phone: string) => {
   }, 1500);
 };
 
-// List of Recent Activities matching screenshot
-const activities = ref<ActivityItem[]>([
-  {
-    id: "act-1",
-    title: "Budi Santoso",
-    description: "berhasil dikonversi menjadi pelanggan",
-    time: "10:30",
-    relativeTime: "2 menit yang lalu",
-    type: "convert",
-  },
-  {
-    id: "act-2",
-    title: "Pembayaran langganan dari",
-    highlightText: "Toko ABC",
-    description: "Rp 1.250.000",
-    time: "10:15",
-    relativeTime: "15 menit yang lalu",
-    type: "payment",
-  },
-  {
-    id: "act-3",
-    title: "Andi Wijaya",
-    description: "akan expired dalam 3 hari",
-    time: "09:10",
-    relativeTime: "1 jam yang lalu",
-    type: "warning",
-  },
-  {
-    id: "act-4",
-    title: "Siti Aisyah",
-    description: "menambahkan follow up baru",
-    time: "08:45",
-    relativeTime: "2 jam yang lalu",
-    type: "followup",
-  },
-  {
-    id: "act-5",
-    title: "Laporan Arus Kas",
-    description: "berhasil diekspor",
-    time: "07:30",
-    relativeTime: "3 jam yang lalu",
-    type: "export",
-  },
-]);
-
-// NOTE: akanExpiredList and expiredList are already declared above as computed values from the store.
-// The static dummy data has been removed to avoid re-declaration errors.
-
 // Handler to view customer detail
-const openCustomerDetail = (cust: Customer) => {
-  selectedCustomer.value = cust;
+const openCustomerDetail = (cust: DashboardCustomerRow) => {
+  selectedCustomer.value = {
+    id: cust.id,
+    no: 0,
+    name: cust.name,
+    businessName: cust.businessName,
+    packageType: cust.packageType,
+    expiredDate: cust.expiredDate,
+    status: cust.status,
+    phone: cust.phone,
+    daysLeft: cust.daysLeft,
+    daysExpired: cust.daysExpired,
+    amount: cust.amount,
+  };
   isDetailModalOpen.value = true;
 };
 
 // Handler when new customer is saved from form
-// displayMetrics auto-updates from the store reactively, no need to mutate manually
+// displayMetrics auto-updates dari API dashboard reaktif, tidak perlu dimutasi manual
 const handleCustomerSaved = (newCust: Customer, amount: number) => {
-  // Add to top of activities
-  activities.value.unshift({
-    id: "act-" + Date.now(),
-    title: `Pembayaran langganan dari`,
-    highlightText: newCust.businessName || newCust.name,
-    description: new Intl.NumberFormat("id-ID", {
-      style: "currency",
-      currency: "IDR",
-      maximumFractionDigits: 0,
-    }).format(amount),
-    time: "Baru saja",
-    relativeTime: "Baru saja",
-    type: "payment",
-  });
-
   showToast(
     `Pelanggan baru "${newCust.businessName || newCust.name}" berhasil didaftarkan!`,
   );
+  // Muat ulang data dashboard agar KPI & aktivitas terbaru ikut ter-update
+  fetchDashboard();
 };
 
-// Handler for customer renewal — data is managed reactively by the store
-// akanExpiredList and expiredList will auto-update via computed values
+// Handler for customer renewal — data di-refresh dari API setelah perpanjangan
 const handleCustomerRenewed = (customerId: string, days: number) => {
   const found =
     expiredList.value.find((c) => c.id === customerId) ||
@@ -259,7 +178,67 @@ const handleCustomerRenewed = (customerId: string, days: number) => {
   } else {
     showToast(`Masa aktif pelanggan berhasil diperpanjang ${days} hari!`);
   }
+  fetchDashboard();
 };
+
+// Mapping ikon & warna per jenis aktivitas
+const activityIconMap = {
+  convert: UserCheck,
+  payment: CreditCard,
+  warning: Clock,
+  followup: UserPlus,
+  export: FileText,
+} as const;
+
+const activityIconClassMap = {
+  convert:
+    "bg-emerald-50 dark:bg-emerald-900/40 text-emerald-500 dark:text-emerald-400",
+  payment:
+    "bg-indigo-50 dark:bg-indigo-900/40 text-indigo-500 dark:text-indigo-400",
+  warning: "bg-amber-50 dark:bg-amber-900/40 text-amber-500 dark:text-amber-400",
+  followup: "bg-rose-50 dark:bg-rose-900/40 text-rose-500 dark:text-rose-400",
+  export: "bg-blue-50 dark:bg-blue-900/40 text-blue-500 dark:text-blue-400",
+} as const;
+
+const activityIcon = (type: ActivityItem["type"]) =>
+  activityIconMap[type] ?? FileText;
+
+const activityIconClass = (type: ActivityItem["type"]) =>
+  activityIconClassMap[type] ?? activityIconClassMap.export;
+
+// Filter rentang tanggal untuk seluruh data dashboard (KPI, daftar pelanggan, aktivitas, grafik)
+const applyDateRange = () => {
+  fetchDashboard({
+    startDate: startDate.value || undefined,
+    endDate: endDate.value || undefined,
+  });
+};
+
+// Label rentang aktif untuk ditampilkan pada judul tabel
+const MONTHS_SHORT = [
+  "Jan", "Feb", "Mar", "Apr", "Mei", "Jun",
+  "Jul", "Agu", "Sep", "Okt", "Nov", "Des",
+];
+
+const formatTanggal = (iso: string) => {
+  const parts = iso.split("-").map((value) => parseInt(value, 10));
+  if (parts.length !== 3 || parts.some((value) => Number.isNaN(value))) return iso;
+  return `${parts[2]} ${MONTHS_SHORT[parts[1] - 1]} ${parts[0]}`;
+};
+
+const activeRangeLabel = computed(() => {
+  if (startDate.value && endDate.value) {
+    return `Rentang: ${formatTanggal(startDate.value)} - ${formatTanggal(endDate.value)}`;
+  }
+  if (startDate.value) return `Mulai ${formatTanggal(startDate.value)}`;
+  if (endDate.value) return `Sampai ${formatTanggal(endDate.value)}`;
+  return "";
+});
+
+// Pantau perubahan rentang tanggal (dipakai oleh header & grafik arus kas)
+watch([startDate, endDate], () => {
+  applyDateRange();
+});
 </script>
 
 <template>
@@ -288,44 +267,27 @@ const handleCustomerRenewed = (customerId: string, days: number) => {
       <div
         class="flex items-center justify-between sm:justify-end gap-2.5 sm:gap-3 flex-wrap"
       >
-        <!-- Date Selector Dropdown Button -->
-        <div class="relative dropdown-trigger">
-          <button
-            @click.stop="
-              showDateDropdown = !showDateDropdown;
-              showNotificationDropdown = false;
-              showProfileDropdown = false;
-            "
-            class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer shadow-2xs"
-          >
-            <Calendar class="w-3.5 h-3.5 text-slate-500" />
-            <span class="text-xs">{{ selectedDateLabel }}</span>
-            <ChevronDown class="w-3 h-3 text-slate-400" />
-          </button>
+        <!-- Filter Rentang Tanggal -->
+        <div class="flex items-center gap-2">
+          <DateRangePicker
+            v-model:startDate="startDate"
+            v-model:endDate="endDate"
+            placeholder="Filter Rentang Tanggal"
+          />
 
-          <div
-            v-if="showDateDropdown"
-            class="absolute left-0 sm:left-auto sm:right-0 mt-1.5 w-44 bg-white rounded-2xl shadow-xl border border-slate-100 py-1.5 z-30 animate-in fade-in zoom-in-95 duration-100 text-xs"
+          <!-- Tombol Refresh -->
+          <button
+            @click="applyDateRange"
+            :disabled="loading"
+            class="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 active:scale-95 text-slate-700 text-xs font-bold transition-all cursor-pointer shadow-2xs disabled:opacity-50 shrink-0"
+            title="Segarkan data dari server"
           >
-            <button
-              @click="selectDate('05 Sep 2026')"
-              class="w-full text-left px-3.5 py-2 hover:bg-indigo-50 hover:text-indigo-600 font-medium text-slate-700 cursor-pointer"
-            >
-              Hari Ini (05 Sep)
-            </button>
-            <button
-              @click="selectDate('7 Hari Terakhir')"
-              class="w-full text-left px-3.5 py-2 hover:bg-indigo-50 hover:text-indigo-600 font-medium text-slate-700 cursor-pointer"
-            >
-              7 Hari Terakhir
-            </button>
-            <button
-              @click="selectDate('Sep 2026')"
-              class="w-full text-left px-3.5 py-2 hover:bg-indigo-50 hover:text-indigo-600 font-medium text-slate-700 cursor-pointer"
-            >
-              Bulan Ini (Sep 2026)
-            </button>
-          </div>
+            <RefreshCw
+              class="w-3.5 h-3.5 text-slate-500"
+              :class="loading ? 'animate-spin text-indigo-600' : ''"
+            />
+            <span class="hidden sm:inline">Refresh</span>
+          </button>
         </div>
 
         <div class="flex items-center gap-3">
@@ -334,7 +296,6 @@ const handleCustomerRenewed = (customerId: string, days: number) => {
             <button
               @click.stop="
                 showNotificationDropdown = !showNotificationDropdown;
-                showDateDropdown = false;
                 showProfileDropdown = false;
               "
               class="relative text-slate-600 hover:text-indigo-600 transition-colors cursor-pointer p-1.5 rounded-xl bg-white border border-slate-200 shadow-2xs"
@@ -392,7 +353,6 @@ const handleCustomerRenewed = (customerId: string, days: number) => {
             <button
               @click.stop="
                 showProfileDropdown = !showProfileDropdown;
-                showDateDropdown = false;
                 showNotificationDropdown = false;
               "
               class="flex items-center gap-2 px-2.5 py-1 rounded-xl bg-white border border-slate-200 text-xs font-semibold text-slate-800 hover:text-indigo-600 transition-colors cursor-pointer shadow-2xs"
@@ -459,10 +419,22 @@ const handleCustomerRenewed = (customerId: string, days: number) => {
             {{ displayMetrics.totalPelanggan.toLocaleString("id-ID") }}
           </h3>
           <div
-            class="flex items-center gap-1 text-[10px] sm:text-[11px] font-semibold text-emerald-600 mt-0.5"
+            class="flex items-center gap-1 text-[10px] sm:text-[11px] font-semibold mt-0.5"
+            :class="
+              (summary?.pertumbuhanTotalPelanggan ?? 0) >= 0
+                ? 'text-emerald-600'
+                : 'text-rose-600'
+            "
           >
-            <ArrowUp class="w-3 h-3 stroke-[2.5]" />
-            <span>+12%</span>
+            <ArrowUp
+              v-if="(summary?.pertumbuhanTotalPelanggan ?? 0) >= 0"
+              class="w-3 h-3 stroke-[2.5]"
+            />
+            <ArrowDown v-else class="w-3 h-3 stroke-[2.5]" />
+            <span>
+              {{ (summary?.pertumbuhanTotalPelanggan ?? 0) > 0 ? "+" : ""
+              }}{{ summary?.pertumbuhanTotalPelanggan ?? 0 }}%
+            </span>
           </div>
         </div>
       </div>
@@ -488,10 +460,22 @@ const handleCustomerRenewed = (customerId: string, days: number) => {
             {{ displayMetrics.pelangganAktif.toLocaleString("id-ID") }}
           </h3>
           <div
-            class="flex items-center gap-1 text-[10px] sm:text-[11px] font-semibold text-emerald-600 mt-0.5"
+            class="flex items-center gap-1 text-[10px] sm:text-[11px] font-semibold mt-0.5"
+            :class="
+              (summary?.pertumbuhanPelangganAktif ?? 0) >= 0
+                ? 'text-emerald-600'
+                : 'text-rose-600'
+            "
           >
-            <ArrowUp class="w-3 h-3 stroke-[2.5]" />
-            <span>+10%</span>
+            <ArrowUp
+              v-if="(summary?.pertumbuhanPelangganAktif ?? 0) >= 0"
+              class="w-3 h-3 stroke-[2.5]"
+            />
+            <ArrowDown v-else class="w-3 h-3 stroke-[2.5]" />
+            <span>
+              {{ (summary?.pertumbuhanPelangganAktif ?? 0) > 0 ? "+" : ""
+              }}{{ summary?.pertumbuhanPelangganAktif ?? 0 }}%
+            </span>
           </div>
         </div>
       </div>
@@ -655,7 +639,13 @@ const handleCustomerRenewed = (customerId: string, days: number) => {
       <div
         class="lg:col-span-7 xl:col-span-7 flex flex-col bg-white dark:bg-slate-800 rounded-2xl shadow-xs border border-slate-100 dark:border-slate-700"
       >
-        <CashFlowChart class="h-full" />
+        <CashFlowChart
+          class="h-full"
+          :data="cashFlowChart"
+          :loading="loading"
+          v-model:startDate="startDate"
+          v-model:endDate="endDate"
+        />
       </div>
 
       <!-- Right: Aktivitas Terbaru (~38% width) -->
@@ -670,142 +660,100 @@ const handleCustomerRenewed = (customerId: string, days: number) => {
               Aktivitas Terbaru
             </h2>
 
-            <div class="space-y-4">
-              <!-- Item 1: Budi Santoso (Convert) -->
-              <div class="flex items-start justify-between gap-3 text-xs">
+            <!-- Error State -->
+            <div
+              v-if="error"
+              class="p-4 rounded-xl bg-rose-50 dark:bg-rose-900/30 border border-rose-100 dark:border-rose-800 text-xs text-rose-600 dark:text-rose-300 flex items-start gap-2"
+            >
+              <AlertCircle class="w-4 h-4 shrink-0 mt-0.5" />
+              <div class="space-y-2">
+                <p>{{ error }}</p>
+                <button
+                  @click="fetchDashboard()"
+                  class="font-semibold underline hover:no-underline cursor-pointer"
+                >
+                  Coba lagi
+                </button>
+              </div>
+            </div>
+
+            <!-- Loading State -->
+            <div
+              v-else-if="loading && activities.length === 0"
+              class="space-y-4 py-2"
+            >
+              <div
+                v-for="idx in 5"
+                :key="`skeleton-${idx}`"
+                class="flex items-start gap-3"
+              >
+                <div
+                  class="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-700 animate-pulse shrink-0"
+                ></div>
+                <div class="flex-1 space-y-1.5">
+                  <div
+                    class="h-3 rounded bg-slate-100 dark:bg-slate-700 animate-pulse w-3/4"
+                  ></div>
+                  <div
+                    class="h-2.5 rounded bg-slate-100 dark:bg-slate-700 animate-pulse w-1/3"
+                  ></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Empty State -->
+            <div
+              v-else-if="activities.length === 0"
+              class="py-10 text-center text-xs text-slate-400"
+            >
+              Belum ada aktivitas terbaru.
+            </div>
+
+            <!-- List Aktivitas -->
+            <div v-else class="space-y-4">
+              <div
+                v-for="activity in activities"
+                :key="activity.id"
+                class="flex items-start justify-between gap-3 text-xs"
+              >
                 <div class="flex items-start gap-3">
                   <div
-                    class="w-8 h-8 rounded-full bg-emerald-50 dark:bg-emerald-900/40 text-emerald-500 dark:text-emerald-400 flex items-center justify-center shrink-0 mt-0.5"
+                    class="w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5"
+                    :class="activityIconClass(activity.type)"
                   >
-                    <UserCheck class="w-4 h-4" />
+                    <component :is="activityIcon(activity.type)" class="w-4 h-4" />
                   </div>
                   <div>
                     <p class="text-slate-800 dark:text-slate-200 leading-snug">
-                      <span class="font-bold dark:text-white"
-                        >Budi Santoso</span
-                      >
-                      berhasil dikonversi menjadi pelanggan
+                      <template v-if="activity.type === 'payment'">
+                        {{ activity.title }}
+                        <span class="font-bold dark:text-white">{{
+                          activity.highlightText
+                        }}</span>
+                      </template>
+                      <template v-else-if="activity.type === 'convert'">
+                        <span class="font-bold dark:text-white">{{
+                          activity.title
+                        }}</span>
+                        {{ activity.description }}
+                      </template>
+                      <template v-else>
+                        <span class="font-bold dark:text-white">{{
+                          activity.title
+                        }}</span>
+                        {{ activity.description }}
+                      </template>
                     </p>
                     <p
                       class="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5"
                     >
-                      2 menit yang lalu
+                      {{ activity.relativeTime }}
                     </p>
                   </div>
                 </div>
                 <span
                   class="text-slate-400 dark:text-slate-500 font-medium text-[11px] shrink-0"
-                  >10:30</span
-                >
-              </div>
-
-              <!-- Item 2: Toko ABC (Payment) -->
-              <div class="flex items-start justify-between gap-3 text-xs">
-                <div class="flex items-start gap-3">
-                  <div
-                    class="w-8 h-8 rounded-full bg-indigo-50 dark:bg-indigo-900/40 text-indigo-500 dark:text-indigo-400 flex items-center justify-center shrink-0 mt-0.5"
-                  >
-                    <CreditCard class="w-4 h-4" />
-                  </div>
-                  <div>
-                    <p class="text-slate-800 dark:text-slate-200 leading-snug">
-                      Pembayaran langganan dari
-                      <span class="font-bold dark:text-white">Toko ABC</span>
-                    </p>
-                    <p
-                      class="text-[11px] text-slate-700 dark:text-slate-300 font-semibold mt-0.5"
-                    >
-                      Rp 1.250.000
-                      <span
-                        class="text-slate-400 dark:text-slate-500 font-normal"
-                        >· 15 menit yang lalu</span
-                      >
-                    </p>
-                  </div>
-                </div>
-                <span
-                  class="text-slate-400 dark:text-slate-500 font-medium text-[11px] shrink-0"
-                  >10:15</span
-                >
-              </div>
-
-              <!-- Item 3: Andi Wijaya (Warning) -->
-              <div class="flex items-start justify-between gap-3 text-xs">
-                <div class="flex items-start gap-3">
-                  <div
-                    class="w-8 h-8 rounded-full bg-amber-50 dark:bg-amber-900/40 text-amber-500 dark:text-amber-400 flex items-center justify-center shrink-0 mt-0.5"
-                  >
-                    <Clock class="w-4 h-4" />
-                  </div>
-                  <div>
-                    <p class="text-slate-800 dark:text-slate-200 leading-snug">
-                      <span class="font-bold dark:text-white">Andi Wijaya</span>
-                      akan expired dalam 3 hari
-                    </p>
-                    <p
-                      class="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5"
-                    >
-                      1 jam yang lalu
-                    </p>
-                  </div>
-                </div>
-                <span
-                  class="text-slate-400 dark:text-slate-500 font-medium text-[11px] shrink-0"
-                  >09:10</span
-                >
-              </div>
-
-              <!-- Item 4: Siti Aisyah (Follow Up) -->
-              <div class="flex items-start justify-between gap-3 text-xs">
-                <div class="flex items-start gap-3">
-                  <div
-                    class="w-8 h-8 rounded-full bg-rose-50 dark:bg-rose-900/40 text-rose-500 dark:text-rose-400 flex items-center justify-center shrink-0 mt-0.5"
-                  >
-                    <UserPlus class="w-4 h-4" />
-                  </div>
-                  <div>
-                    <p class="text-slate-800 dark:text-slate-200 leading-snug">
-                      <span class="font-bold dark:text-white">Siti Aisyah</span>
-                      menambahkan follow up baru
-                    </p>
-                    <p
-                      class="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5"
-                    >
-                      2 jam yang lalu
-                    </p>
-                  </div>
-                </div>
-                <span
-                  class="text-slate-400 dark:text-slate-500 font-medium text-[11px] shrink-0"
-                  >08:45</span
-                >
-              </div>
-
-              <!-- Item 5: Laporan Arus Kas (Export) -->
-              <div class="flex items-start justify-between gap-3 text-xs">
-                <div class="flex items-start gap-3">
-                  <div
-                    class="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-900/40 text-blue-500 dark:text-blue-400 flex items-center justify-center shrink-0 mt-0.5"
-                  >
-                    <FileText class="w-4 h-4" />
-                  </div>
-                  <div>
-                    <p class="text-slate-800 dark:text-slate-200 leading-snug">
-                      <span class="font-bold dark:text-white"
-                        >Laporan Arus Kas</span
-                      >
-                      berhasil diekspor
-                    </p>
-                    <p
-                      class="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5"
-                    >
-                      3 jam yang lalu
-                    </p>
-                  </div>
-                </div>
-                <span
-                  class="text-slate-400 dark:text-slate-500 font-medium text-[11px] shrink-0"
-                  >07:30</span
+                  >{{ activity.time }}</span
                 >
               </div>
             </div>
@@ -834,11 +782,19 @@ const handleCustomerRenewed = (customerId: string, days: number) => {
         class="bg-white dark:bg-slate-800 rounded-2xl p-4 sm:p-6 shadow-xs border border-slate-100 dark:border-slate-700"
       >
         <div class="flex items-center justify-between mb-3 sm:mb-4">
-          <h2
-            class="text-sm sm:text-base font-bold text-slate-800 dark:text-white tracking-tight"
-          >
-            Pelanggan Akan Expired
-          </h2>
+          <div>
+            <h2
+              class="text-sm sm:text-base font-bold text-slate-800 dark:text-white tracking-tight"
+            >
+              Pelanggan Akan Expired
+            </h2>
+            <p
+              v-if="activeRangeLabel"
+              class="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5"
+            >
+              {{ activeRangeLabel }}
+            </p>
+          </div>
           <button
             @click="router.push('/expired')"
             class="px-2.5 py-1 rounded-lg text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-slate-700 transition-colors cursor-pointer"
@@ -913,11 +869,19 @@ const handleCustomerRenewed = (customerId: string, days: number) => {
         class="bg-white dark:bg-slate-800 rounded-2xl p-4 sm:p-6 shadow-xs border border-slate-100 dark:border-slate-700"
       >
         <div class="flex items-center justify-between mb-3 sm:mb-4">
-          <h2
-            class="text-sm sm:text-base font-bold text-slate-800 dark:text-white tracking-tight"
-          >
-            Pelanggan Expired
-          </h2>
+          <div>
+            <h2
+              class="text-sm sm:text-base font-bold text-slate-800 dark:text-white tracking-tight"
+            >
+              Pelanggan Expired
+            </h2>
+            <p
+              v-if="activeRangeLabel"
+              class="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5"
+            >
+              {{ activeRangeLabel }}
+            </p>
+          </div>
           <button
             @click="router.push('/expired')"
             class="px-2.5 py-1 rounded-lg text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-slate-700 transition-colors cursor-pointer"

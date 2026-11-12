@@ -243,7 +243,7 @@ watch(
     isMobileDrawerOpen.value = false;
     isRoleDropdownOpen.value = false;
     isNotificationOpen.value = false;
-    if (newPath === "/landing") {
+    if (newPath === "/") {
       document.documentElement.classList.remove("dark");
     }
     if (mainContent.value) {
@@ -266,7 +266,7 @@ const confirmLogout = () => {
 </script>
 
 <template>
-  <RouterView v-if="route.path === '/landing' || route.path === '/login'" />
+  <RouterView v-if="route.path === '/' || route.path === '/login'" />
   <div
     v-else
     class="flex flex-col md:flex-row h-screen w-screen overflow-hidden bg-slate-50 dark:bg-slate-900 transition-colors duration-300"
@@ -340,11 +340,11 @@ const confirmLogout = () => {
           <!-- Main / Dashboard -->
           <div v-if="canAccessMenu('dashboard')">
             <RouterLink
-              to="/"
+              to="/dashboard"
               @click="isMobileDrawerOpen = false"
               class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition-all duration-200 group"
               :class="
-                route.path === '/'
+                route.path === '/dashboard'
                   ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shadow-xs'
                   : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50 hover:text-slate-900 dark:hover:text-slate-200'
               "
@@ -352,7 +352,9 @@ const confirmLogout = () => {
               <LayoutDashboard
                 class="w-4 h-4 transition-transform duration-200 group-hover:scale-110"
                 :class="
-                  route.path === '/' ? 'text-indigo-600' : 'text-slate-500'
+                  route.path === '/dashboard'
+                    ? 'text-indigo-600'
+                    : 'text-slate-500'
                 "
               />
               <span>Dashboard</span>
@@ -672,11 +674,11 @@ const confirmLogout = () => {
             </h3>
             <div>
               <RouterLink
-                to="/landing"
+                to="/"
                 @click="isMobileDrawerOpen = false"
                 class="flex items-center gap-3 px-3.5 py-2 rounded-xl text-sm font-medium transition-all duration-200 group"
                 :class="
-                  route.path === '/landing'
+                  route.path === '/'
                     ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-semibold'
                     : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50 hover:text-slate-900 dark:hover:text-slate-200'
                 "
@@ -684,7 +686,7 @@ const confirmLogout = () => {
                 <Globe
                   class="w-4 h-4 transition-transform duration-200 group-hover:scale-110"
                   :class="
-                    route.path === '/landing'
+                    route.path === '/'
                       ? 'text-indigo-600'
                       : 'text-slate-400 group-hover:text-slate-600'
                   "
@@ -723,7 +725,7 @@ const confirmLogout = () => {
           <span class="text-slate-400 dark:text-slate-500">IKI KASIR</span>
           <ChevronRight class="w-4 h-4 text-slate-300 dark:text-slate-600" />
           <span class="text-slate-800 dark:text-slate-200 capitalize">{{
-            route.path === "/"
+            route.path === "/dashboard"
               ? "Dashboard"
               : route.path.substring(1).replace("-", " ")
           }}</span>
@@ -839,97 +841,6 @@ const confirmLogout = () => {
             </button>
 
             <!-- Role Switcher Dropdown Modal -->
-            <div 
-              v-if="isRoleDropdownOpen"
-              class="absolute right-0 mt-2 w-72 bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-700 py-2.5 z-50 animate-in fade-in zoom-in-95 duration-100 space-y-1"
-            >
-              <div class="px-3.5 pb-2 border-b border-slate-100 dark:border-slate-700">
-                <p class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Pilih Role Pengguna</p>
-                <p class="text-[11px] text-slate-500">Uji langsung sistem dari perspektif role yang diinginkan:</p>
-              </div>
-
-              <div class="px-2 space-y-1 pt-1">
-                <!-- Super Admin -->
-                <button 
-                  @click="handleSelectRole('Super Admin')"
-                  class="w-full text-left p-2 rounded-xl flex items-center justify-between transition-colors cursor-pointer"
-                  :class="currentRole === 'Super Admin' ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 font-bold' : 'hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200'"
-                >
-                  <div class="flex items-center gap-2.5">
-                    <span class="w-7 h-7 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-bold">SA</span>
-                    <div>
-                      <p class="text-xs font-bold">Super Admin</p>
-                      <p class="text-[10px] text-slate-400">Semua modul & data</p>
-                    </div>
-                  </div>
-                  <Check v-if="currentRole === 'Super Admin'" class="w-4 h-4 text-indigo-600" />
-                </button>
-
-                <!-- Sales -->
-                <button 
-                  @click="handleSelectRole('Sales')"
-                  class="w-full text-left p-2 rounded-xl flex items-center justify-between transition-colors cursor-pointer"
-                  :class="(currentRole === 'Sales' || currentRole === 'Seles') ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 font-bold' : 'hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200'"
-                >
-                  <div class="flex items-center gap-2.5">
-                    <span class="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center text-xs font-bold">SL</span>
-                    <div>
-                      <p class="text-xs font-bold">Sales (Seles)</p>
-                      <p class="text-[10px] text-slate-400">Pendaftaran calon klien</p>
-                    </div>
-                  </div>
-                  <Check v-if="currentRole === 'Sales' || currentRole === 'Seles'" class="w-4 h-4 text-emerald-600" />
-                </button>
-
-                <!-- Finance -->
-                <button 
-                  @click="handleSelectRole('Finance')"
-                  class="w-full text-left p-2 rounded-xl flex items-center justify-between transition-colors cursor-pointer"
-                  :class="currentRole === 'Finance' ? 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 font-bold' : 'hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200'"
-                >
-                  <div class="flex items-center gap-2.5">
-                    <span class="w-7 h-7 rounded-lg bg-amber-100 text-amber-800 flex items-center justify-center text-xs font-bold">FN</span>
-                    <div>
-                      <p class="text-xs font-bold">Finance</p>
-                      <p class="text-[10px] text-slate-400">Acc pembayaran & CRM</p>
-                    </div>
-                  </div>
-                  <Check v-if="currentRole === 'Finance'" class="w-4 h-4 text-amber-600" />
-                </button>
-
-                <!-- Teknisi -->
-                <button 
-                  @click="handleSelectRole('Teknisi')"
-                  class="w-full text-left p-2 rounded-xl flex items-center justify-between transition-colors cursor-pointer"
-                  :class="currentRole === 'Teknisi' ? 'bg-cyan-50 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 font-bold' : 'hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200'"
-                >
-                  <div class="flex items-center gap-2.5">
-                    <span class="w-7 h-7 rounded-lg bg-cyan-100 text-cyan-800 flex items-center justify-center text-xs font-bold">TK</span>
-                    <div>
-                      <p class="text-xs font-bold">Teknisi</p>
-                      <p class="text-[10px] text-slate-400">Setup akun & APK</p>
-                    </div>
-                  </div>
-                  <Check v-if="currentRole === 'Teknisi'" class="w-4 h-4 text-cyan-600" />
-                </button>
-
-                <!-- Admin -->
-                <button 
-                  @click="handleSelectRole('Admin')"
-                  class="w-full text-left p-2 rounded-xl flex items-center justify-between transition-colors cursor-pointer"
-                  :class="currentRole === 'Admin' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-bold' : 'hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200'"
-                >
-                  <div class="flex items-center gap-2.5">
-                    <span class="w-7 h-7 rounded-lg bg-blue-100 text-blue-800 flex items-center justify-center text-xs font-bold">AD</span>
-                    <div>
-                      <p class="text-xs font-bold">Admin</p>
-                      <p class="text-[10px] text-slate-400">Operasional umum</p>
-                    </div>
-                  </div>
-                  <Check v-if="currentRole === 'Admin'" class="w-4 h-4 text-blue-600" />
-                </button>
-              </div>
-            </div>
           </div>
         </div>
       </header>
@@ -954,10 +865,10 @@ const confirmLogout = () => {
       <!-- Dashboard -->
       <RouterLink
         v-if="canAccessMenu('dashboard')"
-        to="/"
+        to="/dashboard"
         class="flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition-colors group"
         :class="
-          route.path === '/'
+          route.path === '/dashboard'
             ? 'text-indigo-600 font-bold'
             : 'text-slate-500 hover:text-slate-800'
         "
