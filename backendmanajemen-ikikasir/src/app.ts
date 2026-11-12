@@ -18,6 +18,12 @@ import neracaItemRoutes from './presentation/routes/neraca-items.routes.js';
 import { errorHandler } from './presentation/middlewares/error.middleware.js';
 import { NotFoundError } from './domain/errors/AppError.js';
 
+
+const allowedOrigins = (process.env.CORS_ORIGINS ?? 'https://ikikasir.com,https://www.ikikasir.com')
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean);
+
 export function createApp(): Application {
   const app = express();
 
@@ -28,11 +34,20 @@ export function createApp(): Application {
     })
   );
   app.use(
-    cors({
-      origin: true, // Memungkinkan request dari frontend Vite localhost:5173
-      credentials: true,
-    })
-  );
+  cors({
+    origin: (origin, callback) => {
+      // Tanpa header Origin (curl, Postman, server-to-server) tetap diizinkan
+      if (!origin || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      // false = tidak ada header CORS, browser yang memblokir (bukan error 500)
+      return callback(null, false);
+    },
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
+  })
+);
   app.use(express.json({ limit: '25mb' }));
   app.use(express.urlencoded({ extended: true, limit: '25mb' }));
 

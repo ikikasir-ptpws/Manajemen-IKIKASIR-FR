@@ -1,0 +1,427 @@
+import { NotFoundError, BadRequestError } from '../../domain/errors/AppError.js';
+import { saveProofFileToStorage } from '../../infrastructure/utils/storage.util.js';
+import { PrismaCashTransactionRepository } from '../../repositories/PrismaCashTransactionRepository.js';
+export class LeadUseCases {
+    leadRepository;
+    customerRepository;
+    packageRepository;
+    referralRepository;
+    referralUseCases;
+    constructor(leadRepository, customerRepository, packageRepository, referralRepository, referralUseCases) {
+        this.leadRepository = leadRepository;
+        this.customerRepository = customerRepository;
+        this.packageRepository = packageRepository;
+        this.referralRepository = referralRepository;
+        this.referralUseCases = referralUseCases;
+    }
+    async resolvePackage(packageId, packageInterest) {
+        let finalId = packageId ?? null;
+        let finalName = packageInterest || 'Basic';
+        let finalPrice = 250000;
+        if (!this.packageRepository) {
+            return { packageId: finalId, packageName: finalName, packagePrice: finalPrice };
+        }
+        try {
+            const allPkgs = await this.packageRepository.findAll();
+            if (finalId) {
+                const found = allPkgs.find(p => p.id === finalId);
+                if (found) {
+                    return { packageId: found.id, packageName: found.name, packagePrice: found.price };
+                }
+            }
+            // Lookup by package name if packageId not found or not given
+            if (finalName) {
+                const query = finalName.toLowerCase().trim();
+                const found = allPkgs.find(p => {
+                    const pName = p.name.toLowerCase().trim();
+                    return pName === query || query.includes(pName) || pName.includes(query);
+                });
+                if (found) {
+                    return { packageId: found.id, packageName: found.name, packagePrice: found.price };
+                }
+            }
+        }
+        catch (e) {
+            console.warn('resolvePackage error:', e);
+        }
+        return { packageId: finalId, packageName: finalName, packagePrice: finalPrice };
+    }
+    async getAllLeads(filter) {
+        const leads = await this.leadRepository.findAll(filter);
+        let packagesCache = null;
+        if (this.packageRepository) {
+            try {
+                packagesCache = await this.packageRepository.findAll();
+            }
+            catch {
+                packagesCache = null;
+            }
+        }
+        return leads.map(l => {
+            const json = l.toJSON();
+            if (!json.packageId && packagesCache && json.packageInterest) {
+                const q = json.packageInterest.toLowerCase().trim();
+                const found = packagesCache.find(p => {
+                    const pName = p.name.toLowerCase().trim();
+                    return pName === q || q.includes(pName) || pName.includes(q);
+                });
+                if (found) {
+                    json.packageId = found.id;
+                    json.packageName = found.name;
+                    json.packagePrice = found.price;
+                    // Perbarui di database agar tersimpan permanen
+                    this.leadRepository.update(l.id, { packageId: found.id }).catch(() => { });
+                }
+            }
+            return json;
+        });
+    }
+    async getLeadById(id) {
+        const lead = await this.leadRepository.findById(id);
+        if (!lead) {
+            throw new NotFoundError(`Calon client dengan ID '${id}' tidak ditemukan.`);
+        }
+        const json = lead.toJSON();
+        if (!json.packageId && this.packageRepository && json.packageInterest) {
+            try {
+                const allPkgs = await this.packageRepository.findAll();
+                const q = json.packageInterest.toLowerCase().trim();
+                const found = allPkgs.find(p => {
+                    const pName = p.name.toLowerCase().trim();
+                    return pName === q || q.includes(pName) || pName.includes(q);
+                });
+                if (found) {
+                    json.packageId = found.id;
+                    json.packageName = found.name;
+                    json.packagePrice = found.price;
+                    this.leadRepository.update(lead.id, { packageId: found.id }).catch(() => { });
+                }
+            }
+            catch { }
+        }
+        return json;
+    }
+    async getStatistics() {
+        return await this.leadRepository.getStatistics();
+    }
+    async createLead(dto) {
+        const cleanPhone = dto.phone.trim();
+        const cleanEmail = dto.email.toLowerCase().trim();
+        if (!dto.name.trim()) {
+            throw new BadRequestError('Nama calon client wajib diisi.');
+        }
+        if (!dto.businessName.trim()) {
+            throw new BadRequestError('Nama usaha/bisnis wajib diisi.');
+        }
+        if (!cleanPhone) {
+            throw new BadRequestError('Nomor telepon/WhatsApp wajib diisi.');
+        }
+        if (!cleanEmail) {
+            throw new BadRequestError('Email calon client wajib diisi.');
+        }
+        // Ambil packageId & harga paket dari packageRepository
+        const pkgInfo = await this.resolvePackage(dto.packageId, dto.packageInterest);
+        const estimatedDeal = dto.estimatedDeal && dto.estimatedDeal > 0 ? dto.estimatedDeal : pkgInfo.packagePrice;
+        // Sinkronisasi data upline referral jika ada kode referral atau ID pelanggan pengundang
+        let refUpline = null;
+        if (this.customerRepository) {
+            if (dto.referredByCustomerId) {
+                refUpline = await this.customerRepository.findById(dto.referredByCustomerId);
+            }
+            else if (dto.referralCode) {
+                refUpline = await this.customerRepository.findByReferralCode(dto.referralCode.trim().toUpperCase());
+            }
+        }
+        const leadData = {
+            ...dto,
+            packageId: pkgInfo.packageId ?? undefined,
+            packageInterest: pkgInfo.packageName,
+            estimatedDeal: estimatedDeal,
+            paymentProofUrl: dto.paymentProofUrl ? saveProofFileToStorage(dto.paymentProofUrl) : undefined,
+        };
+        if (refUpline) {
+            leadData.referredByCustomerId = refUpline.id;
+            leadData.referredByCustomerName = refUpline.name;
+            leadData.referredByBusinessName = refUpline.businessName;
+            leadData.referralCode = refUpline.referralCode || dto.referralCode;
+            if (!dto.source || dto.source === 'Website') {
+                leadData.source = 'Referral';
+            }
+        }
+        const newLead = await this.leadRepository.create(leadData);
+        const json = newLead.toJSON();
+        json.packageId = pkgInfo.packageId ?? json.packageId;
+        json.packageName = pkgInfo.packageName ?? json.packageName;
+        json.packagePrice = pkgInfo.packagePrice ?? json.packagePrice;
+        return json;
+    }
+    async updateLead(id, dto) {
+        const existing = await this.leadRepository.findById(id);
+        if (!existing) {
+            throw new NotFoundError(`Calon client dengan ID '${id}' tidak ditemukan.`);
+        }
+        let pkgInfo = null;
+        if (dto.packageId || dto.packageInterest) {
+            pkgInfo = await this.resolvePackage(dto.packageId ?? existing.packageId, dto.packageInterest ?? existing.packageInterest);
+        }
+        const updated = await this.leadRepository.update(id, {
+            ...dto,
+            packageId: (pkgInfo ? pkgInfo.packageId : dto.packageId) ?? undefined,
+            packageInterest: pkgInfo ? pkgInfo.packageName : dto.packageInterest,
+            estimatedDeal: dto.estimatedDeal ?? (pkgInfo ? pkgInfo.packagePrice : undefined),
+            paymentDate: dto.paymentDate ? new Date(dto.paymentDate) : undefined,
+            paymentProofUrl: dto.paymentProofUrl !== undefined ? saveProofFileToStorage(dto.paymentProofUrl) : undefined,
+        });
+        const json = updated.toJSON();
+        if (pkgInfo && pkgInfo.packageId && !json.packageId) {
+            json.packageId = pkgInfo.packageId;
+        }
+        return json;
+    }
+    async updateLeadStatus(id, dto) {
+        const existing = await this.leadRepository.findById(id);
+        if (!existing) {
+            throw new NotFoundError(`Calon client dengan ID '${id}' tidak ditemukan.`);
+        }
+        const updated = await this.leadRepository.update(id, {
+            status: dto.status,
+        });
+        // Catat log follow-up otomatis
+        const noteText = dto.notes || `Status prospek diubah menjadi: ${dto.status}`;
+        await this.leadRepository.addFollowUp(id, 'Sistem', noteText);
+        // Ambil data terbaru dengan followUpHistory yang diperbarui
+        const fresh = await this.leadRepository.findById(id);
+        return fresh?.toJSON();
+    }
+    async addFollowUp(id, dto) {
+        const existing = await this.leadRepository.findById(id);
+        if (!existing) {
+            throw new NotFoundError(`Calon client dengan ID '${id}' tidak ditemukan.`);
+        }
+        if (!dto.notes || !dto.notes.trim()) {
+            throw new BadRequestError('Catatan follow-up tidak boleh kosong.');
+        }
+        const followUp = await this.leadRepository.addFollowUp(id, dto.channel, dto.notes);
+        return followUp.toJSON();
+    }
+    async approveLead(id, dto) {
+        const lead = await this.leadRepository.findById(id);
+        if (!lead) {
+            throw new NotFoundError(`Calon client dengan ID '${id}' tidak ditemukan.`);
+        }
+        const now = new Date();
+        const finalAmount = dto.amount || lead.estimatedDeal || 250000;
+        const finalMethod = dto.paymentMethod || lead.paymentMethod || 'Transfer BCA';
+        const finalProof = saveProofFileToStorage(dto.paymentProofUrl || lead.paymentProofUrl);
+        const notes = dto.notes || 'Pendaftaran disetujui Super Admin. Klien dikonversi menjadi Pelanggan Aktif.';
+        // 1. Update lead ke Converted & verified
+        await this.leadRepository.update(id, {
+            status: 'Converted',
+            paymentStatus: 'verified',
+            paymentAmount: finalAmount,
+            paymentMethod: finalMethod,
+            paymentProofUrl: finalProof,
+            paymentVerifiedAt: now,
+            paymentVerifiedBy: 'Super Admin',
+            paymentNotes: notes,
+            technicianStatus: 'pending_setup',
+            technicianAssignedTo: 'Tim Teknisi IKI KASIR',
+        });
+        // 2. Tambahkan follow-up konversi
+        await this.leadRepository.addFollowUp(id, 'Sistem', notes);
+        // 3. Konversi ke Customer di database jika repository tersedia
+        let createdCustomer = null;
+        if (this.customerRepository) {
+            try {
+                const cleanEmail = lead.email.toLowerCase().trim();
+                const existingCust = await this.customerRepository.findByEmail(cleanEmail);
+                let months = dto.billingCycleMonths;
+                if (!months || months === 1) {
+                    let pkg = null;
+                    if (lead.packageId && this.packageRepository) {
+                        pkg = await this.packageRepository.findById(lead.packageId);
+                    }
+                    else if (lead.packageInterest && this.packageRepository) {
+                        pkg = await this.packageRepository.findById(lead.packageInterest);
+                    }
+                    if (pkg) {
+                        const pkgDuration = pkg.getDurationMonths();
+                        if (pkgDuration > 0) {
+                            months = pkgDuration;
+                        }
+                    }
+                }
+                if (!months || months <= 0)
+                    months = 1;
+                const expiresAt = new Date();
+                expiresAt.setMonth(expiresAt.getMonth() + months);
+                if (existingCust) {
+                    // Update pelanggan yang sudah ada
+                    createdCustomer = await this.customerRepository.update(existingCust.id, {
+                        name: lead.name,
+                        businessName: lead.businessName,
+                        phone: lead.phone,
+                        address: lead.address,
+                        status: 'ACTIVE',
+                        expiresAt,
+                        notes: `Diperbarui dari persetujuan calon client (Lead ID: ${lead.id})`,
+                        paymentProofUrl: finalProof || existingCust.paymentProofUrl,
+                        paymentMethod: finalMethod,
+                        paymentAmount: finalAmount,
+                        paymentDate: lead.paymentDate || now,
+                        paymentStatus: 'PAID',
+                        appUsername: lead.appUsername || existingCust.appUsername || cleanEmail,
+                        appPassword: lead.appPassword || existingCust.appPassword || 'Kasir#2026',
+                        technicianStatus: lead.technicianStatus || existingCust.technicianStatus || 'completed',
+                        referralCode: existingCust.referralCode || undefined,
+                        referredByCustomerId: existingCust.referredByCustomerId || lead.referredByCustomerId || undefined,
+                        referredByCustomerName: existingCust.referredByCustomerName || lead.referredByCustomerName || undefined,
+                        referredByBusinessName: existingCust.referredByBusinessName || lead.referredByBusinessName || undefined,
+                        referralBoundAt: existingCust.referralBoundAt || (lead.referredByCustomerId ? now : undefined),
+                        referralSource: existingCust.referralSource || lead.source || 'Referral',
+                    });
+                }
+                else {
+                    // Buat pelanggan baru
+                    createdCustomer = await this.customerRepository.create({
+                        name: lead.name,
+                        businessName: lead.businessName,
+                        email: cleanEmail,
+                        phone: lead.phone,
+                        address: lead.address,
+                        packageId: lead.packageId ?? undefined,
+                        packageName: lead.packageInterest,
+                        packagePrice: finalAmount,
+                        status: 'ACTIVE',
+                        startedAt: now,
+                        expiresAt,
+                        notes: `Dikonversi dari Calon Client (Lead ID: ${lead.id}). Sumber: ${lead.source}`,
+                        paymentProofUrl: finalProof,
+                        paymentMethod: finalMethod,
+                        paymentAmount: finalAmount,
+                        paymentDate: lead.paymentDate || now,
+                        paymentStatus: 'PAID',
+                        appUsername: lead.appUsername || cleanEmail,
+                        appPassword: lead.appPassword || 'Kasir#2026',
+                        technicianStatus: lead.technicianStatus || 'completed',
+                        // lead.referralCode berisi kode milik UPLINE, bukan kode pelanggan ini.
+                        // Kodenya dibuat sendiri oleh ensureReferralCode() di bawah.
+                        referredByCustomerId: lead.referredByCustomerId || undefined,
+                        referredByCustomerName: lead.referredByCustomerName || undefined,
+                        referredByBusinessName: lead.referredByBusinessName || undefined,
+                        referralBoundAt: lead.referredByCustomerId ? now : undefined,
+                        referralSource: lead.source || 'Referral',
+                    });
+                    // Catat history invoice pertama
+                    await this.customerRepository.addSubscriptionHistory({
+                        customerId: createdCustomer.id,
+                        packageId: lead.packageId ?? undefined,
+                        packageName: lead.packageInterest,
+                        amount: finalAmount,
+                        billingCycleMonths: months,
+                        paymentMethod: finalMethod,
+                        paymentStatus: 'PAID',
+                        paymentProofUrl: finalProof,
+                        notes: 'Pembayaran pendaftaran calon client',
+                        startedAt: now,
+                        expiresAt,
+                    });
+                }
+                // Pastikan pelanggan hasil konversi punya kode referral sendiri yang unik
+                if (createdCustomer && !createdCustomer.referralCode && this.referralUseCases) {
+                    try {
+                        await this.referralUseCases.ensureReferralCode(createdCustomer.id);
+                    }
+                    catch (codeErr) {
+                        console.warn('⚠️ Gagal membuat kode referral untuk pelanggan hasil konversi:', codeErr);
+                    }
+                }
+                // Catat/Aktifkan komisi referral untuk upline jika calon client diajukan via referral
+                const uplineId = lead.referredByCustomerId || (createdCustomer ? createdCustomer.referredByCustomerId : null);
+                if (uplineId && this.referralRepository && createdCustomer) {
+                    try {
+                        const existingComm = await this.referralRepository.findCommissionByUplineAndDownline(uplineId, createdCustomer.id);
+                        if (!existingComm) {
+                            await this.referralRepository.createCommission({
+                                uplineId: uplineId,
+                                downlineId: createdCustomer.id,
+                                amount: 15000,
+                                status: 'AKTIF',
+                                notes: `Komisi referral dari persetujuan calon client: ${lead.businessName || lead.name}`,
+                            });
+                        }
+                        else if (existingComm.status !== 'AKTIF') {
+                            await this.referralRepository.updateCommissionStatus(existingComm.id, 'AKTIF', 'Komisi aktif setelah pendaftaran calon client disetujui');
+                        }
+                    }
+                    catch (refErr) {
+                        console.warn('⚠️ Gagal mencatat komisi referral upline:', refErr);
+                    }
+                }
+                // Catat Arus Kas Pemasukan Otomatis
+                if (finalAmount > 0) {
+                    try {
+                        const cashRepo = new PrismaCashTransactionRepository();
+                        const year = now.getFullYear();
+                        const month = String(now.getMonth() + 1).padStart(2, '0');
+                        const day = String(now.getDate()).padStart(2, '0');
+                        const rawDate = `${year}-${month}-${day}`;
+                        const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+                        const clientLabel = lead.businessName ? `${lead.businessName} (${lead.name})` : lead.name;
+                        await cashRepo.create({
+                            type: 'masuk',
+                            category: 'Lisensi POS',
+                            desc: `Pendaftaran Pelanggan Baru (Lead) - ${clientLabel} (${lead.packageInterest || 'Basic'})`,
+                            amount: finalAmount,
+                            date: now,
+                            rawDate,
+                            customer: clientLabel,
+                            paymentMethod: finalMethod,
+                            paymentProofUrl: finalProof,
+                            status: 'Selesai',
+                            invoiceNo: `INV-${rawDate.replace(/-/g, '')}-LEAD-${randomSuffix}`,
+                            notes: notes || 'Pembayaran pendaftaran calon client yang disetujui',
+                        });
+                    }
+                    catch (cashErr) {
+                        console.warn('⚠️ Gagal mencatat arus kas dari konversi lead:', cashErr);
+                    }
+                }
+            }
+            catch (custErr) {
+                console.warn('⚠️ Gagal sinkronisasi otomatis ke tabel customers:', custErr.message);
+            }
+        }
+        const updatedLead = await this.leadRepository.findById(id);
+        return {
+            lead: updatedLead?.toJSON(),
+            customer: createdCustomer ? createdCustomer.toJSON() : null,
+            message: `Calon client '${lead.name}' berhasil disetujui dan dikonversi menjadi Pelanggan Aktif.`,
+        };
+    }
+    async rejectLead(id, dto) {
+        const lead = await this.leadRepository.findById(id);
+        if (!lead) {
+            throw new NotFoundError(`Calon client dengan ID '${id}' tidak ditemukan.`);
+        }
+        const reason = dto.reason ? ` Alasan: ${dto.reason}` : '';
+        const noteText = `Pendaftaran ditolak oleh Super Admin.${reason}`;
+        await this.leadRepository.update(id, {
+            status: 'Lost',
+        });
+        await this.leadRepository.addFollowUp(id, 'Sistem', noteText);
+        const fresh = await this.leadRepository.findById(id);
+        return {
+            lead: fresh?.toJSON(),
+            message: `Calon client '${lead.name}' telah ditolak (Status: Lost).`,
+        };
+    }
+    async deleteLead(id) {
+        const lead = await this.leadRepository.findById(id);
+        if (!lead) {
+            throw new NotFoundError(`Calon client dengan ID '${id}' tidak ditemukan.`);
+        }
+        await this.leadRepository.delete(id);
+    }
+}
+//# sourceMappingURL=LeadUseCases.js.map
