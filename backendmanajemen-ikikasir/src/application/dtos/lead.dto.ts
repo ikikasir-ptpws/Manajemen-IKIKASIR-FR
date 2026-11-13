@@ -34,6 +34,8 @@ export interface CreateLeadDto {
   paymentProofUrl?: string;
   paymentMethod?: string;
   paymentAmount?: number;
+  paymentStatus?: 'unpaid' | 'pending_verification' | 'verified' | 'rejected';
+  paymentDate?: string;
 }
 
 export interface UpdateLeadDto {

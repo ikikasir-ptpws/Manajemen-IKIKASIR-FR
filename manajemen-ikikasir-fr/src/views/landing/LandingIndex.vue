@@ -347,7 +347,7 @@ const openRegistrationModal = (pkgName?: string) => {
         </div>
 
         <!-- Right CTA Button -->
-        <!-- <div class="nav-cta-desktop flex items-center gap-3">
+        <div class="nav-cta-desktop flex items-center gap-3">
           <RouterLink
             to="/login"
             class="btn-secondary-sm flex items-center gap-1.5 font-semibold text-slate-700 hover:text-indigo-600 px-3 py-1.5 rounded-lg border border-slate-200 hover:border-indigo-300 bg-white transition-all"
@@ -362,7 +362,7 @@ const openRegistrationModal = (pkgName?: string) => {
             Mulai Langganan
             <ArrowRight class="icon-sm" />
           </button>
-        </div> -->
+        </div>
 
         <!-- Mobile Menu Toggle -->
         <button
@@ -388,23 +388,24 @@ const openRegistrationModal = (pkgName?: string) => {
         >
           {{ link.name }}
         </a>
-        <!-- <RouterLink
+        <RouterLink
           to="/login"
           @click="isMobileMenuOpen = false"
           class="btn-secondary-mobile flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border border-slate-200 font-semibold text-slate-700 bg-slate-50"
         >
           <LogIn class="w-4 h-4 text-indigo-600" />
           <span>Masuk ke Akun</span>
-        </RouterLink> -->
-        <a
-          :href="getIkiKasirWaUrl()"
-          target="_blank"
-          rel="noopener noreferrer"
-          @click="isMobileMenuOpen = false"
-          class="btn-primary-mobile"
+        </RouterLink>
+        <button
+          type="button"
+          @click="
+            isMobileMenuOpen = false;
+            openRegistrationModal();
+          "
+          class="btn-primary-mobile cursor-pointer"
         >
           Mulai Langganan
-        </a>
+        </button>
       </div>
     </nav>
 
@@ -444,15 +445,14 @@ const openRegistrationModal = (pkgName?: string) => {
           </p>
 
           <div class="hero-cta-group">
-            <a
-              :href="getIkiKasirWaUrl()"
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              type="button"
+              @click="openRegistrationModal()"
               class="btn-primary-lg cursor-pointer"
             >
               Mulai Langganan
               <ArrowRight class="icon-md" />
-            </a>
+            </button>
             <button class="btn-secondary-lg">
               <div class="play-icon-circle">
                 <Play class="icon-play" />

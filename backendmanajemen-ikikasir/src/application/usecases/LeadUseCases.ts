@@ -1,4 +1,4 @@
-import { ILeadRepository, LeadFilter, LeadStatistics } from '../../domain/interfaces/ILeadRepository.js';
+import { ILeadRepository, LeadFilter, LeadStatistics, CreateLeadData } from '../../domain/interfaces/ILeadRepository.js';
 import { ICustomerRepository } from '../../domain/interfaces/ICustomerRepository.js';
 import { IPackageRepository } from '../../domain/interfaces/IPackageRepository.js';
 import { IReferralRepository } from '../../domain/interfaces/IReferralRepository.js';
@@ -41,6 +41,9 @@ export class LeadUseCases {
         if (found) {
           return { packageId: found.id, packageName: found.name, packagePrice: found.price };
         }
+        // ID paket tidak dikenal (mis. key lokal frontend seperti "basic"),
+        // abaikan agar tidak menjadi foreign key yang invalid.
+        finalId = null;
       }
 
       // Lookup by package name if packageId not found or not given
@@ -153,13 +156,24 @@ export class LeadUseCases {
       }
     }
 
-    const leadData: CreateLeadDto = {
-      ...dto,
+    const leadData: CreateLeadData = {
+      ...(dto as unknown as CreateLeadData),
       packageId: pkgInfo.packageId ?? undefined,
       packageInterest: pkgInfo.packageName,
       estimatedDeal: estimatedDeal,
       paymentProofUrl: dto.paymentProofUrl ? saveProofFileToStorage(dto.paymentProofUrl) : undefined,
+      paymentDate: dto.paymentDate ? new Date(dto.paymentDate) : undefined,
     };
+
+    // Pendaftaran dari form publik biasanya sudah menyertakan bukti pembayaran.
+    // Status otomatis "pending_verification" agar masuk antrean verifikasi Finance.
+    if (leadData.paymentProofUrl && !leadData.paymentStatus) {
+      leadData.paymentStatus = 'pending_verification';
+    }
+    // Nominal yang ditransfer pengguna menjadi nilai deal yang tercatat.
+    if (leadData.paymentAmount && leadData.paymentAmount > 0) {
+      leadData.estimatedDeal = leadData.paymentAmount;
+    }
 
     if (refUpline) {
       leadData.referredByCustomerId = refUpline.id;

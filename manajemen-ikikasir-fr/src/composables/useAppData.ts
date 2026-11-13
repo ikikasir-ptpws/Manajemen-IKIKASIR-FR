@@ -904,11 +904,22 @@ export function useAppData() {
     referredByCustomerId?: string
     referredByCustomerName?: string
     referredByBusinessName?: string
+    // Pembayaran
+    paymentProofUrl?: string
+    paymentMethod?: string
+    paymentAmount?: number
+    paymentStatus?: 'unpaid' | 'pending_verification' | 'verified' | 'rejected'
+    paymentDate?: string
+  }, options?: {
+    /** Pakai ID dari backend (hasil create di server) alih-alih ID lokal REG-xxx */
+    id?: string
+    /** Lewati sinkronisasi ke backend (dipakai bila pemanggil sudah menyimpan ke server) */
+    skipRemoteSync?: boolean
   }) => {
     const today = getTodayFormatted()
     const nowIso = new Date().toISOString()
     const source: LeadSource = data.source || 'Website'
-    const uniqueId = 'REG-' + Date.now() + '-' + Math.floor(Math.random() * 1000)
+    const uniqueId = options?.id || 'REG-' + Date.now() + '-' + Math.floor(Math.random() * 1000)
     const selectedPackage = packages.value.find(pkg => pkg.name === data.packageInterest)
     const packagePrice = selectedPackage?.isConsultation ? 0 : (selectedPackage?.price ?? 0)
     const currentTime = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
@@ -989,6 +1000,12 @@ export function useAppData() {
       referredByCustomerId: data.referredByCustomerId || undefined,
       referredByCustomerName: data.referredByCustomerName || undefined,
       referredByBusinessName: data.referredByBusinessName || undefined,
+      // Pembayaran
+      paymentProofUrl: data.paymentProofUrl || undefined,
+      paymentStatus: data.paymentStatus || (data.paymentProofUrl ? 'pending_verification' : 'unpaid'),
+      paymentAmount: data.paymentAmount ?? packagePrice,
+      paymentMethod: data.paymentMethod || undefined,
+      paymentDate: data.paymentDate || undefined,
       followUpHistory: [
         {
           id: 'fh-' + Date.now(),
@@ -1002,6 +1019,12 @@ export function useAppData() {
 
     leads.value.unshift(newLead)
     saveStorage(STORAGE_KEY_LEADS, leads.value)
+
+    // Pemanggil (mis. form pendaftaran landing page) sudah menyimpan ke server,
+    // sehingga sinkronisasi ganda dilewati lewat opsi skipRemoteSync.
+    if (options?.skipRemoteSync) {
+      return newLead
+    }
 
     // Sync to backend in background
     leadsApi.create({
@@ -1021,7 +1044,12 @@ export function useAppData() {
       referralCode: newLead.referralCode,
       referredByCustomerId: newLead.referredByCustomerId,
       referredByCustomerName: newLead.referredByCustomerName,
-      referredByBusinessName: newLead.referredByBusinessName
+      referredByBusinessName: newLead.referredByBusinessName,
+      paymentProofUrl: newLead.paymentProofUrl,
+      paymentStatus: newLead.paymentStatus,
+      paymentAmount: newLead.paymentAmount,
+      paymentMethod: newLead.paymentMethod,
+      paymentDate: newLead.paymentDate
     }).then(res => {
       if (res.data?.id) {
         newLead.id = res.data.id
