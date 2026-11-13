@@ -348,13 +348,6 @@ const openRegistrationModal = (pkgName?: string) => {
 
         <!-- Right CTA Button -->
         <div class="nav-cta-desktop flex items-center gap-3">
-          <RouterLink
-            to="/login"
-            class="btn-secondary-sm flex items-center gap-1.5 font-semibold text-slate-700 hover:text-indigo-600 px-3 py-1.5 rounded-lg border border-slate-200 hover:border-indigo-300 bg-white transition-all"
-          >
-            <LogIn class="w-4 h-4 text-indigo-600" />
-            <span>Masuk</span>
-          </RouterLink>
           <button
             @click="openRegistrationModal()"
             class="btn-primary-sm cursor-pointer"
@@ -388,14 +381,6 @@ const openRegistrationModal = (pkgName?: string) => {
         >
           {{ link.name }}
         </a>
-        <RouterLink
-          to="/login"
-          @click="isMobileMenuOpen = false"
-          class="btn-secondary-mobile flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border border-slate-200 font-semibold text-slate-700 bg-slate-50"
-        >
-          <LogIn class="w-4 h-4 text-indigo-600" />
-          <span>Masuk ke Akun</span>
-        </RouterLink>
         <button
           type="button"
           @click="
@@ -916,12 +901,12 @@ const openRegistrationModal = (pkgName?: string) => {
             <ul class="footer-contact">
               <li>
                 <a
-                  href="https://wa.me/6289571051221"
+                  href="https://wa.me/+628132538603"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
                   <Phone class="icon-contact" />
-                  <span>0895710512221</span>
+                  <span>+628132538603</span>
                 </a>
               </li>
               <li>
