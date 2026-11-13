@@ -966,7 +966,7 @@ const openRegistrationModal = (pkgName?: string) => {
                 </svg>
               </a>
               <a
-                href="https://wa.me/6289571051221"
+                href="https://wa.me/+628132538603"
                 target="_blank"
                 rel="noopener noreferrer"
                 class="social-btn"
