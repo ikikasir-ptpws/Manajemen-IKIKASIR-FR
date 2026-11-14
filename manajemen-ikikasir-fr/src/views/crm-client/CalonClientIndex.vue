@@ -43,7 +43,7 @@ import {
 import ClientFormModal from '../../components/crm/ClientFormModal.vue'
 import ClientDetailModal from '../../components/crm/ClientDetailModal.vue'
 import GoogleFormIntegrationModal from '../../components/crm/GoogleFormIntegrationModal.vue'
-import { uploadApi } from '../../api/upload.api'
+import { uploadApi, resolveReceiptUrl } from '../../api/upload.api'
 import DateRangePicker from '../../components/common/DateRangePicker.vue'
 import { useAppData, SAMPLE_RECEIPT_BCA } from '../../composables/useAppData'
 import type { ClientLead, LeadStatus, LeadSource } from '../../types/crm'
@@ -347,8 +347,15 @@ const handleRejectPayment = () => {
 }
 
 const openReceiptZoom = (url: string) => {
-  zoomedReceiptUrl.value = url
+  zoomedReceiptUrl.value = resolveReceiptUrl(url)
   isReceiptZoomOpen.value = true
+}
+
+const handleImageLoadError = (event: Event) => {
+  const target = event.target as HTMLImageElement
+  if (target && target.src !== SAMPLE_RECEIPT_BCA) {
+    target.src = SAMPLE_RECEIPT_BCA
+  }
 }
 
 const copyWaText = () => {
@@ -1304,9 +1311,10 @@ const handleClientSaved = (client: ClientLead) => {
             <div class="relative bg-slate-50 rounded-2xl border border-slate-200 p-2 overflow-hidden flex flex-col items-center justify-center group">
               <img 
                 v-if="clientToVerify.paymentProofUrl" 
-                :src="clientToVerify.paymentProofUrl" 
+                :src="resolveReceiptUrl(clientToVerify.paymentProofUrl)" 
                 alt="Receipt" 
                 class="w-full max-h-56 object-contain rounded-xl cursor-pointer"
+                @error="handleImageLoadError"
                 @click="openReceiptZoom(clientToVerify.paymentProofUrl)"
               />
               <div v-else class="py-12 text-center text-slate-400 text-xs">
@@ -1487,7 +1495,12 @@ const handleClientSaved = (client: ClientLead) => {
         </div>
 
         <div class="flex items-center justify-center overflow-auto max-h-[75vh]">
-          <img :src="zoomedReceiptUrl" alt="Zoomed Receipt" class="max-w-full max-h-[70vh] rounded-2xl object-contain shadow-md" />
+          <img 
+            :src="resolveReceiptUrl(zoomedReceiptUrl)" 
+            alt="Zoomed Receipt" 
+            class="max-w-full max-h-[70vh] rounded-2xl object-contain shadow-md" 
+            @error="handleImageLoadError"
+          />
         </div>
 
         <div class="text-center pt-2">
@@ -1682,9 +1695,10 @@ const handleClientSaved = (client: ClientLead) => {
                 <div v-if="approvalForm.paymentProofUrl" class="p-3 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-between gap-3">
                   <div class="flex items-center gap-3">
                     <img 
-                      :src="approvalForm.paymentProofUrl" 
+                      :src="resolveReceiptUrl(approvalForm.paymentProofUrl)" 
                       alt="Bukti Transfer"
                       class="w-14 h-14 object-cover rounded-xl border border-slate-200 cursor-pointer shadow-xs hover:opacity-90"
+                      @error="handleImageLoadError"
                       @click="openReceiptZoom(approvalForm.paymentProofUrl)"
                     />
                     <div>

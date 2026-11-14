@@ -29,7 +29,8 @@ import {
   ZoomIn,
   X
 } from 'lucide-vue-next'
-import { useAppData } from '../../composables/useAppData'
+import { useAppData, SAMPLE_RECEIPT_BCA } from '../../composables/useAppData'
+import { resolveReceiptUrl } from '../../utils/storage'
 import type { ClientLead } from '../../types/crm'
 
 const { 
@@ -137,8 +138,15 @@ const openVerifyModal = (lead: ClientLead) => {
 // Zoom Image
 const zoomProof = (url?: string) => {
   if (!url) return
-  zoomedProofUrl.value = url
+  zoomedProofUrl.value = resolveReceiptUrl(url)
   isProofZoomOpen.value = true
+}
+
+const handleImageLoadError = (event: Event) => {
+  const target = event.target as HTMLImageElement
+  if (target && target.src !== SAMPLE_RECEIPT_BCA) {
+    target.src = SAMPLE_RECEIPT_BCA
+  }
 }
 
 // Confirm Payment
@@ -441,7 +449,12 @@ const openWhatsAppConfirm = () => {
                     @click="zoomProof(lead.paymentProofUrl)"
                     class="w-12 h-14 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-100 overflow-hidden relative cursor-zoom-in group/img shadow-2xs"
                   >
-                    <img :src="lead.paymentProofUrl" alt="Bukti Transfer" class="w-full h-full object-cover" />
+                    <img 
+                      :src="resolveReceiptUrl(lead.paymentProofUrl)" 
+                      alt="Bukti Transfer" 
+                      class="w-full h-full object-cover" 
+                      @error="handleImageLoadError"
+                    />
                     <div class="absolute inset-0 bg-slate-900/40 opacity-0 group-hover/img:opacity-100 flex items-center justify-center text-white transition-opacity">
                       <ZoomIn class="w-4 h-4" />
                     </div>
@@ -603,7 +616,12 @@ const openWhatsAppConfirm = () => {
                   @click="zoomProof(selectedLead.paymentProofUrl)"
                   class="w-full h-44 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 overflow-hidden cursor-zoom-in relative group flex items-center justify-center p-2"
                 >
-                  <img :src="selectedLead.paymentProofUrl" alt="Bukti Transfer" class="max-h-full max-w-full object-contain" />
+                  <img 
+                    :src="resolveReceiptUrl(selectedLead.paymentProofUrl)" 
+                    alt="Bukti Transfer" 
+                    class="max-h-full max-w-full object-contain"
+                    @error="handleImageLoadError"
+                  />
                   <div class="absolute inset-0 bg-slate-900/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white font-bold text-xs">
                     Klik untuk Memperbesar Bukti
                   </div>
@@ -785,7 +803,12 @@ const openWhatsAppConfirm = () => {
         >
           <X class="w-4 h-4" />
         </button>
-        <img :src="zoomedProofUrl" alt="Zoom Bukti Transfer" class="max-h-[85vh] w-auto mx-auto object-contain rounded-xl" />
+        <img 
+          :src="resolveReceiptUrl(zoomedProofUrl)" 
+          alt="Zoom Bukti Transfer" 
+          class="max-h-[85vh] w-auto mx-auto object-contain rounded-xl"
+          @error="handleImageLoadError"
+        />
       </div>
     </div>
 

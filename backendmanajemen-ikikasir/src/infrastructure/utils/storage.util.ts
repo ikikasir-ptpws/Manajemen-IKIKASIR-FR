@@ -9,6 +9,19 @@ if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
+// Helper untuk mendapatkan base URL storage sesuai environment (Production vs Local)
+export const getBaseStorageUrl = (): string => {
+  const envUrl = process.env.BASE_URL || process.env.API_URL || config.baseUrl;
+  if (envUrl) {
+    return envUrl.replace(/\/api\/?$/, '').replace(/\/+$/, '');
+  }
+  if (config.nodeEnv === 'production') {
+    return 'https://api.ikikasir.com';
+  }
+  const port = config.port || 5000;
+  return `http://localhost:${port}`;
+};
+
 // Buat berkas default receipt jika belum ada agar selalu ada gambar fallback dari storage
 export const ensureDefaultReceipt = (): string => {
   const defaultPath = path.join(uploadDir, 'default-receipt.svg');
@@ -34,8 +47,8 @@ export const ensureDefaultReceipt = (): string => {
 </svg>`;
     fs.writeFileSync(defaultPath, svgContent, 'utf8');
   }
-  const port = config.port || 5000;
-  return `http://localhost:${port}/uploads/receipts/default-receipt.svg`;
+  const baseUrl = getBaseStorageUrl();
+  return `${baseUrl}/uploads/receipts/default-receipt.svg`;
 };
 
 export const saveProofFileToStorage = (proof?: string | null): string => {
@@ -49,8 +62,11 @@ export const saveProofFileToStorage = (proof?: string | null): string => {
   if (trimmed.startsWith('/uploads/') || trimmed.includes('/uploads/')) {
     // Jika relative path, jadikan full URL
     if (trimmed.startsWith('/uploads/')) {
-      const port = config.port || 5000;
-      return `http://localhost:${port}${trimmed}`;
+      return `${getBaseStorageUrl()}${trimmed}`;
+    }
+    // Jika masih localhost di production, ubah ke host production
+    if (config.nodeEnv === 'production' && (trimmed.includes('localhost:') || trimmed.includes('127.0.0.1:'))) {
+      return trimmed.replace(/^https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?/, getBaseStorageUrl());
     }
     return trimmed;
   }
@@ -68,8 +84,7 @@ export const saveProofFileToStorage = (proof?: string | null): string => {
         const filename = `proof-${Date.now()}-${Math.round(Math.random() * 1e9)}.svg`;
         const targetPath = path.join(uploadDir, filename);
         fs.writeFileSync(targetPath, svgContent, 'utf8');
-        const port = config.port || 5000;
-        return `http://localhost:${port}/uploads/receipts/${filename}`;
+        return `${getBaseStorageUrl()}/uploads/receipts/${filename}`;
       }
 
       const matches = trimmed.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
@@ -90,8 +105,7 @@ export const saveProofFileToStorage = (proof?: string | null): string => {
       const targetPath = path.join(uploadDir, filename);
       fs.writeFileSync(targetPath, buffer);
 
-      const port = config.port || 5000;
-      return `http://localhost:${port}/uploads/receipts/${filename}`;
+      return `${getBaseStorageUrl()}/uploads/receipts/${filename}`;
     } catch (err) {
       console.warn('⚠️ Gagal menyimpan bukti bayar base64 ke disk storage:', err);
       return ensureDefaultReceipt();
@@ -100,6 +114,9 @@ export const saveProofFileToStorage = (proof?: string | null): string => {
 
   // Jika URL web biasa
   if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    if (config.nodeEnv === 'production' && (trimmed.includes('localhost:') || trimmed.includes('127.0.0.1:'))) {
+      return trimmed.replace(/^https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?/, getBaseStorageUrl());
+    }
     return trimmed;
   }
 

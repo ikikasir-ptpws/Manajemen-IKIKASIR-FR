@@ -1,4 +1,5 @@
 import { httpClient } from './httpClient'
+export { resolveReceiptUrl } from '../utils/storage'
 
 export interface UploadResponseData {
   url: string

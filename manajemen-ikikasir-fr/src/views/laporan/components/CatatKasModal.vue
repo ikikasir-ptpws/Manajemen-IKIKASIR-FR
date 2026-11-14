@@ -20,7 +20,7 @@ import {
   Eye,
   Trash2
 } from 'lucide-vue-next'
-import { uploadApi } from '../../../api'
+import { uploadApi, resolveReceiptUrl } from '../../../api'
 import { SAMPLE_RECEIPT_BCA, SAMPLE_RECEIPT_QRIS } from '../../../composables/useAppData'
 
 const props = defineProps<{
@@ -149,6 +149,13 @@ const removePaymentProof = () => {
   form.value.paymentProofFileName = ''
   uploadError.value = null
   if (fileInputRef.value) fileInputRef.value.value = ''
+}
+
+const handleImageLoadError = (event: Event) => {
+  const target = event.target as HTMLImageElement
+  if (target && target.src !== SAMPLE_RECEIPT_BCA) {
+    target.src = SAMPLE_RECEIPT_BCA
+  }
 }
 
 // Quick preset chips
@@ -569,9 +576,10 @@ const handleSubmit = () => {
           >
             <div class="flex items-center gap-2.5 min-w-0">
               <img 
-                :src="form.paymentProofUrl" 
+                :src="resolveReceiptUrl(form.paymentProofUrl)" 
                 alt="Bukti Transaksi" 
                 class="w-10 h-10 object-cover rounded-xl border border-slate-200 shrink-0 cursor-pointer shadow-2xs"
+                @error="handleImageLoadError"
                 @click="isReceiptZoomOpen = true"
               />
               <div class="min-w-0">
@@ -650,7 +658,12 @@ const handleSubmit = () => {
           </button>
         </div>
         <div class="max-h-[70vh] overflow-auto flex items-center justify-center bg-slate-50 rounded-xl p-2 border border-slate-100">
-          <img :src="form.paymentProofUrl" alt="Zoom Bukti Transaksi" class="max-h-[65vh] w-auto object-contain rounded-lg shadow-xs" />
+          <img 
+            :src="resolveReceiptUrl(form.paymentProofUrl)" 
+            alt="Zoom Bukti Transaksi" 
+            class="max-h-[65vh] w-auto object-contain rounded-lg shadow-xs" 
+            @error="handleImageLoadError"
+          />
         </div>
         <div class="flex justify-end pt-1">
           <button 

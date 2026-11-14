@@ -31,6 +31,7 @@ import {
   AlertCircle
 } from 'lucide-vue-next'
 import { cashflowApi, type CashTransactionItem, type CashFlowSummary } from '../../api'
+import { resolveReceiptUrl } from '../../utils/storage'
 import { usePagination } from '../../composables/usePagination'
 import GlobalPagination from '../../components/common/GlobalPagination.vue'
 import CatatKasModal from './components/CatatKasModal.vue'
@@ -243,7 +244,7 @@ const closeDetailModal = () => {
 
 const openReceiptZoom = (url?: string) => {
   if (!url) return
-  selectedReceiptUrl.value = url
+  selectedReceiptUrl.value = resolveReceiptUrl(url)
   isReceiptZoomOpen.value = true
 }
 
@@ -951,7 +952,7 @@ const handleExport = () => {
                 class="group relative rounded-2xl overflow-hidden border border-slate-200 bg-slate-900 cursor-pointer max-h-48 flex items-center justify-center"
               >
                 <img 
-                  :src="selectedDetail.paymentProofUrl" 
+                  :src="resolveReceiptUrl(selectedDetail.paymentProofUrl)" 
                   alt="Bukti Struk" 
                   class="max-h-48 object-contain transition-transform duration-300 group-hover:scale-105"
                 />
@@ -1004,7 +1005,7 @@ const handleExport = () => {
           </div>
           <div class="p-4 bg-slate-900 flex items-center justify-center min-h-[260px] max-h-[70vh] overflow-auto">
             <img 
-              :src="selectedReceiptUrl" 
+              :src="resolveReceiptUrl(selectedReceiptUrl)" 
               alt="Bukti Transfer"
               class="max-w-full max-h-[65vh] object-contain rounded-xl shadow-lg border border-slate-800"
             />

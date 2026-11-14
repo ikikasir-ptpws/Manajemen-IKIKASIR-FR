@@ -15,6 +15,7 @@ import {
 } from 'lucide-vue-next'
 import type { Customer, PackageType } from '../../types/dashboard'
 import { customersApi, uploadApi } from '../../api'
+import { resolveReceiptUrl } from '../../utils/storage'
 import { 
   useAppData, 
   getPackageDurationMonths,
@@ -197,6 +198,13 @@ const removePaymentProof = () => {
   formData.value.paymentProofUrl = ''
   formData.value.paymentProofFileName = ''
   if (fileInputRef.value) fileInputRef.value.value = ''
+}
+
+const handleImageLoadError = (event: Event) => {
+  const target = event.target as HTMLImageElement
+  if (target && target.src !== SAMPLE_RECEIPT_BCA) {
+    target.src = SAMPLE_RECEIPT_BCA
+  }
 }
 
 const handleSubmit = () => {
@@ -668,9 +676,10 @@ const handleSubmit = () => {
               >
                 <div class="flex items-center gap-2.5 min-w-0">
                   <img 
-                    :src="formData.paymentProofUrl" 
+                    :src="resolveReceiptUrl(formData.paymentProofUrl)" 
                     alt="Bukti Transfer" 
                     class="w-9 h-9 object-cover rounded-lg border border-slate-200 shrink-0 cursor-pointer"
+                    @error="handleImageLoadError"
                     @click="isReceiptZoomOpen = true"
                   />
                   <div class="min-w-0">
@@ -778,7 +787,12 @@ const handleSubmit = () => {
           </div>
 
           <div class="flex items-center justify-center max-h-[70vh] overflow-auto">
-            <img :src="formData.paymentProofUrl" alt="Bukti Transfer" class="max-w-full max-h-[65vh] rounded-xl object-contain" />
+            <img 
+              :src="resolveReceiptUrl(formData.paymentProofUrl)" 
+              alt="Bukti Transfer" 
+              class="max-w-full max-h-[65vh] rounded-xl object-contain"
+              @error="handleImageLoadError"
+            />
           </div>
 
           <div class="text-right pt-1">

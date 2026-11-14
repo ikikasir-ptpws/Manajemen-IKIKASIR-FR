@@ -9,6 +9,7 @@ dotenv.config();
 export const config = {
   port: parseInt(process.env.PORT || '5000', 10),
   nodeEnv: process.env.NODE_ENV || 'development',
+  baseUrl: process.env.BASE_URL || process.env.API_URL || (process.env.NODE_ENV === 'production' ? 'https://api.ikikasir.com' : `http://localhost:${process.env.PORT || '5000'}`),
   databaseUrl: process.env.DATABASE_URL || 'postgresql://postgres:alfan123@localhost:5432/db_ikikasir?schema=public',
   jwt: {
     secret: process.env.JWT_SECRET || 'ikikasir_jwt_secret_key_superadmin_sales_2026_safe',

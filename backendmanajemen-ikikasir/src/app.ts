@@ -48,6 +48,7 @@ function getAllowedOrigins(): string[] {
 
 export function createApp(): Application {
   const app = express();
+  app.set('trust proxy', 1);
   const allowedOrigins = getAllowedOrigins();
 
   // Middleware Keamanan & Parser
@@ -79,7 +80,16 @@ export function createApp(): Application {
   if (!fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir, { recursive: true });
   }
-  app.use('/uploads', express.static(uploadsDir));
+  app.use(
+    '/uploads',
+    (_req, res, next) => {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+      res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+      next();
+    },
+    express.static(uploadsDir)
+  );
 
   // Endpoint Health Check
   app.get('/api/health', (_req: Request, res: Response) => {

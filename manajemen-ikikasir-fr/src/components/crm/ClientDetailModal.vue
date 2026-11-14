@@ -27,6 +27,8 @@ import {
   ExternalLink
 } from 'lucide-vue-next'
 import type { ClientLead, LeadStatus } from '../../types/crm'
+import { resolveReceiptUrl } from '../../utils/storage'
+import { SAMPLE_RECEIPT_BCA } from '../../composables/useAppData'
 
 const props = defineProps<{
   client: ClientLead | null
@@ -45,6 +47,13 @@ const newNote = ref('')
 const newChannel = ref<'WhatsApp' | 'Telepon' | 'Meeting' | 'Sistem'>('WhatsApp')
 const isReceiptZoomOpen = ref(false)
 const copiedField = ref<string | null>(null)
+
+const handleImageLoadError = (event: Event) => {
+  const target = event.target as HTMLImageElement
+  if (target && target.src !== SAMPLE_RECEIPT_BCA) {
+    target.src = SAMPLE_RECEIPT_BCA
+  }
+}
 
 const copyToClipboard = (text: string, fieldName: string) => {
   if (!text) return
@@ -595,7 +604,12 @@ const handleSaveFollowUp = () => {
           </div>
 
           <div class="flex items-center justify-center overflow-auto max-h-[75vh]">
-            <img :src="client.paymentProofUrl" alt="Bukti Transfer" class="max-w-full max-h-[70vh] rounded-2xl object-contain shadow-md" />
+            <img 
+              :src="resolveReceiptUrl(client.paymentProofUrl)" 
+              alt="Bukti Transfer" 
+              class="max-w-full max-h-[70vh] rounded-2xl object-contain shadow-md"
+              @error="handleImageLoadError"
+            />
           </div>
 
           <div class="text-center pt-2">

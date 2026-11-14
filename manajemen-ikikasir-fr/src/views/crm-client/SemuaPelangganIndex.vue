@@ -56,6 +56,7 @@ import {
   getOrCreateCustomerReferralCode 
 } from '../../composables/useAppData'
 import { customersApi, leadsApi } from '../../api'
+import { resolveReceiptUrl } from '../../utils/storage'
 
 const { 
   customers, 
@@ -257,8 +258,15 @@ const isReceiptZoomOpen = ref(false)
 const zoomedReceiptUrl = ref<string | null>(null)
 
 const openReceiptZoom = (url: string) => {
-  zoomedReceiptUrl.value = url
+  zoomedReceiptUrl.value = resolveReceiptUrl(url)
   isReceiptZoomOpen.value = true
+}
+
+const handleImageLoadError = (event: Event) => {
+  const target = event.target as HTMLImageElement
+  if (target && target.src !== SAMPLE_RECEIPT_BCA) {
+    target.src = SAMPLE_RECEIPT_BCA
+  }
 }
 
 const copyToClipboard = (text: string, fieldName: string) => {
@@ -293,12 +301,7 @@ const getAssociatedInvoices = (cust: any) => {
 }
 
 const formatStorageUrl = (url?: string): string => {
-  if (!url) return ''
-  if (url.startsWith('/uploads/')) {
-    const baseUrl = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000'
-    return `${baseUrl}${url}`
-  }
-  return url
+  return resolveReceiptUrl(url)
 }
 
 const getCustomerPaymentProof = (cust: any) => {
@@ -2406,7 +2409,12 @@ const openAgreementPreview = (user?: any) => {
           </div>
 
           <div class="flex items-center justify-center overflow-auto max-h-[75vh]">
-            <img :src="zoomedReceiptUrl" alt="Zoomed Receipt" class="max-w-full max-h-[70vh] rounded-2xl object-contain shadow-md" />
+            <img 
+              :src="resolveReceiptUrl(zoomedReceiptUrl)" 
+              alt="Zoomed Receipt" 
+              class="max-w-full max-h-[70vh] rounded-2xl object-contain shadow-md"
+              @error="handleImageLoadError"
+            />
           </div>
 
           <div class="text-center pt-2">
