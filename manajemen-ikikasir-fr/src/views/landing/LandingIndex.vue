@@ -47,6 +47,32 @@ import phoneMockup from "../../images/phone-mockup.png";
 
 const isMobileMenuOpen = ref(false);
 const activeTab = ref("Beranda");
+const isFeaturesExpanded = ref(false);
+
+const toggleFeaturesExpanded = () => {
+  isFeaturesExpanded.value = !isFeaturesExpanded.value;
+  if (!isFeaturesExpanded.value) {
+    const el = document.getElementById("fitur");
+    if (el) {
+      if (lenis) {
+        lenis.scrollTo(el, { offset: -80, duration: 1.2 });
+      } else {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }
+  } else {
+    setTimeout(() => {
+      const el = document.querySelector(".features-expanded-container");
+      if (el) {
+        if (lenis) {
+          lenis.scrollTo(el, { offset: -70, duration: 1.0 });
+        } else {
+          el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }
+      }
+    }, 180);
+  }
+};
 
 const openFaqIndex = ref<number | null>(0);
 
@@ -86,7 +112,7 @@ const faqs = [
     question:
       "Bagaimana cara menghubungi tim bantuan pelanggan (Customer Support)?",
     answer:
-      "Tim Customer Support IKI KASIR siap melayani Anda 24/7. Anda dapat menghubungi kami melalui Live Chat WhatsApp, Email cs@ikikasir.id, maupun nomor telepon yang tersedia.",
+      "Tim Customer Support IKI KASIR siap melayani Anda 24/7. Anda dapat menghubungi kami melalui Live Chat WhatsApp, Email cs @ikikasir.id@gmail.com, maupun nomor telepon yang tersedia.",
   },
 ];
 
@@ -135,8 +161,8 @@ function observeRevealElements() {
 function initScrollObserver() {
   const options = {
     root: null,
-    rootMargin: "0px 0px 50px 0px",
-    threshold: 0.05,
+    rootMargin: "0px 0px 200px 0px",
+    threshold: 0.01,
   };
 
   observer = new IntersectionObserver((entries) => {
@@ -290,6 +316,57 @@ const rightFeatures = [
     icon: ShoppingBag,
     iconBg: "#fae8ff",
     iconColor: "#c026d3",
+  },
+];
+
+const detailedFeatures = [
+  {
+    title: "Sistem Kasir Kilat & Mode Offline",
+    desc: "Transaksi checkout kilat dalam hitungan detik. Tetap aktif melayani dan mencetak struk saat internet padam; data otomatis tersinkron saat online kembali.",
+    icon: Zap,
+    iconBg: "#eff6ff",
+    iconColor: "#2563eb",
+    tag: "Kecepatan Tinggi",
+  },
+  {
+    title: "Manajemen Stok Otomatis",
+    desc: "Katalog multi-varian (rasa, ukuran, warna) & harga grosir. Stok berkurang otomatis per transaksi dan disertai notifikasi dini sebelum stok menipis.",
+    icon: Boxes,
+    iconBg: "#fef3c7",
+    iconColor: "#d97706",
+    tag: "Stok Presisi",
+  },
+  {
+    title: "Multi-Pembayaran QRIS & Struk WA",
+    desc: "Terima Tunai, QRIS semua e-wallet & kartu debit. Cetak struk via printer thermal Bluetooth atau kirim nota digital langsung ke WhatsApp pelanggan.",
+    icon: Calculator,
+    iconBg: "#ecfdf5",
+    iconColor: "#059669",
+    tag: "Multi Pembayaran",
+  },
+  {
+    title: "Antrean Pesanan & Manajemen Meja",
+    desc: "Sangat optimal untuk kafe & kuliner. Kelola pesanan dine-in, takeaway, nomor meja, hingga pengiriman tiket order dapur agar pesanan rapi tertib.",
+    icon: Users,
+    iconBg: "#f5f3ff",
+    iconColor: "#7c3aed",
+    tag: "Solusi F&B",
+  },
+  {
+    title: "Laporan Finansial & Analitik Real-Time",
+    desc: "Pantau omzet harian, grafik keuntungan bersih, produk terlaris (best-seller), hingga jam tersibuk secara instan, siap diekspor ke Excel / PDF.",
+    icon: BarChart3,
+    iconBg: "#f0fdf4",
+    iconColor: "#16a34a",
+    tag: "Analitik Bisnis",
+  },
+  {
+    title: "Multi-Kasir & Keamanan Cloud",
+    desc: "Atur hak akses terpisah antara staf kasir dan pemilik toko. Seluruh data transaksi dienkripsi dan dicadangkan otomatis di server cloud terpercaya.",
+    icon: ShieldCheck,
+    iconBg: "#e0f2fe",
+    iconColor: "#0284c7",
+    tag: "Keamanan Cloud",
   },
 ];
 
@@ -473,7 +550,7 @@ const openRegistrationModal = (pkgName?: string) => {
     <!-- About Section (Tentang Kami) -->
     <section id="tentang" class="about-section">
       <div class="about-inner">
-        <div class="about-header text-center reveal-up">
+        <div class="about-header text-center">
           <div class="section-badge">Tentang Kami</div>
           <h2 class="section-title">
             Memberdayakan UMKM dengan<br />
@@ -583,9 +660,17 @@ const openRegistrationModal = (pkgName?: string) => {
             usaha, mulai dari kafe, toko retail, hingga bisnis kuliner.
           </p>
 
-          <button class="btn-secondary-md">
-            Pelajari Lebih Lanjut
-            <ArrowRight class="icon-sm" />
+          <button
+            type="button"
+            class="btn-secondary-md btn-learn-more"
+            :class="{ 'is-active': isFeaturesExpanded }"
+            @click="toggleFeaturesExpanded"
+          >
+            <span>{{ isFeaturesExpanded ? 'Sembunyikan Sebagian' : 'Pelajari Lebih Lanjut' }}</span>
+            <ChevronDown
+              class="icon-sm btn-learn-icon"
+              :class="{ 'rotate-180': isFeaturesExpanded }"
+            />
           </button>
         </div>
 
@@ -666,6 +751,76 @@ const openRegistrationModal = (pkgName?: string) => {
                   <span class="mini-card-label">{{ feat.name }}</span>
                   <span class="mini-card-desc">{{ feat.desc }}</span>
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Full-Width Expandable Detail Section -->
+      <div
+        class="features-expanded-container"
+        :class="{ 'is-expanded': isFeaturesExpanded }"
+      >
+        <div class="features-expanded-wrapper">
+          <div class="features-expanded-inner">
+            <div class="features-expanded-content">
+              <!-- Top Context Banner -->
+              <div class="features-deep-intro">
+                <div class="deep-intro-badge">
+                  <Sparkles class="icon-xs" /> Rincian Solusi Lengkap
+                </div>
+                <p>
+                  Dirancang dari kebutuhan operasional nyata UMKM: <strong>IKI KASIR</strong> menyatukan kemudahan transaksi kasir fisik dengan kekuatan cloud pintar untuk memangkas waktu kerja manual dan memaksimalkan laba bisnis Anda.
+                </p>
+              </div>
+
+              <!-- 3-Column Detailed Feature Grid -->
+              <div class="detailed-features-grid">
+                <div
+                  v-for="(item, index) in detailedFeatures"
+                  :key="index"
+                  class="detailed-feature-card"
+                  :style="{ '--item-index': index }"
+                >
+                  <div class="card-top-row">
+                    <div
+                      class="detailed-feature-icon"
+                      :style="{
+                        backgroundColor: item.iconBg,
+                        color: item.iconColor,
+                      }"
+                    >
+                      <component :is="item.icon" class="icon-sm" />
+                    </div>
+                    <span class="detailed-feature-tag">{{ item.tag }}</span>
+                  </div>
+                  <h4 class="detailed-feature-title">{{ item.title }}</h4>
+                  <p class="detailed-feature-desc">{{ item.desc }}</p>
+                </div>
+              </div>
+
+              <!-- Bottom Summary Callout -->
+              <div class="features-value-callout">
+                <div class="callout-left">
+                  <div class="value-callout-icon">
+                    <CheckCircle2 class="icon-sm" />
+                  </div>
+                  <div class="value-callout-text">
+                    <strong>Tingkatkan Efisiensi Bisnis Hingga 3x Lipat</strong>
+                    <span>
+                      Hemat hingga 2 jam pembukuan per hari, hilangkan risiko selisih kas & stok, dan ambil keputusan bisnis lebih tepat dengan data penjualan akurat.
+                    </span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  class="btn-collapse-bottom"
+                  @click="toggleFeaturesExpanded"
+                >
+                  Tutup Rincian
+                  <ChevronDown class="icon-xs rotate-180" />
+                </button>
               </div>
             </div>
           </div>
@@ -857,7 +1012,7 @@ const openRegistrationModal = (pkgName?: string) => {
               </p>
             </div>
             <a
-              href="https://wa.me/6289571051221?text=Halo%20tim%20IKI%20KASIR,%20saya%20ingin%20konsultasi%20mengenai%20aplikasi%20kasir"
+              href="https://wa.me/+628132538603?text=Halo%20tim%20IKI%20KASIR,%20saya%20ingin%20konsultasi%20mengenai%20aplikasi%20kasir"
               target="_blank"
               class="btn-primary-sm cursor-pointer"
             >
@@ -929,7 +1084,7 @@ const openRegistrationModal = (pkgName?: string) => {
             <h4 class="col-title">Ikuti Kami</h4>
             <div class="social-icons">
               <a
-                href="https://www.instagram.com/iki_kasir?stkn=d242OG96YnRrdmN1"
+                href="https://www.instagram.com/ikikasir.id/"
                 target="_blank"
                 rel="noopener noreferrer"
                 class="social-btn"
@@ -938,7 +1093,7 @@ const openRegistrationModal = (pkgName?: string) => {
                 <Instagram class="icon-sm" />
               </a>
               <a
-                href="https://www.tiktok.com/@ptpws.id?_r=1&_t=ZS-9A6IAEMGN0O"
+                href="https://www.tiktok.com/@iki.kasir5?_r=1&_t=ZS-9BO60I3TCJs"
                 target="_blank"
                 rel="noopener noreferrer"
                 class="social-btn"
@@ -1167,10 +1322,11 @@ const openRegistrationModal = (pkgName?: string) => {
 .hero-section {
   position: relative;
   width: 100%;
-  min-height: 100vh;
+  min-height: calc(100vh - 60px);
+  max-height: 840px;
   background-color: #eaf3fd;
   padding-top: 100px;
-  padding-bottom: 40px;
+  padding-bottom: 2.5rem;
   overflow: hidden;
   display: flex;
   align-items: center;
@@ -1591,7 +1747,7 @@ const openRegistrationModal = (pkgName?: string) => {
 /* Features Section */
 .features-section {
   background-color: #f8fafc;
-  padding: 5rem 0;
+  padding: 3.75rem 0;
   position: relative;
 }
 .features-inner {
@@ -1631,7 +1787,7 @@ const openRegistrationModal = (pkgName?: string) => {
   font-size: 1rem;
   color: #475569;
   line-height: 1.7;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
 }
 .btn-secondary-md {
   background: #ffffff;
@@ -1645,6 +1801,242 @@ const openRegistrationModal = (pkgName?: string) => {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+/* Button Learn More Enhancements & Effects */
+.btn-learn-more {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.08);
+}
+.btn-learn-more:hover {
+  background: #f0f7ff;
+  border-color: #2563eb;
+  color: #1d4ed8;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px -2px rgba(37, 99, 235, 0.2);
+}
+.btn-learn-more:active {
+  transform: scale(0.96) translateY(0);
+}
+.btn-learn-more.is-active {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border-color: #2563eb;
+  color: #1d4ed8;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.15);
+}
+.btn-learn-icon {
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.btn-learn-icon.rotate-180 {
+  transform: rotate(180deg);
+}
+
+/* Full-Width Expandable Detail Section */
+.features-expanded-container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+.features-expanded-wrapper {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition:
+    grid-template-rows 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 0.35s ease;
+  opacity: 0;
+}
+.features-expanded-container.is-expanded .features-expanded-wrapper {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+.features-expanded-inner {
+  overflow: hidden;
+}
+.features-expanded-content {
+  padding-top: 2.25rem;
+  border-top: 1px solid #e2e8f0;
+  margin-top: 2rem;
+}
+
+/* Deep Intro Banner */
+.features-deep-intro {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-left: 4px solid #2563eb;
+  border-radius: 0.875rem;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.deep-intro-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: #eff6ff;
+  color: #2563eb;
+  padding: 0.3rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.features-deep-intro p {
+  font-size: 0.9rem;
+  color: #475569;
+  line-height: 1.6;
+  margin: 0;
+}
+.features-deep-intro strong {
+  color: #0f172a;
+}
+
+/* 3-Column Detailed Feature Grid */
+.detailed-features-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+.detailed-feature-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 1rem;
+  padding: 1.25rem;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+.features-expanded-container.is-expanded .detailed-feature-card {
+  animation: featureCardFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--item-index, 0) * 0.05s);
+}
+@keyframes featureCardFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.detailed-feature-card:hover {
+  transform: translateY(-3px);
+  border-color: #93c5fd;
+  box-shadow: 0 10px 24px -4px rgba(37, 99, 235, 0.12);
+}
+.card-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.875rem;
+}
+.detailed-feature-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+.detailed-feature-tag {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: #2563eb;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  padding: 0.2rem 0.6rem;
+  border-radius: 9999px;
+  white-space: nowrap;
+}
+.detailed-feature-title {
+  font-size: 0.975rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 0.45rem 0;
+}
+.detailed-feature-desc {
+  font-size: 0.85rem;
+  color: #64748b;
+  line-height: 1.55;
+  margin: 0;
+}
+
+/* Extra Value Callout Box */
+.features-value-callout {
+  background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%);
+  border: 1.5px dashed #93c5fd;
+  border-radius: 1rem;
+  padding: 1rem 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem;
+  text-align: left;
+}
+.callout-left {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+}
+.value-callout-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 0.75rem;
+  background: #2563eb;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.25);
+}
+.value-callout-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+.value-callout-text strong {
+  font-size: 0.9rem;
+  color: #1e3a8a;
+}
+.value-callout-text span {
+  font-size: 0.825rem;
+  color: #475569;
+  line-height: 1.5;
+}
+.btn-collapse-bottom {
+  background: #ffffff;
+  border: 1px solid #bfdbfe;
+  color: #2563eb;
+  padding: 0.5rem 1rem;
+  border-radius: 9999px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.08);
+}
+.btn-collapse-bottom:hover {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+  transform: translateY(-1px);
 }
 
 /* Features Right Column (Phone Mockup Grid) */
@@ -2539,7 +2931,7 @@ const openRegistrationModal = (pkgName?: string) => {
    ABOUT SECTION (Tentang Kami)
    ───────────────────────────────────────────── */
 .about-section {
-  padding: 6rem 0;
+  padding: 3.5rem 0 3.75rem;
   background-color: #ffffff;
   position: relative;
   border-bottom: 1px solid #f1f5f9;
@@ -2551,19 +2943,19 @@ const openRegistrationModal = (pkgName?: string) => {
 }
 .about-header {
   max-width: 720px;
-  margin: 0 auto 3.5rem;
+  margin: 0 auto 2rem;
 }
 .about-subtitle {
-  font-size: 1.05rem;
+  font-size: 1rem;
   color: #475569;
-  line-height: 1.7;
-  margin-top: 1rem;
+  line-height: 1.65;
+  margin-top: 0.75rem;
 }
 .about-stats-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 1.5rem;
-  margin-bottom: 3.5rem;
+  gap: 1.25rem;
+  margin-bottom: 2.25rem;
 }
 .stat-card {
   background: #f8fafc;
@@ -3100,6 +3492,17 @@ const openRegistrationModal = (pkgName?: string) => {
   .features-grid-wrapper {
     grid-template-columns: 1fr;
   }
+  .btn-learn-more {
+    margin: 0 auto;
+  }
+  .detailed-features-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .features-deep-intro {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.6rem;
+  }
   .footer-grid {
     grid-template-columns: 1fr 1fr;
   }
@@ -3152,6 +3555,17 @@ const openRegistrationModal = (pkgName?: string) => {
     flex-direction: column;
     text-align: center;
     gap: 1rem;
+  }
+  .detailed-features-grid {
+    grid-template-columns: 1fr;
+  }
+  .features-value-callout {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+  .btn-collapse-bottom {
+    justify-content: center;
   }
 }
 </style>
