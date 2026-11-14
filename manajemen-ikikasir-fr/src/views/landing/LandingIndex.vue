@@ -52,23 +52,17 @@ const isFeaturesExpanded = ref(false);
 const toggleFeaturesExpanded = () => {
   isFeaturesExpanded.value = !isFeaturesExpanded.value;
   if (!isFeaturesExpanded.value) {
-    const el = document.getElementById("fitur");
-    if (el) {
-      if (lenis) {
-        lenis.scrollTo(el, { offset: -80, duration: 1.2 });
-      } else {
-        el.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
+    if (lenis) {
+      lenis.scrollTo("#fitur", { offset: -80, duration: 1.2 });
+    } else {
+      document.getElementById("fitur")?.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   } else {
     setTimeout(() => {
-      const el = document.querySelector(".features-expanded-container");
-      if (el) {
-        if (lenis) {
-          lenis.scrollTo(el, { offset: -70, duration: 1.0 });
-        } else {
-          el.scrollIntoView({ behavior: "smooth", block: "nearest" });
-        }
+      if (lenis) {
+        lenis.scrollTo(".features-expanded-container", { offset: -70, duration: 1.0 });
+      } else {
+        document.querySelector(".features-expanded-container")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
       }
     }, 180);
   }
