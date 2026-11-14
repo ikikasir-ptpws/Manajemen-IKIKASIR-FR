@@ -20,7 +20,7 @@ import {
   approveLeadSchema,
   rejectLeadSchema,
 } from '../validations/lead.validation.js';
-import { authenticate, authorizeRoles } from '../middlewares/auth.middleware.js';
+import { authenticate, authorizeRoles, denySalesCrmAccess } from '../middlewares/auth.middleware.js';
 
 const router = Router();
 
@@ -34,8 +34,8 @@ router.post(
   create
 );
 
-// Rute di bawah ini memerlukan login autentikasi Admin / Super Admin / Sales
-router.use(authenticate);
+// Rute CRM yang memerlukan login tidak tersedia untuk Sales.
+router.use(authenticate, denySalesCrmAccess);
 
 /**
  * Route: Mengambil metrik statistik calon client
@@ -61,7 +61,7 @@ router.get('/:id', getById);
  */
 router.put(
   '/:id',
-  authorizeRoles('SUPERADMIN', 'Super Admin', 'ADMIN', 'Admin', 'SALES', 'Sales'),
+  authorizeRoles('SUPERADMIN', 'Super Admin', 'ADMIN', 'Admin'),
   validateBody(updateLeadSchema),
   update
 );
@@ -72,7 +72,7 @@ router.put(
  */
 router.patch(
   '/:id/status',
-  authorizeRoles('SUPERADMIN', 'Super Admin', 'ADMIN', 'Admin', 'SALES', 'Sales'),
+  authorizeRoles('SUPERADMIN', 'Super Admin', 'ADMIN', 'Admin'),
   validateBody(updateLeadStatusSchema),
   updateStatus
 );
@@ -83,7 +83,7 @@ router.patch(
  */
 router.post(
   '/:id/follow-up',
-  authorizeRoles('SUPERADMIN', 'Super Admin', 'ADMIN', 'Admin', 'SALES', 'Sales'),
+  authorizeRoles('SUPERADMIN', 'Super Admin', 'ADMIN', 'Admin'),
   validateBody(addFollowUpSchema),
   addFollowUp
 );

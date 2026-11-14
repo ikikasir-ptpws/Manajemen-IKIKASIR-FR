@@ -1,5 +1,6 @@
 import { computed, ref } from 'vue'
 import { leadsApi, type CreateLeadPayload, type LeadItem } from '../api'
+import { salesApi } from '../api/sales.api'
 import { useAppData } from './useAppData'
 
 export type PaymentMethodOption = 'QRIS' | 'Transfer Bank' | 'Virtual Account'
@@ -216,6 +217,23 @@ export function usePendaftaranLangganan() {
     if (!validateForm(form, proofData)) {
       submitError.value = '⚠️ Harap lengkapi kolom wajib sebelum mengirim.'
       return null
+    }
+
+    const referralCode = form.referralCode.trim().toUpperCase()
+    if (referralCode.startsWith('SALES-')) {
+      try {
+        const validation = await salesApi.validateReferralCode(referralCode)
+        if (!validation.data.valid) {
+          errors.value.referralCode = validation.data.message
+          submitError.value = validation.data.message
+          return null
+        }
+      } catch (err: any) {
+        const message = err?.message || 'Kode referral sales gagal divalidasi. Silakan coba lagi.'
+        errors.value.referralCode = message
+        submitError.value = message
+        return null
+      }
     }
 
     isSubmitting.value = true

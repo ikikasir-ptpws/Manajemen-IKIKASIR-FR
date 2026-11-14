@@ -20,6 +20,17 @@ export const createUserSchema = z.object({
   roleId: z.string().trim().optional(),
   status: z.enum(['Active', 'Inactive']).optional(),
   phone: z.string().trim().optional().nullable(),
+}).superRefine((data, ctx) => {
+  if (!['sales', 'seles'].includes(data.role.trim().toLowerCase())) return;
+
+  const digits = (data.phone || '').replace(/\D/g, '');
+  if (digits.length < 8 || digits.length > 15) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['phone'],
+      message: 'Nomor WhatsApp Sales wajib diisi dengan 8–15 digit.',
+    });
+  }
 });
 
 export const updateUserSchema = z.object({

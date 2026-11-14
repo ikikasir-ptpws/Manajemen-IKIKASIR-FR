@@ -15,6 +15,9 @@ import { Lead, LeadFollowUp } from '../../domain/entities/Lead.js';
 import { saveProofFileToStorage } from '../../infrastructure/utils/storage.util.js';
 import { PrismaCashTransactionRepository } from '../../repositories/PrismaCashTransactionRepository.js';
 import { ReferralUseCases } from './ReferralUseCases.js';
+import { SalesUseCases, SALES_REFERRAL_CODE_PREFIX } from './SalesUseCases.js';
+
+const salesUseCases = new SalesUseCases();
 
 export class LeadUseCases {
   constructor(
@@ -146,18 +149,27 @@ export class LeadUseCases {
     const pkgInfo = await this.resolvePackage(dto.packageId, dto.packageInterest);
     const estimatedDeal = dto.estimatedDeal && dto.estimatedDeal > 0 ? dto.estimatedDeal : pkgInfo.packagePrice;
 
-    // Sinkronisasi data upline referral jika ada kode referral atau ID pelanggan pengundang
+    const referralCode = dto.referralCode?.trim().toUpperCase();
+    if (referralCode?.startsWith(SALES_REFERRAL_CODE_PREFIX)) {
+      const validation = await salesUseCases.validateSalesReferralCode(referralCode);
+      if (!validation.valid) {
+        throw new BadRequestError(validation.message);
+      }
+    }
+
+    // Sinkronisasi data upline referral pelanggan jika kode bukan kode sales
     let refUpline = null;
     if (this.customerRepository) {
       if (dto.referredByCustomerId) {
         refUpline = await this.customerRepository.findById(dto.referredByCustomerId);
-      } else if (dto.referralCode) {
-        refUpline = await this.customerRepository.findByReferralCode(dto.referralCode.trim().toUpperCase());
+      } else if (referralCode && !referralCode.startsWith(SALES_REFERRAL_CODE_PREFIX)) {
+        refUpline = await this.customerRepository.findByReferralCode(referralCode);
       }
     }
 
     const leadData: CreateLeadData = {
       ...(dto as unknown as CreateLeadData),
+      referralCode: referralCode || undefined,
       packageId: pkgInfo.packageId ?? undefined,
       packageInterest: pkgInfo.packageName,
       estimatedDeal: estimatedDeal,
@@ -450,6 +462,13 @@ export class LeadUseCases {
       } catch (custErr: any) {
         console.warn('⚠️ Gagal sinkronisasi otomatis ke tabel customers:', custErr.message);
       }
+    }
+
+    if (
+      createdCustomer &&
+      lead.referralCode?.toUpperCase().startsWith(SALES_REFERRAL_CODE_PREFIX)
+    ) {
+      await salesUseCases.bindCustomerToSales(createdCustomer.id, lead.referralCode);
     }
 
     const updatedLead = await this.leadRepository.findById(id);

@@ -50,7 +50,7 @@ router.get(
  */
 router.get(
   '/customers/:id',
-  authorizeRoles('SUPERADMIN', 'Super Admin', 'ADMIN', 'Admin', 'SALES', 'Sales'),
+  authorizeRoles('SUPERADMIN', 'Super Admin', 'ADMIN', 'Admin'),
   getOverview
 );
 

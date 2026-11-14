@@ -10,6 +10,7 @@ import {
   XCircle,
   X,
   Mail,
+  Phone,
   User,
   Shield,
   KeyRound,
@@ -25,7 +26,8 @@ export interface AppUser {
   id: string
   name: string
   email: string
-  role: 'Super Admin' | 'Finance' | 'Teknisi' | 'Admin' | 'Staff' | 'Kasir'
+  phone?: string | null
+  role: 'Super Admin' | 'Finance' | 'Teknisi' | 'Admin' | 'Staff' | 'Kasir' | 'Sales'
   status: 'Active' | 'Inactive'
   lastLogin: string
 }
@@ -58,7 +60,7 @@ const isDeleteConfirmOpen = ref(false)
 const toastMessage = ref<string | null>(null)
 const isLoadingUsers = ref(false)
 const isSaving = ref(false)
-const availableRoles = ref<string[]>(['Super Admin', 'Finance', 'Teknisi', 'Admin', 'Staff', 'Kasir'])
+const availableRoles = ref<string[]>(['Super Admin', 'Finance', 'Teknisi', 'Admin', 'Staff', 'Kasir', 'Sales'])
 
 const showToast = (msg: string) => {
   toastMessage.value = msg
@@ -72,7 +74,8 @@ const form = ref({
   id: '',
   name: '',
   email: '',
-  role: 'Finance' as 'Super Admin' | 'Finance' | 'Teknisi' | 'Admin' | 'Staff' | 'Kasir',
+  phone: '',
+  role: 'Finance' as 'Super Admin' | 'Finance' | 'Teknisi' | 'Admin' | 'Staff' | 'Kasir' | 'Sales',
   status: 'Active' as 'Active' | 'Inactive',
   password: ''
 })
@@ -112,6 +115,7 @@ const loadUsers = async () => {
         id: u.id,
         name: u.name,
         email: u.email,
+        phone: u.phone || '',
         role: (u.role || u.roleDetail?.name || 'Admin') as any,
         status: (u.status || (u.isActive ? 'Active' : 'Inactive')) as any,
         lastLogin: u.lastLogin ? new Date(u.lastLogin).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'Belum pernah'
@@ -187,6 +191,7 @@ const openAddModal = () => {
     id: '',
     name: '',
     email: '',
+    phone: '',
     role: 'Admin',
     status: 'Active',
     password: ''
@@ -202,6 +207,7 @@ const openEditModal = (u: AppUser) => {
     id: u.id,
     name: u.name,
     email: u.email,
+    phone: u.phone || '',
     role: u.role,
     status: u.status,
     password: ''
@@ -230,6 +236,17 @@ const validateForm = () => {
     }
   }
 
+  if (!isEditing.value && form.value.password.length < 6) {
+    errs.password = 'Kata sandi minimal 6 karakter.'
+  }
+
+  if (form.value.role.toLowerCase() === 'sales') {
+    const phoneDigits = form.value.phone.replace(/\D/g, '')
+    if (phoneDigits.length < 8 || phoneDigits.length > 15) {
+      errs.phone = 'Nomor WhatsApp Sales wajib diisi dengan 8–15 digit.'
+    }
+  }
+
   formErrors.value = errs
   return Object.keys(errs).length === 0
 }
@@ -240,46 +257,43 @@ const handleSaveUser = async () => {
   isSaving.value = true
   try {
     if (isEditing.value && form.value.id) {
-      try {
-        await usersApi.update(form.value.id, {
-          name: form.value.name.trim(),
-          email: form.value.email.trim(),
-          role: form.value.role,
-          status: form.value.status,
-          password: form.value.password ? form.value.password : undefined
-        })
-      } catch (err: any) {
-        console.warn('API update failed, updating locally:', err)
-      }
+      await usersApi.update(form.value.id, {
+        name: form.value.name.trim(),
+        email: form.value.email.trim(),
+        phone: form.value.phone.trim(),
+        role: form.value.role,
+        status: form.value.status,
+        password: form.value.password ? form.value.password : undefined
+      })
 
       const target = users.value.find(u => u.id === form.value.id)
       if (target) {
         target.name = form.value.name.trim()
         target.email = form.value.email.trim()
+        target.phone = form.value.phone.trim() || null
         target.role = form.value.role
         target.status = form.value.status
         saveUsersToStorage()
         showToast(`Pengguna "${form.value.name}" berhasil diperbarui!`)
       }
     } else {
-      let createdId = 'usr-' + Date.now()
-      try {
-        const res = await usersApi.create({
-          name: form.value.name.trim(),
-          email: form.value.email.trim(),
-          password: form.value.password || 'Ikikasir#2026',
-          role: form.value.role,
-          status: form.value.status
-        })
-        if (res.data?.id) createdId = res.data.id
-      } catch (err: any) {
-        console.warn('API create failed, saving locally:', err)
+      const res = await usersApi.create({
+        name: form.value.name.trim(),
+        email: form.value.email.trim(),
+        phone: form.value.phone.trim(),
+        password: form.value.password,
+        role: form.value.role,
+        status: form.value.status
+      })
+      if (!res.data?.id) {
+        throw new Error('Server tidak mengembalikan data pengguna yang berhasil dibuat.')
       }
 
       const newUser: AppUser = {
-        id: createdId,
+        id: res.data.id,
         name: form.value.name.trim(),
         email: form.value.email.trim(),
+        phone: form.value.phone.trim() || null,
         role: form.value.role,
         status: form.value.status,
         lastLogin: 'Baru saja'
@@ -291,7 +305,7 @@ const handleSaveUser = async () => {
 
     isModalOpen.value = false
   } catch (err: any) {
-    showToast(err.message || 'Gagal menyimpan pengguna.')
+    formErrors.value.general = err.message || 'Gagal menyimpan pengguna.'
   } finally {
     isSaving.value = false
   }
@@ -410,6 +424,7 @@ const toggleStatus = async (u: AppUser) => {
           <option>Admin</option>
           <option>Staff</option>
           <option>Kasir</option>
+          <option>Sales</option>
         </select>
 
         <!-- Reset Button -->
@@ -471,7 +486,8 @@ const toggleStatus = async (u: AppUser) => {
                     'bg-cyan-50 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800': u.role === 'Teknisi',
                     'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-100 dark:border-blue-800': u.role === 'Admin',
                     'bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-100 dark:border-purple-800': u.role === 'Staff',
-                    'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border border-emerald-100 dark:border-emerald-800': u.role === 'Kasir'
+                    'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border border-emerald-100 dark:border-emerald-800': u.role === 'Kasir',
+                    'bg-violet-50 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 border border-violet-100 dark:border-violet-800': u.role === 'Sales'
                   }"
                 >
                   {{ u.role }}
@@ -583,7 +599,8 @@ const toggleStatus = async (u: AppUser) => {
                   'bg-cyan-50 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300': u.role === 'Teknisi',
                   'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300': u.role === 'Admin',
                   'bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300': u.role === 'Staff',
-                  'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300': u.role === 'Kasir'
+                  'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300': u.role === 'Kasir',
+                  'bg-violet-50 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300': u.role === 'Sales'
                 }"
               >
                 {{ u.role }}
@@ -652,7 +669,7 @@ const toggleStatus = async (u: AppUser) => {
       class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200"
     >
       <div 
-        class="bg-white dark:bg-slate-800 rounded-3xl max-w-lg w-full shadow-2xl border border-slate-100 dark:border-slate-700 overflow-hidden flex flex-col"
+        class="bg-white dark:bg-slate-800 rounded-3xl max-h-[90vh] max-w-lg w-full shadow-2xl border border-slate-100 dark:border-slate-700 overflow-hidden flex flex-col"
         @click.stop
       >
         <!-- Modal Header -->
@@ -677,7 +694,7 @@ const toggleStatus = async (u: AppUser) => {
         </div>
 
         <!-- Modal Body Form -->
-        <form @submit.prevent="handleSaveUser" class="p-6 space-y-4">
+        <form @submit.prevent="handleSaveUser" class="space-y-4 overflow-y-auto p-6">
           <!-- Nama Lengkap -->
           <div>
             <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
@@ -716,6 +733,31 @@ const toggleStatus = async (u: AppUser) => {
             </p>
           </div>
 
+          <!-- Nomor Telepon / WhatsApp -->
+          <div>
+            <label class="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+              Nomor Telepon / WhatsApp
+              <span v-if="form.role === 'Sales'" class="text-rose-500">*</span>
+              <span v-else class="font-normal normal-case text-slate-400">(opsional)</span>
+            </label>
+            <div class="relative">
+              <Phone class="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <input
+                v-model="form.phone"
+                type="tel"
+                autocomplete="tel"
+                placeholder="Contoh: 081234567890"
+                class="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100"
+              />
+            </div>
+            <p v-if="formErrors.phone" class="mt-1 flex items-center gap-1 text-xs text-rose-500">
+              <AlertCircle class="h-3.5 w-3.5" /> {{ formErrors.phone }}
+            </p>
+            <p v-else-if="form.role === 'Sales'" class="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+              Digunakan untuk mengirim konfirmasi dan tautan bukti penarikan melalui WhatsApp.
+            </p>
+          </div>
+
           <!-- Role & Status -->
           <div class="grid grid-cols-2 gap-4">
             <div>
@@ -734,8 +776,12 @@ const toggleStatus = async (u: AppUser) => {
                   <option value="Admin">Admin</option>
                   <option value="Staff">Staff</option>
                   <option value="Kasir">Kasir</option>
+                  <option value="Sales">Sales</option>
                 </select>
               </div>
+              <p v-if="form.role === 'Sales'" class="mt-1.5 text-[11px] leading-relaxed text-violet-600 dark:text-violet-300">
+                Kode referral Sales dibuat otomatis dan tersedia di Dashboard Sales.
+              </p>
             </div>
 
             <div>
@@ -766,9 +812,15 @@ const toggleStatus = async (u: AppUser) => {
                 class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
               />
             </div>
+            <p v-if="formErrors.password" class="text-xs text-rose-500 mt-1 flex items-center gap-1">
+              <AlertCircle class="w-3.5 h-3.5" /> {{ formErrors.password }}
+            </p>
           </div>
 
           <!-- Modal Actions -->
+          <p v-if="formErrors.general" class="text-xs text-rose-600 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2">
+            {{ formErrors.general }}
+          </p>
           <div class="flex items-center gap-3 pt-4 border-t border-slate-100 dark:border-slate-700">
             <button
               type="button"
@@ -779,9 +831,10 @@ const toggleStatus = async (u: AppUser) => {
             </button>
             <button
               type="submit"
-              class="flex-1 px-4 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 shadow-md shadow-indigo-200 dark:shadow-none cursor-pointer"
+              :disabled="isSaving"
+              class="flex-1 px-4 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 shadow-md shadow-indigo-200 dark:shadow-none cursor-pointer disabled:opacity-50"
             >
-              {{ isEditing ? 'Simpan Perubahan' : 'Tambah Pengguna' }}
+              {{ isSaving ? 'Menyimpan...' : isEditing ? 'Simpan Perubahan' : 'Tambah Pengguna' }}
             </button>
           </div>
         </form>

@@ -20,6 +20,21 @@ const router = createRouter({
       component: () => import('../views/dashboard/DashboardIndex.vue')
     },
     {
+      path: '/sales-dashboard',
+      name: 'sales-dashboard',
+      component: () => import('../views/sales/SalesDashboardIndex.vue')
+    },
+    {
+      path: '/list-seles',
+      name: 'list-seles',
+      component: () => import('../views/sales/ListSelesIndex.vue')
+    },
+    {
+      path: '/list-seles/:userId',
+      name: 'list-seles-detail',
+      component: () => import('../views/sales/ListSelesIndex.vue')
+    },
+    {
       path: '/manajemen-pengguna',
       name: 'manajemen-pengguna',
       component: () => import('../views/manajemen-pengguna/PenggunaIndex.vue')
@@ -128,6 +143,17 @@ router.beforeEach((to, _from, next) => {
   }
 
   const lowerRole = (role || '').trim().toLowerCase()
+  const isSalesRole = lowerRole === 'sales' || lowerRole === 'seles'
+
+  if (to.path === '/sales-dashboard' && !isSalesRole) {
+    return next('/dashboard')
+  }
+  if (isSalesRole && to.path === '/dashboard') {
+    return next('/sales-dashboard')
+  }
+  if (isSalesRole && to.path.startsWith('/list-seles')) {
+    return next('/sales-dashboard')
+  }
 
   // Super Admin has full bypass
   if (lowerRole.includes('super')) {
@@ -136,6 +162,14 @@ router.beforeEach((to, _from, next) => {
 
   // Helper checking if a menu is permitted
   const isMenuAllowed = (menuKey: string): boolean => {
+    if (menuKey === 'listSales') {
+      return false
+    }
+
+    if (isSalesRole) {
+      return menuKey === 'dashboard'
+    }
+
     // 1. Check latest saved roles in localStorage (from Manajemen Role updates)
     try {
       const rawRoles = localStorage.getItem('ikikasir_roles_v2')
@@ -164,9 +198,6 @@ router.beforeEach((to, _from, next) => {
     }
 
     // 3. Fallback defaults
-    if (lowerRole === 'sales' || lowerRole === 'seles') {
-      return menuKey === 'calonClient'
-    }
     if (lowerRole === 'finance') {
       return ['calonClient', 'semuaPelanggan', 'arusKas', 'labaRugi', 'neraca'].includes(menuKey)
     }
@@ -181,6 +212,8 @@ router.beforeEach((to, _from, next) => {
 
   const routeToMenuKey: Record<string, string> = {
     '/dashboard': 'dashboard',
+    '/sales-dashboard': 'dashboard',
+    '/list-seles': 'listSales',
     '/manajemen-pengguna': 'manajemenPengguna',
     '/manajemen-role': 'manajemenRole',
     '/manajemen-promo': 'manajemenPromo',
@@ -196,7 +229,8 @@ router.beforeEach((to, _from, next) => {
     '/laporan-harian': 'laporanPenjualan',
   }
 
-  const targetMenuKey = routeToMenuKey[to.path]
+  const targetMenuKey = routeToMenuKey[to.path] ??
+    (to.path.startsWith('/list-seles/') ? 'listSales' : undefined)
 
   // If this route is mapped to a menu key, verify access
   if (targetMenuKey) {
@@ -212,6 +246,8 @@ router.beforeEach((to, _from, next) => {
       return next('/calon-client')
     } else if (isMenuAllowed('semuaPelanggan')) {
       return next('/semua-pelanggan')
+    } else if (isSalesRole) {
+      return next('/sales-dashboard')
     } else {
       return next('/calon-client')
     }

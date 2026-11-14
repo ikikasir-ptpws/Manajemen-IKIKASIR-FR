@@ -20,6 +20,7 @@ import cashTransactionRoutes from './presentation/routes/cash-transaction.routes
 import laporanRoutes from './presentation/routes/laporan.routes.js';
 import neracaItemRoutes from './presentation/routes/neraca-items.routes.js';
 import dashboardRoutes from './presentation/routes/dashboard.routes.js';
+import salesRoutes from './presentation/routes/sales.routes.js';
 import { errorHandler } from './presentation/middlewares/error.middleware.js';
 import { NotFoundError } from './domain/errors/AppError.js';
 
@@ -117,6 +118,7 @@ export function createApp(): Application {
   app.use('/api/laporan', laporanRoutes);
   app.use('/api/neraca-items', neracaItemRoutes);
   app.use('/api/dashboard', dashboardRoutes);
+  app.use('/api/sales', salesRoutes);
 
   // Penanganan rute 404 Not Found
   app.use((req: Request, _res: Response, next: NextFunction) => {

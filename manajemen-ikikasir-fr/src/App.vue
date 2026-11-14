@@ -56,6 +56,15 @@ const {
   getComputedCustomerStatus
 } = useAppData();
 
+const isSalesRole = computed(() => {
+  const role = (currentRole.value || '').trim().toLowerCase()
+  return role === 'sales' || role === 'seles'
+})
+
+const canManageSales = computed(() =>
+  (currentRole.value || '').trim().toLowerCase().includes('super')
+)
+
 const isRoleDropdownOpen = ref(false);
 const isNotificationOpen = ref(false);
 
@@ -78,7 +87,7 @@ const roleMeta = computed(() => {
     case 'Seles':
       return { 
         title: 'Sales Officer', 
-        sub: 'Pendaftaran & Follow-up Calon Client', 
+        sub: 'Dashboard referral & penarikan saldo', 
         badge: 'SL', 
         color: 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-800 dark:text-emerald-200 border-emerald-300 dark:border-emerald-700' 
       };
@@ -152,6 +161,10 @@ const canAccessMenu = (menuKey: string): boolean => {
     return true;
   }
 
+  if (isSalesRole.value) {
+    return menuKey === 'dashboard';
+  }
+
   // 1. Check latest saved roles in localStorage (from Manajemen Role updates)
   try {
     const rawRoles = localStorage.getItem('ikikasir_roles_v2');
@@ -185,9 +198,6 @@ const canAccessMenu = (menuKey: string): boolean => {
   }
 
   // 3. Fallback defaults by role
-  if (lowerRole === 'sales' || lowerRole === 'seles') {
-    return menuKey === 'calonClient';
-  }
   if (lowerRole === 'finance') {
     return ['calonClient', 'semuaPelanggan', 'arusKas', 'labaRugi', 'neraca'].includes(menuKey);
   }
@@ -215,7 +225,7 @@ const handleSelectRole = (r: string) => {
   } else if (r === 'Teknisi') {
     router.push('/semua-pelanggan');
   } else if (r === 'Sales' || r === 'Seles') {
-    router.push('/calon-client');
+    router.push('/dashboard');
   }
 };
 
@@ -344,7 +354,7 @@ const confirmLogout = () => {
               @click="isMobileDrawerOpen = false"
               class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition-all duration-200 group"
               :class="
-                route.path === '/dashboard'
+                route.path === '/dashboard' || route.path === '/sales-dashboard'
                   ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shadow-xs'
                   : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50 hover:text-slate-900 dark:hover:text-slate-200'
               "
@@ -352,12 +362,31 @@ const confirmLogout = () => {
               <LayoutDashboard
                 class="w-4 h-4 transition-transform duration-200 group-hover:scale-110"
                 :class="
-                  route.path === '/dashboard'
+                  route.path === '/dashboard' || route.path === '/sales-dashboard'
                     ? 'text-indigo-600'
                     : 'text-slate-500'
                 "
               />
               <span>Dashboard</span>
+            </RouterLink>
+          </div>
+
+          <div v-if="canManageSales">
+            <RouterLink
+              to="/list-seles"
+              @click="isMobileDrawerOpen = false"
+              class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition-all duration-200 group"
+              :class="
+                route.path.startsWith('/list-seles')
+                  ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50 hover:text-slate-900 dark:hover:text-slate-200'
+              "
+            >
+              <Users
+                class="w-4 h-4 transition-transform duration-200 group-hover:scale-110"
+                :class="route.path.startsWith('/list-seles') ? 'text-indigo-600' : 'text-slate-500'"
+              />
+              <span>List Sales</span>
             </RouterLink>
           </div>
 
@@ -868,13 +897,27 @@ const confirmLogout = () => {
         to="/dashboard"
         class="flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition-colors group"
         :class="
-          route.path === '/dashboard'
+          route.path === '/dashboard' || route.path === '/sales-dashboard'
             ? 'text-indigo-600 font-bold'
             : 'text-slate-500 hover:text-slate-800'
         "
       >
         <LayoutDashboard class="w-5 h-5 mb-0.5" />
         <span class="text-[10px] tracking-tight">Dashboard</span>
+      </RouterLink>
+
+      <RouterLink
+        v-if="canManageSales"
+        to="/list-seles"
+        class="flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition-colors group"
+        :class="
+          route.path.startsWith('/list-seles')
+            ? 'text-indigo-600 font-bold'
+            : 'text-slate-500 hover:text-slate-800'
+        "
+      >
+        <Users class="w-5 h-5 mb-0.5" />
+        <span class="text-[10px] tracking-tight">List Sales</span>
       </RouterLink>
 
       <!-- Calon Client -->

@@ -565,18 +565,25 @@ const closeModal = () => {
             </p>
           </div>
 
-          <!-- Kode Referal -->
+          <!-- Kode Referral Sales / Pelanggan -->
           <div>
             <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-              Kode Referal Teman / Pengundang <span class="text-slate-400 font-normal">(opsional)</span>
+              Kode Referral Sales / Teman <span class="text-slate-400 font-normal">(opsional)</span>
             </label>
             <input
               v-model="formData.referralCode"
               type="text"
-              placeholder="Contoh: IKIKASIR-8F3KD"
+              placeholder="Contoh: SALES-8F3KD atau IKIKASIR-8F3KD"
               class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-slate-800 font-mono font-bold uppercase tracking-wider placeholder:font-normal placeholder:text-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all"
-              @input="formData.referralCode = (formData.referralCode || '').toUpperCase()"
+              :class="errors.referralCode ? 'border-rose-300 bg-rose-50/30' : ''"
+              @input="formData.referralCode = (formData.referralCode || '').toUpperCase(); clearError('referralCode')"
             />
+            <p v-if="errors.referralCode" class="text-xs text-rose-500 mt-1 flex items-center gap-1">
+              <AlertCircle class="w-3.5 h-3.5" /> {{ errors.referralCode }}
+            </p>
+            <p v-else class="text-[11px] text-slate-500 mt-1">
+              Kode SALES- akan menghubungkan pendaftaran ke dashboard sales terkait.
+            </p>
           </div>
 
           <!-- Persetujuan -->

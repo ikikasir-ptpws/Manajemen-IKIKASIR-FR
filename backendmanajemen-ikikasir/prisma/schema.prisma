@@ -58,6 +58,14 @@ model User {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
+  // Sales Referral
+  salesReferralCode   String?           @unique
+  salesBalance        Float             @default(0)
+  salesTotalEarned    Float             @default(0)
+  salesTotalWithdrawn Float             @default(0)
+
+  salesWithdrawals    SalesWithdrawal[]
+
   @@index([email])
   @@index([role])
   @@index([roleId])
@@ -124,6 +132,10 @@ model Customer {
   referredByBusinessName String?               @default("")
   referralBoundAt        DateTime?
   referralSource         String?               @default("") // Manual, Aplikasi, Formulir Pendaftaran
+
+  // Sales yang mengundang customer ini (via kode referral sales)
+  salesReferralCode   String?   @default("")
+  salesUserId         String?
 
   subscriptionHistories SubscriptionHistory[]
   referralCommissionsAsUpline   ReferralCommission[] @relation("ReferralUpline")
@@ -331,4 +343,30 @@ model NeracaItem {
 
   @@index([group])
   @@map("neraca_items")
+}
+
+model SalesWithdrawal {
+  id                String    @id @default(uuid())
+  userId            String
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount            Float     @default(0)
+  bankOrWallet      String    @default("")
+  accountNumber     String    @default("")
+  accountHolder     String    @default("")
+  requestDate       DateTime  @default(now())
+  completedDate     DateTime?
+  status            String    @default("MENUNGGU_VERIFIKASI") // MENUNGGU_VERIFIKASI, SELESAI, DITOLAK
+  notes             String    @default("")
+  invoiceNo         String?   @unique
+  paymentProofUrl   String?
+  processedBy       String    @default("")
+  transferReference String    @default("")
+  rejectionReason   String    @default("")
+  rejectedAt        DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@map("sales_withdrawals")
 }

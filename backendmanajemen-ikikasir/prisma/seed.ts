@@ -84,20 +84,20 @@ async function seed() {
     });
     console.log(`✅ [Seeder] Role '${superAdminRole.name}' siap (Semua switch menu: TRUE).`);
 
-    // B. Role Sales / Seles (Hanya halaman tambah client / calon client yang TRUE)
+    // B. Role Sales / Seles (dashboard referral saja; client dan penarikan ada di dashboard)
     const salesRole = await prisma.role.upsert({
       where: { name: 'Sales' },
       update: {
-        description: 'Akses khusus sales: Hanya halaman tambah client (calon client)',
+        description: 'Akses khusus sales: dashboard referral, daftar client, dan penarikan saldo',
         menuAccess: {
           upsert: {
             create: {
-              dashboard: false,
+              dashboard: true,
               manajemenPengguna: false,
               manajemenRole: false,
               manajemenPromo: false,
               kelolaPaket: false,
-              calonClient: true, // Hanya halaman tambah client
+              calonClient: false,
               semuaPelanggan: false,
               langganan: false,
               expired: false,
@@ -109,12 +109,12 @@ async function seed() {
               penarikanReferral: false,
             },
             update: {
-              dashboard: false,
+              dashboard: true,
               manajemenPengguna: false,
               manajemenRole: false,
               manajemenPromo: false,
               kelolaPaket: false,
-              calonClient: true, // Hanya halaman tambah client
+              calonClient: false,
               semuaPelanggan: false,
               langganan: false,
               expired: false,
@@ -130,15 +130,15 @@ async function seed() {
       },
       create: {
         name: 'Sales',
-        description: 'Akses khusus sales: Hanya halaman tambah client (calon client)',
+        description: 'Akses khusus sales: dashboard referral, daftar client, dan penarikan saldo',
         menuAccess: {
           create: {
-            dashboard: false,
+            dashboard: true,
             manajemenPengguna: false,
             manajemenRole: false,
             manajemenPromo: false,
             kelolaPaket: false,
-            calonClient: true, // Hanya halaman tambah client
+            calonClient: false,
             semuaPelanggan: false,
             langganan: false,
             expired: false,
@@ -152,7 +152,7 @@ async function seed() {
         },
       },
     });
-    console.log(`✅ [Seeder] Role '${salesRole.name}' siap (Hanya calon client: TRUE, lainnya: FALSE).`);
+    console.log(`✅ [Seeder] Role '${salesRole.name}' siap (Dashboard: TRUE, CRM client: FALSE).`);
 
     // C. Role Admin
     const adminRole = await prisma.role.upsert({

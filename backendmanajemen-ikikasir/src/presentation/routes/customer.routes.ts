@@ -17,12 +17,12 @@ import {
   updateCustomerSchema,
   renewSubscriptionSchema,
 } from '../validations/customer.validation.js';
-import { authenticate, authorizeRoles } from '../middlewares/auth.middleware.js';
+import { authenticate, authorizeRoles, denySalesCrmAccess } from '../middlewares/auth.middleware.js';
 
 const router = Router();
 
 // Semua rute manajemen pelanggan di bawah memerlukan autentikasi Admin / Super Admin
-router.use(authenticate);
+router.use(authenticate, denySalesCrmAccess);
 
 /**
  * Route: Mengambil daftar pelanggan kedaluwarsa (Menu Expired)
@@ -66,7 +66,7 @@ router.get('/:id/histories', getHistories);
  */
 router.post(
   '/',
-  authorizeRoles('SUPERADMIN', 'Super Admin', 'ADMIN', 'Admin', 'SALES', 'Sales'),
+  authorizeRoles('SUPERADMIN', 'Super Admin', 'ADMIN', 'Admin'),
   validateBody(createCustomerSchema),
   create
 );
@@ -88,7 +88,7 @@ router.put(
  */
 router.post(
   '/:id/renew',
-  authorizeRoles('SUPERADMIN', 'Super Admin', 'ADMIN', 'Admin', 'SALES', 'Sales'),
+  authorizeRoles('SUPERADMIN', 'Super Admin', 'ADMIN', 'Admin'),
   validateBody(renewSubscriptionSchema),
   renew
 );

@@ -6,6 +6,7 @@ import { prisma } from '../infrastructure/database/prisma.js';
 describe('Manajemen Role dan Pengguna API', () => {
   const app = createApp();
   let superAdminToken: string;
+  let salesToken: string;
   let testRoleId: string;
   let testUserId: string;
 
@@ -64,11 +65,10 @@ describe('Manajemen Role dan Pengguna API', () => {
       expect(superAdminRole.menuAccess.calonClient).toBe(true);
       expect(superAdminRole.menuAccess.manajemenPengguna).toBe(true);
 
-      // Verifikasi Sales: hanya halaman tambah client (calonClient) yang bernilai TRUE
+      // Sales memiliki dashboard referral dan halaman calon client.
       const salesRole = roles.find((r: any) => r.name === 'Sales');
       expect(salesRole).toBeDefined();
-      expect(salesRole.menuAccess.calonClient).toBe(true);
-      expect(salesRole.menuAccess.dashboard).toBe(false);
+      expect(salesRole.menuAccess.dashboard).toBe(true);
       expect(salesRole.menuAccess.manajemenPengguna).toBe(false);
       expect(salesRole.menuAccess.manajemenRole).toBe(false);
     });
@@ -173,6 +173,7 @@ describe('Manajemen Role dan Pengguna API', () => {
           email: 'dimas.test@ikikasir.com',
           role: 'Sales',
           status: 'Active',
+          phone: '081234567890',
           password: 'password123',
         });
 
@@ -181,8 +182,129 @@ describe('Manajemen Role dan Pengguna API', () => {
       expect(res.body.data.name).toBe('Dimas Anggara');
       expect(res.body.data.role).toBe('Sales');
       expect(res.body.data.status).toBe('Active');
+      expect(res.body.data.phone).toBe('081234567890');
 
       testUserId = res.body.data.id;
+    });
+
+    it('POST /api/users - Menolak akun Sales tanpa nomor WhatsApp yang valid', async () => {
+      const res = await request(app)
+        .post('/api/users')
+        .set('Authorization', `Bearer ${superAdminToken}`)
+        .send({
+          name: 'Sales Tanpa Nomor',
+          email: 'sales.no-phone.test@ikikasir.com',
+          role: 'Sales',
+          status: 'Active',
+          password: 'password123',
+        });
+
+      expect(res.status).toBe(400);
+      expect(res.body.message).toContain('Nomor WhatsApp Sales');
+    });
+
+    it('POST /api/auth/login/sales - Login Sales otomatis masuk ke dashboard dengan kode referral', async () => {
+      const savedUser = await prisma.user.findUnique({
+        where: { id: testUserId },
+        select: { salesReferralCode: true },
+      });
+
+      expect(savedUser?.salesReferralCode).toMatch(/^SALES-[A-Z0-9]{6}$/);
+
+      const loginRes = await request(app)
+        .post('/api/auth/login/sales')
+        .send({
+          email: 'dimas.test@ikikasir.com',
+          password: 'password123',
+        });
+
+      expect(loginRes.status).toBe(200);
+      expect(loginRes.body.data.user.id).toBe(testUserId);
+      salesToken = loginRes.body.data.token;
+
+      const dashboardRes = await request(app)
+        .get(`/api/sales/${testUserId}/dashboard`)
+        .set('Authorization', `Bearer ${salesToken}`);
+
+      expect(dashboardRes.status).toBe(200);
+      expect(dashboardRes.body.data.id).toBe(testUserId);
+      expect(dashboardRes.body.data.salesReferralCode).toBe(savedUser?.salesReferralCode);
+    });
+
+    it('GET /api/sales - List Sales tidak mengembalikan data saldo atau komisi', async () => {
+      const res = await request(app)
+        .get('/api/sales')
+        .set('Authorization', `Bearer ${superAdminToken}`);
+
+      expect(res.status).toBe(200);
+      const salesUser = res.body.data.find((item: any) => item.id === testUserId);
+      expect(salesUser).toBeDefined();
+      expect(salesUser).not.toHaveProperty('salesBalance');
+      expect(salesUser).not.toHaveProperty('salesTotalEarned');
+      expect(salesUser).not.toHaveProperty('salesTotalWithdrawn');
+    });
+
+    it('Sales dapat membuka daftar referral dan penarikan sendiri, tetapi tidak dapat membuka CRM', async () => {
+      const clientsRes = await request(app)
+        .get(`/api/sales/${testUserId}/clients`)
+        .set('Authorization', `Bearer ${salesToken}`);
+      const withdrawalsRes = await request(app)
+        .get(`/api/sales/${testUserId}/withdrawals`)
+        .set('Authorization', `Bearer ${salesToken}`);
+      const leadsRes = await request(app)
+        .get('/api/leads')
+        .set('Authorization', `Bearer ${salesToken}`);
+      const customersRes = await request(app)
+        .get('/api/customers')
+        .set('Authorization', `Bearer ${salesToken}`);
+
+      expect(clientsRes.status).toBe(200);
+      expect(withdrawalsRes.status).toBe(200);
+      expect(leadsRes.status).toBe(403);
+      expect(customersRes.status).toBe(403);
+    });
+
+    it('PATCH /api/sales/withdrawals/:id/confirm - Wajib menyimpan bukti sebelum menandai pembayaran selesai', async () => {
+      await prisma.user.update({
+        where: { id: testUserId },
+        data: { salesBalance: 15000 },
+      });
+      const withdrawal = await prisma.salesWithdrawal.create({
+        data: {
+          userId: testUserId,
+          amount: 15000,
+          bankOrWallet: 'BCA',
+          accountNumber: '1234567890',
+          accountHolder: 'Dimas Anggara',
+        },
+      });
+
+      const missingProofRes = await request(app)
+        .patch(`/api/sales/withdrawals/${withdrawal.id}/confirm`)
+        .set('Authorization', `Bearer ${superAdminToken}`)
+        .send({ status: 'SELESAI' });
+
+      expect(missingProofRes.status).toBe(400);
+      expect(missingProofRes.body.message).toContain('Bukti pembayaran wajib diunggah');
+
+      const approvedRes = await request(app)
+        .patch(`/api/sales/withdrawals/${withdrawal.id}/confirm`)
+        .set('Authorization', `Bearer ${superAdminToken}`)
+        .send({
+          status: 'SELESAI',
+          transferReference: 'TRX-SALES-001',
+          paymentProofUrl: 'https://api.ikikasir.com/uploads/receipts/sales-proof.jpg',
+        });
+
+      expect(approvedRes.status).toBe(200);
+      expect(approvedRes.body.data.status).toBe('SELESAI');
+      expect(approvedRes.body.data.paymentProofUrl).toContain('/uploads/receipts/sales-proof.jpg');
+
+      const savedWithdrawal = await prisma.salesWithdrawal.findUnique({
+        where: { id: withdrawal.id },
+        select: { paymentProofUrl: true },
+      });
+      expect(savedWithdrawal?.paymentProofUrl).toBe('https://api.ikikasir.com/uploads/receipts/sales-proof.jpg');
     });
 
     it('PATCH /api/users/:id/status - Toggle status akun pengguna', async () => {
