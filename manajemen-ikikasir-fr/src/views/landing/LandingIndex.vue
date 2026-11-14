@@ -1127,6 +1127,28 @@ const openRegistrationModal = (pkgName?: string) => {
       </div>
     </footer>
 
+    <!-- Floating WhatsApp Action Button -->
+    <a
+      href="https://wa.me/+628132538603?text=Halo%20tim%20IKI%20KASIR%2C%20saya%20ingin%20tanya-tanya%20seputar%20aplikasi%20kasir."
+      target="_blank"
+      rel="noopener noreferrer"
+      class="floating-wa-btn"
+      aria-label="Chat WhatsApp IKI KASIR"
+    >
+      <div class="wa-btn-pulse"></div>
+      <div class="wa-tooltip">
+        <span class="wa-tooltip-dot"></span>
+        <span class="wa-tooltip-text">Butuh bantuan? Chat kami</span>
+      </div>
+      <div class="wa-icon-wrapper">
+        <svg viewBox="0 0 24 24" class="wa-svg-icon" fill="currentColor">
+          <path
+            d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"
+          />
+        </svg>
+      </div>
+    </a>
+
     <!-- Website Self-Registration Modal -->
     <RegistrationModal
       :is-open="isRegistrationModalOpen"
@@ -3460,6 +3482,122 @@ const openRegistrationModal = (pkgName?: string) => {
   transform: translateY(8px) scale(0.95);
 }
 
+/* ─────────────────────────────────────────────
+   FLOATING WHATSAPP BUTTON (FAB)
+   ───────────────────────────────────────────── */
+.floating-wa-btn {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  z-index: 990;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  text-decoration: none;
+  cursor: pointer;
+  outline: none;
+}
+
+.wa-icon-wrapper {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #25d366 0%, #128c7e 100%);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 24px -2px rgba(37, 211, 102, 0.45), 0 4px 10px rgba(0, 0, 0, 0.1);
+  transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+  z-index: 2;
+}
+
+.wa-svg-icon {
+  width: 32px;
+  height: 32px;
+  transition: transform 0.3s ease;
+}
+
+/* Pulsing Radial Wave behind button */
+.wa-btn-pulse {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: rgba(37, 211, 102, 0.45);
+  animation: wa-pulse-wave 2.2s cubic-bezier(0.24, 0, 0.38, 1) infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+
+@keyframes wa-pulse-wave {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
+  70% {
+    transform: scale(1.55);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+
+/* Interactive Tooltip Pill */
+.wa-tooltip {
+  background: rgba(15, 23, 42, 0.94);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: #ffffff;
+  padding: 0.5rem 0.875rem;
+  border-radius: 9999px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  white-space: nowrap;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+  opacity: 0.95;
+}
+
+.wa-tooltip-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #34d399;
+  box-shadow: 0 0 8px #34d399;
+  animation: pulse-dot 1.5s infinite;
+}
+
+/* Hover & Active Effects */
+.floating-wa-btn:hover .wa-icon-wrapper {
+  transform: translateY(-4px) scale(1.08);
+  box-shadow: 0 14px 30px -2px rgba(37, 211, 102, 0.55), 0 6px 14px rgba(0, 0, 0, 0.15);
+}
+
+.floating-wa-btn:hover .wa-svg-icon {
+  transform: scale(1.08) rotate(-4deg);
+}
+
+.floating-wa-btn:hover .wa-tooltip {
+  opacity: 1;
+  transform: translateX(-4px);
+  background: #0f172a;
+}
+
+.floating-wa-btn:active .wa-icon-wrapper {
+  transform: scale(0.96) translateY(0);
+}
+
 /* Responsive Media Queries */
 @media (max-width: 1024px) {
   .floating-badge {
@@ -3560,6 +3698,25 @@ const openRegistrationModal = (pkgName?: string) => {
   }
   .btn-collapse-bottom {
     justify-content: center;
+  }
+  .floating-wa-btn {
+    bottom: 1.25rem;
+    right: 1.25rem;
+  }
+  .wa-icon-wrapper {
+    width: 52px;
+    height: 52px;
+  }
+  .wa-btn-pulse {
+    width: 52px;
+    height: 52px;
+  }
+  .wa-svg-icon {
+    width: 28px;
+    height: 28px;
+  }
+  .wa-tooltip {
+    display: none;
   }
 }
 </style>
