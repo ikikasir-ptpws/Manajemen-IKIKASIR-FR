@@ -156,6 +156,15 @@ const formatCurrency = (val: number) => {
   }).format(val || 0)
 }
 
+const getReferralCommission = (transaction: CashTransactionItem) =>
+  transaction.referralCommission ?? 0
+
+const getReferralCommissionLabel = (transaction: CashTransactionItem) =>
+  transaction.referralSource === 'SALES' ? 'Komisi Sales' : 'Komisi Referral Pelanggan'
+
+const getNetAmountAfterCommission = (transaction: CashTransactionItem) =>
+  transaction.amount - getReferralCommission(transaction)
+
 /**
  * Fetch Data Transaksi Arus Kas dari Backend API
  */
@@ -360,7 +369,7 @@ const handleExport = () => {
     return
   }
 
-  const headers = ['No', 'ID Transaksi', 'No Invoice', 'Tanggal', 'Waktu', 'Tipe Kas', 'Kategori', 'Deskripsi', 'Klien / Pihak', 'Metode Pembayaran', 'Status', 'Nominal (IDR)']
+  const headers = ['No', 'ID Transaksi', 'No Invoice', 'Tanggal', 'Waktu', 'Tipe Kas', 'Kategori', 'Deskripsi', 'Klien / Pihak', 'Metode Pembayaran', 'Status', 'Nominal (IDR)', 'Sumber Komisi', 'Komisi Referral (IDR)', 'Bersih Setelah Komisi (IDR)']
   const rows = transactions.value.map((t, idx) => [
     idx + 1,
     `"${t.id}"`,
@@ -373,7 +382,10 @@ const handleExport = () => {
     `"${(t.customer || '-').replace(/"/g, '""')}"`,
     `"${t.paymentMethod || 'Tunai'}"`,
     `"${t.status || 'Selesai'}"`,
-    t.amount
+    t.amount,
+    `"${getReferralCommission(t) > 0 ? (t.referralSource === 'SALES' ? 'Sales' : 'Pelanggan') : '-'}"`,
+    getReferralCommission(t),
+    getNetAmountAfterCommission(t)
   ])
 
   const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\r\n')
@@ -654,6 +666,10 @@ const handleExport = () => {
                         • {{ t.customer }}
                       </span>
                     </div>
+                    <div v-if="getReferralCommission(t) > 0" class="mt-1 text-[10px] font-semibold text-amber-700">
+                      {{ getReferralCommissionLabel(t) }} {{ formatCurrency(getReferralCommission(t)) }}
+                      <span class="text-emerald-700">· Bersih {{ formatCurrency(getNetAmountAfterCommission(t)) }}</span>
+                    </div>
                   </div>
                 </div>
               </td>
@@ -793,6 +809,10 @@ const handleExport = () => {
           <div class="font-bold text-slate-800 text-xs sm:text-sm">
             {{ t.desc }}
           </div>
+          <div v-if="getReferralCommission(t) > 0" class="text-[10px] font-semibold text-amber-700">
+            {{ getReferralCommissionLabel(t) }} {{ formatCurrency(getReferralCommission(t)) }}
+            <span class="text-emerald-700">· Bersih {{ formatCurrency(getNetAmountAfterCommission(t)) }}</span>
+          </div>
 
           <div v-if="t.customer" class="text-[11px] text-slate-500">
             Pihak: <span class="font-semibold text-slate-700">{{ t.customer }}</span>
@@ -902,6 +922,16 @@ const handleExport = () => {
               </span>
               <div class="text-2xl font-black">
                 {{ selectedDetail.type === 'masuk' ? '+' : '-' }} {{ formatCurrency(selectedDetail.amount) }}
+              </div>
+            </div>
+            <div v-if="getReferralCommission(selectedDetail) > 0" class="p-3.5 bg-amber-50 rounded-xl space-y-1 text-xs border border-amber-100">
+              <div class="flex items-center justify-between text-amber-800">
+                <span class="font-semibold">{{ getReferralCommissionLabel(selectedDetail) }}</span>
+                <span class="font-bold">-{{ formatCurrency(getReferralCommission(selectedDetail)) }}</span>
+              </div>
+              <div class="flex items-center justify-between border-t border-amber-200 pt-1.5 text-emerald-800">
+                <span class="font-semibold">Bersih Setelah Komisi</span>
+                <span class="font-bold">{{ formatCurrency(getNetAmountAfterCommission(selectedDetail)) }}</span>
               </div>
             </div>
 

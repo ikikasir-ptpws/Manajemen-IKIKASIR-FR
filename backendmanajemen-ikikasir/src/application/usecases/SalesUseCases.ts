@@ -5,7 +5,7 @@ import {
   ConflictError,
 } from '../../domain/errors/AppError.js';
 
-export const SALES_COMMISSION_PER_CLIENT = 15000;
+export const SALES_COMMISSION_PER_CLIENT = 50000;
 export const SALES_REFERRAL_CODE_PREFIX = 'SALES-';
 const SALES_ROLE_NAMES = ['SALES', 'SELES'];
 
@@ -526,7 +526,7 @@ export class SalesUseCases {
 
   /**
    * Hubungkan customer ke sales berdasarkan kode referral sales
-   * Komisi: Rp 15.000 per customer aktif
+   * Komisi: Rp 50.000 per customer aktif
    */
   async bindCustomerToSales(customerId: string, salesReferralCode: string): Promise<void> {
     const normalized = (salesReferralCode || '').trim().toUpperCase();

@@ -103,6 +103,10 @@ export interface PenjualanItem {
  */
 export interface PenjualanSummary {
   totalPenjualan: number;
+  totalKomisiSales: number;
+  totalKomisiPelanggan: number;
+  totalKomisiReferral: number;
+  penjualanBersih: number;
   jumlahTransaksi: number;
   jumlahTransaksiSelesai: number;
   jumlahTransaksiPending: number;

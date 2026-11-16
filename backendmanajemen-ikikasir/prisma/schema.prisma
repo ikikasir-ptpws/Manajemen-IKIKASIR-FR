@@ -310,6 +310,8 @@ model CashTransaction {
   category        String
   desc            String
   amount          Float     @default(0)
+  referralCommission Float  @default(0)
+  referralSource   String    @default("")
   date            DateTime  @default(now())
   rawDate         String    @default("") // Format: YYYY-MM-DD
   displayDate     String?   @default("") // Format: 12 Sep 2026

@@ -9,6 +9,10 @@ import {
 
 const EMPTY_SUMMARY: PenjualanSummary = {
   totalPenjualan: 0,
+  totalKomisiSales: 0,
+  totalKomisiPelanggan: 0,
+  totalKomisiReferral: 0,
+  penjualanBersih: 0,
   jumlahTransaksi: 0,
   jumlahTransaksiSelesai: 0,
   jumlahTransaksiPending: 0,

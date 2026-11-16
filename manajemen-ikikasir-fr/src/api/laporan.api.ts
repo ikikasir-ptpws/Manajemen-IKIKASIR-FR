@@ -70,6 +70,9 @@ export interface PenjualanReportItem {
   displayDate: string
   time: string
   customer: string
+  referralCommission?: number
+  referralSource?: string
+  netAmount?: number
   items: PenjualanItem[]
   paymentMethod: string
   status: string
@@ -79,6 +82,10 @@ export interface PenjualanReportItem {
 
 export interface PenjualanSummary {
   totalPenjualan: number
+  totalKomisiSales?: number
+  totalKomisiPelanggan?: number
+  totalKomisiReferral?: number
+  penjualanBersih?: number
   jumlahTransaksi: number
   jumlahTransaksiSelesai: number
   jumlahTransaksiPending: number

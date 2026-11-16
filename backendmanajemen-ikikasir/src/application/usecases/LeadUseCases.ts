@@ -14,8 +14,12 @@ import { NotFoundError, BadRequestError } from '../../domain/errors/AppError.js'
 import { Lead, LeadFollowUp } from '../../domain/entities/Lead.js';
 import { saveProofFileToStorage } from '../../infrastructure/utils/storage.util.js';
 import { PrismaCashTransactionRepository } from '../../repositories/PrismaCashTransactionRepository.js';
-import { ReferralUseCases } from './ReferralUseCases.js';
-import { SalesUseCases, SALES_REFERRAL_CODE_PREFIX } from './SalesUseCases.js';
+import { ReferralUseCases, REFERRAL_REWARD_PER_ACTIVE_USER } from './ReferralUseCases.js';
+import {
+  SalesUseCases,
+  SALES_COMMISSION_PER_CLIENT,
+  SALES_REFERRAL_CODE_PREFIX,
+} from './SalesUseCases.js';
 
 const salesUseCases = new SalesUseCases();
 
@@ -434,6 +438,19 @@ export class LeadUseCases {
         if (finalAmount > 0) {
           try {
             const cashRepo = new PrismaCashTransactionRepository();
+            const hasSalesReferral = lead.referralCode
+              ?.toUpperCase()
+              .startsWith(SALES_REFERRAL_CODE_PREFIX) ?? false;
+            const referralCommission = hasSalesReferral
+              ? SALES_COMMISSION_PER_CLIENT
+              : lead.referredByCustomerId
+                ? REFERRAL_REWARD_PER_ACTIVE_USER
+                : 0;
+            const referralSource = hasSalesReferral
+              ? 'SALES'
+              : lead.referredByCustomerId
+                ? 'CUSTOMER'
+                : '';
             const year = now.getFullYear();
             const month = String(now.getMonth() + 1).padStart(2, '0');
             const day = String(now.getDate()).padStart(2, '0');
@@ -446,6 +463,8 @@ export class LeadUseCases {
               category: 'Lisensi POS',
               desc: `Pendaftaran Pelanggan Baru (Lead) - ${clientLabel} (${lead.packageInterest || 'Basic'})`,
               amount: finalAmount,
+              referralCommission,
+              referralSource,
               date: now,
               rawDate,
               customer: clientLabel,

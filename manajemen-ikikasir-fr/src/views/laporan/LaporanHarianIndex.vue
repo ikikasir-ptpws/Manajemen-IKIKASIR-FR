@@ -30,6 +30,13 @@ import DateRangePicker from '../../components/common/DateRangePicker.vue'
 
 const { startDate, endDate, periodeLabel, formatCurrency, setPreset, exportCsv } = useReportData()
 const { items, summary, meta, isLoading, error, fetchPenjualan } = useLaporanPenjualan()
+const totalReferralCommission = computed(() =>
+  summary.value.totalKomisiReferral ??
+  ((summary.value.totalKomisiSales ?? 0) + (summary.value.totalKomisiPelanggan ?? 0)),
+)
+const netSales = computed(() =>
+  summary.value.penjualanBersih ?? summary.value.totalPenjualan - totalReferralCommission.value,
+)
 
 // Filter state
 const searchQuery = ref('')
@@ -61,6 +68,14 @@ const startIndex = computed(() => (currentPage.value - 1) * pageSize.value + 1)
 const getTrxTotalAmount = (trx: PenjualanReportItem) => {
   return trx.items.reduce((sum, item) => sum + (item.price * item.qty), 0)
 }
+
+const getTrxReferralCommission = (trx: PenjualanReportItem) => trx.referralCommission ?? 0
+
+const getTrxNetAmount = (trx: PenjualanReportItem) =>
+  trx.netAmount ?? getTrxTotalAmount(trx) - getTrxReferralCommission(trx)
+
+const getTrxCommissionLabel = (trx: PenjualanReportItem) =>
+  trx.referralSource === 'SALES' ? 'Komisi Sales' : 'Komisi Referral Pelanggan'
 
 const getTrxTotalQty = (trx: PenjualanReportItem) => {
   return trx.items.reduce((sum, item) => sum + item.qty, 0)
@@ -155,7 +170,7 @@ const handleExport = async () => {
       ['LAPORAN PENJUALAN'],
       ['Periode', periodeLabel.value],
       [],
-      ['No', 'Tanggal', 'No. Transaksi', 'Pelanggan', 'Produk', 'Qty', 'Total', 'Metode Pembayaran', 'Status'],
+      ['No', 'Tanggal', 'No. Transaksi', 'Pelanggan', 'Produk', 'Qty', 'Dibayar', 'Komisi Referral', 'Bersih', 'Metode Pembayaran', 'Status'],
       ...res.data.map((trx, idx) => [
         idx + 1,
         trx.date,
@@ -164,6 +179,8 @@ const handleExport = async () => {
         getTrxProductsSummary(trx),
         getTrxTotalQty(trx),
         getTrxTotalAmount(trx),
+        getTrxReferralCommission(trx),
+        getTrxNetAmount(trx),
         trx.paymentMethod,
         trx.status
       ])
@@ -246,15 +263,41 @@ const handlePrint = () => {
     </div>
 
     <!-- ========== RINGKASAN LAPORAN (KPI CARDS) ========== -->
-    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       <!-- 1. Total Penjualan -->
       <div class="kpi-card bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-100 dark:border-slate-700/50 shadow-xs flex items-center justify-between">
         <div>
-          <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Total Penjualan</span>
+          <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Total Dibayar</span>
           <h3 class="text-xl sm:text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-1 tracking-tight">
             {{ formatCurrency(summary.totalPenjualan) }}
           </h3>
-          <p class="text-[11px] text-slate-400 dark:text-slate-500 mt-1">Akumulasi transaksi status Selesai</p>
+          <p class="text-[11px] text-slate-400 dark:text-slate-500 mt-1">Nilai transaksi berstatus Selesai</p>
+        </div>
+        <div class="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+          <TrendingUp class="w-6 h-6" />
+        </div>
+      </div>
+
+      <div class="kpi-card bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-100 dark:border-slate-700/50 shadow-xs flex items-center justify-between">
+        <div>
+          <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Total Komisi Referral</span>
+          <h3 class="text-xl sm:text-2xl font-extrabold text-amber-600 dark:text-amber-400 mt-1 tracking-tight">
+            {{ formatCurrency(totalReferralCommission) }}
+          </h3>
+          <p class="text-[11px] text-slate-400 dark:text-slate-500 mt-1">Sales Rp50.000 · pelanggan Rp15.000 per referral</p>
+        </div>
+        <div class="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+          <TrendingUp class="w-6 h-6" />
+        </div>
+      </div>
+
+      <div class="kpi-card bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-100 dark:border-slate-700/50 shadow-xs flex items-center justify-between">
+        <div>
+          <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Bersih Setelah Komisi</span>
+          <h3 class="text-xl sm:text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-1 tracking-tight">
+            {{ formatCurrency(netSales) }}
+          </h3>
+          <p class="text-[11px] text-slate-400 dark:text-slate-500 mt-1">Total dibayar dikurangi seluruh komisi referral</p>
         </div>
         <div class="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
           <TrendingUp class="w-6 h-6" />
@@ -399,7 +442,7 @@ const handlePrint = () => {
               <th class="px-5 py-3 font-semibold text-slate-500 dark:text-slate-400 text-xs">Pelanggan</th>
               <th class="px-5 py-3 font-semibold text-slate-500 dark:text-slate-400 text-xs">Produk</th>
               <th class="px-5 py-3 font-semibold text-slate-500 dark:text-slate-400 text-xs text-center">Qty</th>
-              <th class="px-5 py-3 font-semibold text-slate-500 dark:text-slate-400 text-xs text-right">Total</th>
+              <th class="px-5 py-3 font-semibold text-slate-500 dark:text-slate-400 text-xs text-right">Dibayar / Bersih</th>
               <th class="px-5 py-3 font-semibold text-slate-500 dark:text-slate-400 text-xs text-center">Status</th>
               <th class="px-5 py-3 font-semibold text-slate-500 dark:text-slate-400 text-xs text-center w-28 print:hidden">Aksi</th>
             </tr>
@@ -455,8 +498,14 @@ const handlePrint = () => {
 
               <!-- Total -->
               <td class="px-5 py-4 text-right whitespace-nowrap">
-                <span class="font-extrabold text-slate-900 dark:text-white text-xs sm:text-sm">
+                <span class="block font-extrabold text-slate-900 dark:text-white text-xs sm:text-sm">
                   {{ formatCurrency(getTrxTotalAmount(trx)) }}
+                </span>
+                <span v-if="getTrxReferralCommission(trx) > 0" class="mt-1 block text-[10px] text-amber-600 dark:text-amber-400">
+                  {{ getTrxCommissionLabel(trx) }} {{ formatCurrency(getTrxReferralCommission(trx)) }}
+                </span>
+                <span v-if="getTrxReferralCommission(trx) > 0" class="block text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                  Bersih {{ formatCurrency(getTrxNetAmount(trx)) }}
                 </span>
               </td>
 
@@ -544,9 +593,12 @@ const handlePrint = () => {
           <!-- Total & Detail Action -->
           <div class="flex items-center justify-between pt-1">
             <div>
-              <div class="text-[10px] font-semibold text-slate-400 uppercase">Total Transaksi</div>
+              <div class="text-[10px] font-semibold text-slate-400 uppercase">Dibayar</div>
               <div class="text-base font-extrabold text-slate-900 dark:text-white">
                 {{ formatCurrency(getTrxTotalAmount(trx)) }}
+              </div>
+              <div v-if="getTrxReferralCommission(trx) > 0" class="text-[10px] text-amber-600 dark:text-amber-400">
+                {{ getTrxCommissionLabel(trx) }} {{ formatCurrency(getTrxReferralCommission(trx)) }} · Bersih {{ formatCurrency(getTrxNetAmount(trx)) }}
               </div>
             </div>
             <button 
@@ -670,11 +722,19 @@ const handlePrint = () => {
             <span>Jumlah Item:</span>
             <span class="font-bold">{{ getTrxTotalQty(selectedTrx) }} Qty</span>
           </div>
+          <div v-if="getTrxReferralCommission(selectedTrx) > 0" class="flex items-center justify-between text-xs text-amber-700 dark:text-amber-300">
+            <span>{{ getTrxCommissionLabel(selectedTrx) }}:</span>
+            <span class="font-bold">-{{ formatCurrency(getTrxReferralCommission(selectedTrx)) }}</span>
+          </div>
           <div class="flex items-center justify-between text-sm font-bold text-indigo-900 dark:text-indigo-200 pt-2 border-t border-indigo-100 dark:border-indigo-800/40">
             <span>Total Pembayaran:</span>
             <span class="text-lg font-extrabold text-indigo-600 dark:text-indigo-400">
               {{ formatCurrency(getTrxTotalAmount(selectedTrx)) }}
             </span>
+          </div>
+          <div v-if="getTrxReferralCommission(selectedTrx) > 0" class="flex items-center justify-between text-sm font-bold text-emerald-700 dark:text-emerald-300">
+            <span>Bersih Setelah Komisi:</span>
+            <span>{{ formatCurrency(getTrxNetAmount(selectedTrx)) }}</span>
           </div>
         </div>
 

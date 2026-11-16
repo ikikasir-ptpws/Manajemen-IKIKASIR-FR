@@ -4,6 +4,8 @@ export interface CashTransactionProps {
   category: string;
   desc: string;
   amount: number;
+  referralCommission?: number;
+  referralSource?: string;
   date: Date;
   rawDate?: string | null;
   displayDate?: string | null;
@@ -24,6 +26,8 @@ export class CashTransaction {
   public readonly category: string;
   public readonly desc: string;
   public readonly amount: number;
+  public readonly referralCommission: number;
+  public readonly referralSource: string;
   public readonly date: Date;
   public readonly rawDate: string;
   public readonly displayDate: string;
@@ -43,6 +47,8 @@ export class CashTransaction {
     this.category = props.category;
     this.desc = props.desc;
     this.amount = props.amount;
+    this.referralCommission = props.referralCommission ?? 0;
+    this.referralSource = props.referralSource || '';
     this.date = props.date;
     this.rawDate = props.rawDate || this.formatRawDate(props.date);
     this.displayDate = props.displayDate || this.formatDisplayDate(props.date);

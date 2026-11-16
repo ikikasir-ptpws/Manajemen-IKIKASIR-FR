@@ -7,6 +7,8 @@ export interface CashTransactionItem {
   category: string
   desc: string
   amount: number
+  referralCommission?: number
+  referralSource?: string
   date: string
   rawDate: string
   displayDate: string

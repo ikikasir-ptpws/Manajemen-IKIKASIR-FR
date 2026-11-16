@@ -16,6 +16,8 @@ export class PrismaFinancialReportRepository implements IFinancialReportReposito
       category: record.category,
       desc: record.desc,
       amount: record.amount,
+      referralCommission: record.referralCommission,
+      referralSource: record.referralSource,
       date: record.date,
       rawDate: record.rawDate,
       displayDate: record.displayDate,
@@ -179,12 +181,17 @@ export class PrismaFinancialReportRepository implements IFinancialReportReposito
       where,
       select: {
         amount: true,
+        referralCommission: true,
+        referralSource: true,
         status: true,
         customer: true,
       },
     });
 
     let totalPenjualan = 0;
+    let totalKomisiSales = 0;
+    let totalKomisiPelanggan = 0;
+    let totalKomisiReferral = 0;
     let jumlahTransaksi = 0;
     let jumlahTransaksiSelesai = 0;
     let jumlahTransaksiPending = 0;
@@ -199,6 +206,13 @@ export class PrismaFinancialReportRepository implements IFinancialReportReposito
 
       if (item.status === 'Selesai') {
         totalPenjualan += Number(item.amount || 0);
+        const commission = Number(item.referralCommission || 0);
+        totalKomisiReferral += commission;
+        if (item.referralSource === 'SALES') {
+          totalKomisiSales += commission;
+        } else if (item.referralSource === 'CUSTOMER') {
+          totalKomisiPelanggan += commission;
+        }
         jumlahTransaksiSelesai++;
       } else if (item.status === 'Pending') {
         jumlahTransaksiPending++;
@@ -209,6 +223,10 @@ export class PrismaFinancialReportRepository implements IFinancialReportReposito
 
     return {
       totalPenjualan,
+      totalKomisiSales,
+      totalKomisiPelanggan,
+      totalKomisiReferral,
+      penjualanBersih: totalPenjualan - totalKomisiReferral,
       jumlahTransaksi,
       jumlahTransaksiSelesai,
       jumlahTransaksiPending,

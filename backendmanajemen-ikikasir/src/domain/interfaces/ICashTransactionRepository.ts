@@ -5,6 +5,8 @@ export interface CreateCashTransactionData {
   category: string;
   desc: string;
   amount: number;
+  referralCommission?: number;
+  referralSource?: string;
   date?: Date;
   rawDate?: string;
   displayDate?: string;

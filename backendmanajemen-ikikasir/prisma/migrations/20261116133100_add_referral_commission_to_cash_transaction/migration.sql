@@ -1,0 +1,3 @@
+ALTER TABLE "cash_transactions"
+ADD COLUMN "referralCommission" DOUBLE PRECISION NOT NULL DEFAULT 0,
+ADD COLUMN "referralSource" TEXT NOT NULL DEFAULT '';
