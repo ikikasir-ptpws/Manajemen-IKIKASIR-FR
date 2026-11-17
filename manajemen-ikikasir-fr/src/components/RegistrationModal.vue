@@ -500,6 +500,26 @@ const closeModal = () => {
                 </option>
               </select>
             </div>
+            <div
+              v-if="formData.paymentMethod === 'Transfer Bank'"
+              class="mt-3 rounded-xl border border-indigo-100 bg-indigo-50/70 p-3.5 text-sm"
+            >
+              <p class="font-bold text-indigo-900">Detail Rekening Transfer</p>
+              <dl class="mt-2 space-y-1.5 text-slate-700">
+                <div class="flex gap-2">
+                  <dt class="w-32 shrink-0">Bank</dt>
+                  <dd class="font-semibold">MANDIRI</dd>
+                </div>
+                <div class="flex gap-2">
+                  <dt class="w-32 shrink-0">Nomor Rekening</dt>
+                  <dd class="font-semibold">1440035000303</dd>
+                </div>
+                <div class="flex gap-2">
+                  <dt class="w-32 shrink-0">Atas Nama</dt>
+                  <dd class="font-semibold">PT PUTRA WISANGGENI SATU</dd>
+                </div>
+              </dl>
+            </div>
             <p v-if="errors.paymentMethod" class="text-xs text-rose-500 mt-1 flex items-center gap-1">
               <AlertCircle class="w-3.5 h-3.5" /> {{ errors.paymentMethod }}
             </p>

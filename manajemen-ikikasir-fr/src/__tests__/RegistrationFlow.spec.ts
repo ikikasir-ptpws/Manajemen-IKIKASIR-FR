@@ -114,6 +114,30 @@ describe('Form Pendaftaran Langganan (Landing Page) & Calon Client Integration',
     wrapper.unmount()
   })
 
+  it('menampilkan detail rekening saat metode Transfer Bank dipilih', async () => {
+    const wrapper = mount(RegistrationModal, {
+      props: { isOpen: true },
+      attachTo: document.body
+    })
+    await flushPromises()
+
+    expect(document.body.textContent).not.toContain('1440035000303')
+
+    const paymentMethodSelect = Array.from(document.body.querySelectorAll('select')).find(
+      (select) => Array.from(select.options).some((option) => option.value === 'Transfer Bank')
+    ) as HTMLSelectElement
+    paymentMethodSelect.value = 'Transfer Bank'
+    paymentMethodSelect.dispatchEvent(new Event('change', { bubbles: true }))
+    await flushPromises()
+
+    const text = document.body.textContent || ''
+    expect(text).toContain('MANDIRI')
+    expect(text).toContain('1440035000303')
+    expect(text).toContain('PT PUTRA WISANGGENI SATU')
+
+    wrapper.unmount()
+  })
+
   it('menampilkan pesan error berbahasa Indonesia saat kolom wajib kosong', async () => {
     const wrapper = mount(RegistrationModal, {
       props: { isOpen: true },
