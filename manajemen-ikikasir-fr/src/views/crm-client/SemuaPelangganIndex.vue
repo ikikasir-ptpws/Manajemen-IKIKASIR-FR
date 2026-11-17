@@ -166,18 +166,22 @@ const canDeleteCustomer = computed(() => {
 })
 
 const canSetupCustomer = computed(() => {
-  const activeRole = (currentRole.value || '').trim()
+  const activeRole = (currentRole.value || currentUser.value?.role || '').trim()
   if (activeRole.toLowerCase().includes('super')) return true
 
+  // Cek konfigurasi role terbaru sebelum permission yang tersimpan di sesi login.
   if (typeof localStorage !== 'undefined') {
     const storedRoles = localStorage.getItem('ikikasir_roles_v2')
     if (storedRoles) {
       try {
         const roles = JSON.parse(storedRoles)
         const role = Array.isArray(roles)
-          ? roles.find((item: any) => (item.name || '').trim().toLowerCase() === activeRole.toLowerCase())
+          ? roles.find((item: any) => 
+              (item.name || '').trim().toLowerCase() === activeRole.toLowerCase() ||
+              (currentUser.value?.role && (item.name || '').trim().toLowerCase() === currentUser.value.role.trim().toLowerCase())
+            )
           : undefined
-        const permission = role?.permissions?.semuaPelanggan?.setup ?? role?.permissions?.semuaPelanggan?.update
+        const permission = role?.permissions?.semuaPelanggan?.setup
         if (typeof permission === 'boolean') return permission
       } catch (error) {
         console.warn('Gagal membaca konfigurasi izin role:', error)
@@ -185,14 +189,12 @@ const canSetupCustomer = computed(() => {
     }
   }
 
-  if ((currentUser.value?.role || '').trim().toLowerCase() === activeRole.toLowerCase()) {
-    const perm = currentUser.value?.roleDetail?.permissions?.semuaPelanggan as any
-    const permission = perm?.setup ?? perm?.update
-    if (typeof permission === 'boolean') return permission
-  }
+  const userPerm = (currentUser.value?.roleDetail?.permissions as any)?.semuaPelanggan?.setup
+  if (typeof userPerm === 'boolean') return userPerm
 
+  // 3. Fallback default jika belum ada konfigurasi: hanya role teknisi default yang aktif
   const lower = activeRole.toLowerCase()
-  return lower.includes('teknisi') || lower.includes('admin')
+  return lower.includes('teknisi')
 })
 
 const form = ref({ name: '', business: '', type: 'Basic' as 'Basic' | 'Pro' | 'Custom / IT One', phone: '', address: '' })
@@ -1346,6 +1348,7 @@ const openAgreementPreview = (user?: any) => {
                 <div class="inline-flex items-center justify-center gap-1.5">
                   <!-- Tombol Ubah Status Setup -->
                   <button 
+                    v-if="canSetupCustomer"
                     @click="openSetupModal(cust)"
                     class="px-2.5 py-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white font-bold text-xs flex items-center gap-1 shadow-sm shadow-cyan-200 transition-colors cursor-pointer whitespace-nowrap"
                     title="Ubah Status Pengerjaan Teknisi"

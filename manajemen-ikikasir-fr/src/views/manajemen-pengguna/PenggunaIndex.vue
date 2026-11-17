@@ -27,9 +27,14 @@ export interface AppUser {
   name: string
   email: string
   phone?: string | null
-  role: 'Super Admin' | 'Finance' | 'Teknisi' | 'Admin' | 'Staff' | 'Kasir' | 'Sales'
+  role: string
   status: 'Active' | 'Inactive'
   lastLogin: string
+}
+
+interface AvailableRole {
+  id?: string
+  name: string
 }
 
 const STORAGE_KEY_USERS = 'ikikasir_users_v3'
@@ -60,7 +65,15 @@ const isDeleteConfirmOpen = ref(false)
 const toastMessage = ref<string | null>(null)
 const isLoadingUsers = ref(false)
 const isSaving = ref(false)
-const availableRoles = ref<string[]>(['Super Admin', 'Finance', 'Teknisi', 'Admin', 'Staff', 'Kasir', 'Sales'])
+const availableRoles = ref<AvailableRole[]>([
+  { name: 'Super Admin' },
+  { name: 'Finance' },
+  { name: 'Teknisi' },
+  { name: 'Admin' },
+  { name: 'Staff' },
+  { name: 'Kasir' },
+  { name: 'Sales' }
+])
 
 const showToast = (msg: string) => {
   toastMessage.value = msg
@@ -75,7 +88,7 @@ const form = ref({
   name: '',
   email: '',
   phone: '',
-  role: 'Finance' as 'Super Admin' | 'Finance' | 'Teknisi' | 'Admin' | 'Staff' | 'Kasir' | 'Sales',
+  role: 'Finance',
   status: 'Active' as 'Active' | 'Inactive',
   password: ''
 })
@@ -104,7 +117,7 @@ const loadUsers = async () => {
     ])
 
     if (rolesRes.status === 'fulfilled' && rolesRes.value.data) {
-      const rolesList = rolesRes.value.data.map((r: any) => r.name)
+      const rolesList = rolesRes.value.data.map((r: any) => ({ id: r.id, name: r.name }))
       if (rolesList.length > 0) {
         availableRoles.value = rolesList
       }
@@ -138,6 +151,8 @@ const saveUsersToStorage = () => {
     localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(users.value))
   }
 }
+
+const getRoleId = (roleName: string) => availableRoles.value.find(role => role.name === roleName)?.id
 
 onMounted(() => {
   loadUsers()
@@ -262,6 +277,7 @@ const handleSaveUser = async () => {
         email: form.value.email.trim(),
         phone: form.value.phone.trim(),
         role: form.value.role,
+        roleId: getRoleId(form.value.role),
         status: form.value.status,
         password: form.value.password ? form.value.password : undefined
       })
@@ -283,6 +299,7 @@ const handleSaveUser = async () => {
         phone: form.value.phone.trim(),
         password: form.value.password,
         role: form.value.role,
+        roleId: getRoleId(form.value.role),
         status: form.value.status
       })
       if (!res.data?.id) {
@@ -770,13 +787,9 @@ const toggleStatus = async (u: AppUser) => {
                   v-model="form.role"
                   class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:border-indigo-500"
                 >
-                  <option value="Super Admin">Super Admin</option>
-                  <option value="Finance">Finance (Acc Pembayaran)</option>
-                  <option value="Teknisi">Teknisi (Penyiapan Aplikasi)</option>
-                  <option value="Admin">Admin</option>
-                  <option value="Staff">Staff</option>
-                  <option value="Kasir">Kasir</option>
-                  <option value="Sales">Sales</option>
+                  <option v-for="role in availableRoles" :key="role.id || role.name" :value="role.name">
+                    {{ role.name === 'Finance' ? 'Finance (Acc Pembayaran)' : role.name === 'Teknisi' ? 'Teknisi (Penyiapan Aplikasi)' : role.name }}
+                  </option>
                 </select>
               </div>
               <p v-if="form.role === 'Sales'" class="mt-1.5 text-[11px] leading-relaxed text-violet-600 dark:text-violet-300">
