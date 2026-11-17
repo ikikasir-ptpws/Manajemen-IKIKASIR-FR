@@ -33,6 +33,7 @@ export interface UpdateReferralWithdrawalData {
   invoiceNo?: string | null;
   processedBy?: string;
   transferReference?: string;
+  paymentProofUrl?: string | null;
   rejectionReason?: string;
   completedDate?: Date | null;
   rejectedAt?: Date | null;

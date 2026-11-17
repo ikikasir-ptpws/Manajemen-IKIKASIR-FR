@@ -280,6 +280,7 @@ model ReferralWithdrawal {
   invoiceNo         String?   @unique
   processedBy       String    @default("")
   transferReference String    @default("")
+  paymentProofUrl   String?
   waSentAt          DateTime?
   rejectionReason   String    @default("")
   rejectedAt        DateTime?

@@ -249,6 +249,7 @@ export const ReferralWithdrawalScalarFieldEnum = {
     invoiceNo: 'invoiceNo',
     processedBy: 'processedBy',
     transferReference: 'transferReference',
+    paymentProofUrl: 'paymentProofUrl',
     waSentAt: 'waSentAt',
     rejectionReason: 'rejectionReason',
     rejectedAt: 'rejectedAt',

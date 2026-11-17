@@ -46,6 +46,7 @@ export class PrismaReferralRepository implements IReferralRepository {
       invoiceNo: record.invoiceNo ?? null,
       processedBy: record.processedBy ?? '',
       transferReference: record.transferReference ?? '',
+      paymentProofUrl: record.paymentProofUrl ?? null,
       waSentAt: record.waSentAt ?? null,
       rejectionReason: record.rejectionReason ?? '',
       rejectedAt: record.rejectedAt ?? null,
@@ -244,6 +245,7 @@ export class PrismaReferralRepository implements IReferralRepository {
       if (data.invoiceNo !== undefined) payload.invoiceNo = data.invoiceNo;
       if (data.processedBy !== undefined) payload.processedBy = data.processedBy;
       if (data.transferReference !== undefined) payload.transferReference = data.transferReference;
+      if (data.paymentProofUrl !== undefined) payload.paymentProofUrl = data.paymentProofUrl;
       if (data.rejectionReason !== undefined) payload.rejectionReason = data.rejectionReason;
       if (data.completedDate !== undefined) payload.completedDate = data.completedDate;
       if (data.rejectedAt !== undefined) payload.rejectedAt = data.rejectedAt;
@@ -279,6 +281,7 @@ export class PrismaReferralRepository implements IReferralRepository {
             invoiceNo: data.invoiceNo !== undefined ? data.invoiceNo : undefined,
             processedBy: data.processedBy !== undefined ? data.processedBy : undefined,
             transferReference: data.transferReference !== undefined ? data.transferReference : undefined,
+            paymentProofUrl: data.paymentProofUrl !== undefined ? data.paymentProofUrl : undefined,
             rejectionReason: data.rejectionReason !== undefined ? data.rejectionReason : undefined,
             completedDate: data.completedDate !== undefined ? data.completedDate : undefined,
             rejectedAt: data.rejectedAt !== undefined ? data.rejectedAt : undefined,

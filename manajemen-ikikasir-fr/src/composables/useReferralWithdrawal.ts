@@ -150,6 +150,7 @@ export function buildWhatsappMessage(item: {
   accountNumber: string
   accountHolder: string
   completedDate?: string | null
+  paymentProofUrl?: string | null
 }): string {
   const currency = new Intl.NumberFormat('id-ID', {
     style: 'currency',
@@ -166,6 +167,7 @@ export function buildWhatsappMessage(item: {
     `Nomor invoice      : ${item.invoiceNo || '-'}`,
     `Tanggal bayar      : ${item.completedDate || '-'}`,
     `Transfer ke        : ${item.bankOrWallet || '-'} ${item.accountNumber || '-'} (${item.accountHolder || '-'})`,
+    ...(item.paymentProofUrl ? [`Bukti pembayaran   : ${item.paymentProofUrl}`] : []),
     '',
     'Bukti penarikan dapat dicetak dari dashboard IKIKASIR.',
     '',

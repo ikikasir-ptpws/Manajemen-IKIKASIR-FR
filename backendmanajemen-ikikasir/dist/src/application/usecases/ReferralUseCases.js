@@ -37,6 +37,7 @@ const toWithdrawalItemDto = (w) => ({
     invoiceNo: w.invoiceNo,
     processedBy: w.processedBy,
     transferReference: w.transferReference,
+    paymentProofUrl: w.paymentProofUrl,
     waSentAt: w.waSentAt ? formatDateID(w.waSentAt) : null,
     rejectionReason: w.rejectionReason,
 });
@@ -519,6 +520,13 @@ export class ReferralUseCases {
             });
             return toWithdrawalListItemDto(rejected);
         }
+        if (!dto.paymentProofUrl?.trim()) {
+            throw new BadRequestError('Bukti pembayaran wajib diunggah sebelum penarikan disetujui.');
+        }
+        const phoneDigits = (withdrawal.customerPhone || '').replace(/\D/g, '');
+        if (phoneDigits.length < 8 || phoneDigits.length > 15) {
+            throw new BadRequestError('Nomor WhatsApp pelanggan belum valid. Perbarui nomor telepon pelanggan sebelum menyetujui penarikan.');
+        }
         // Pastikan saldo masih cukup (permintaan lain yang menunggu verifikasi ikut direservasi)
         const overview = await this.getOverview(withdrawal.customerId);
         const availableForThis = overview.availableBalance + withdrawal.amount;
@@ -535,6 +543,7 @@ export class ReferralUseCases {
             invoiceNo,
             processedBy,
             transferReference: dto.transferReference?.trim() ?? '',
+            paymentProofUrl: dto.paymentProofUrl.trim(),
             completedDate: new Date(),
             cashAmount: withdrawal.amount,
             cashDescription: `Pencairan saldo referral - ${customerLabel || 'Pelanggan'}`,

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import {
   Banknote,
   Search,
@@ -11,12 +11,16 @@ import {
   X,
   AlertTriangle,
   FileText,
-  User
+  User,
+  ExternalLink,
+  Upload
 } from 'lucide-vue-next'
 import { useReferralWithdrawal } from '../../composables/useReferralWithdrawal'
 import GlobalPagination from '../../components/common/GlobalPagination.vue'
 import BuktiPenarikanModal from './components/BuktiPenarikanModal.vue'
 import type { ReferralWithdrawalListItem } from '../../types/referral'
+import { normalizeWaNumber } from '../../composables/useReferralWithdrawal'
+import { resolveReceiptUrl, uploadApi } from '../../api'
 
 const {
   items,
@@ -49,7 +53,20 @@ const showToast = (msg: string) => {
 
 // Modal konfirmasi bayar
 const isPayModalOpen = ref(false)
-const payForm = ref({ transferReference: '', notes: '' })
+const payForm = ref({
+  transferReference: '',
+  notes: '',
+  paymentProofUrl: '',
+  paymentProofFileName: ''
+})
+const approvalError = ref<string | null>(null)
+const isUploadingProof = ref(false)
+const customerWaNumber = computed(() =>
+  selectedItem.value ? normalizeWaNumber(selectedItem.value.customerPhone) : ''
+)
+const hasValidCustomerPhone = computed(() =>
+  customerWaNumber.value.length >= 8 && customerWaNumber.value.length <= 15
+)
 
 // Modal tolak
 const isRejectModalOpen = ref(false)
@@ -102,7 +119,13 @@ const statusBadgeClass = (status: string): string => {
 
 const openPayModal = (item: ReferralWithdrawalListItem) => {
   selectedItem.value = item
-  payForm.value = { transferReference: '', notes: item.notes || '' }
+  payForm.value = {
+    transferReference: '',
+    notes: item.notes || '',
+    paymentProofUrl: '',
+    paymentProofFileName: ''
+  }
+  approvalError.value = null
   isPayModalOpen.value = true
 }
 
@@ -117,13 +140,57 @@ const openProofModal = (item: ReferralWithdrawalListItem) => {
   isProofModalOpen.value = true
 }
 
+const handlePaymentProofUpload = async (event: Event) => {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+
+  if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+    approvalError.value = 'Format bukti tidak didukung. Gunakan gambar JPG, PNG, atau WEBP.'
+    input.value = ''
+    return
+  }
+  if (file.size > 10 * 1024 * 1024) {
+    approvalError.value = 'Ukuran bukti pembayaran maksimal 10MB.'
+    input.value = ''
+    return
+  }
+
+  approvalError.value = null
+  isUploadingProof.value = true
+  try {
+    const response = await uploadApi.uploadFile(file)
+    if (!response.data?.url) {
+      throw new Error('Server tidak mengembalikan tautan bukti pembayaran.')
+    }
+    payForm.value.paymentProofUrl = response.data.url
+    payForm.value.paymentProofFileName = file.name
+  } catch (err: any) {
+    payForm.value.paymentProofUrl = ''
+    payForm.value.paymentProofFileName = ''
+    approvalError.value = err?.message || 'Gagal mengunggah bukti pembayaran.'
+  } finally {
+    isUploadingProof.value = false
+  }
+}
+
 /** Tandai sudah dibayar (SELESAI) -> dana dikirim manual oleh admin */
 const handleConfirmPaid = async () => {
   if (!selectedItem.value) return
+  if (!hasValidCustomerPhone.value) {
+    approvalError.value = 'Nomor WhatsApp pelanggan belum valid. Perbarui nomor telepon pelanggan sebelum menyetujui penarikan.'
+    return
+  }
+  if (!payForm.value.paymentProofUrl) {
+    approvalError.value = 'Unggah bukti pembayaran sebelum menyetujui penarikan.'
+    return
+  }
 
+  approvalError.value = null
   const result = await confirmWithdrawal(selectedItem.value.id, {
     status: 'SELESAI',
     transferReference: payForm.value.transferReference.trim() || undefined,
+    paymentProofUrl: payForm.value.paymentProofUrl,
     notes: payForm.value.notes.trim() || undefined
   })
 
@@ -543,6 +610,10 @@ onMounted(() => {
               </div>
             </div>
 
+            <div v-if="!hasValidCustomerPhone" class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-relaxed text-amber-800">
+              Nomor WhatsApp pelanggan belum valid. Perbarui nomor telepon pelanggan sebelum menyetujui penarikan.
+            </div>
+
             <div class="space-y-1.5">
               <label class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
                 <FileText class="w-3.5 h-3.5 text-slate-400" />
@@ -558,6 +629,41 @@ onMounted(() => {
 
             <div class="space-y-1.5">
               <label class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                <Upload class="w-3.5 h-3.5 text-slate-400" />
+                Bukti Pembayaran <span class="text-rose-500">*</span>
+              </label>
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                :disabled="isUploadingProof || isSubmitting"
+                @change="handlePaymentProofUpload"
+                class="block w-full rounded-xl border border-slate-200 bg-white text-sm text-slate-600 file:mr-3 file:border-0 file:bg-indigo-50 file:px-4 file:py-2.5 file:text-xs file:font-semibold file:text-indigo-700 hover:file:bg-indigo-100 disabled:opacity-50"
+              />
+              <p class="text-[11px] text-slate-500">JPG, PNG, atau WEBP; maksimal 10MB.</p>
+              <p v-if="isUploadingProof" class="text-xs font-medium text-indigo-600">Mengunggah bukti pembayaran...</p>
+              <div v-else-if="payForm.paymentProofUrl" class="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+                <img
+                  :src="resolveReceiptUrl(payForm.paymentProofUrl)"
+                  alt="Pratinjau bukti pembayaran"
+                  class="h-14 w-14 rounded-lg border border-emerald-100 object-cover"
+                />
+                <div class="min-w-0 flex-1">
+                  <p class="truncate text-sm font-semibold text-slate-800">{{ payForm.paymentProofFileName }}</p>
+                  <p class="text-xs text-emerald-700">Bukti berhasil diunggah</p>
+                </div>
+                <a
+                  :href="resolveReceiptUrl(payForm.paymentProofUrl)"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Lihat bukti pembayaran"
+                >
+                  <ExternalLink class="w-4 h-4 text-indigo-600" />
+                </a>
+              </div>
+            </div>
+
+            <div class="space-y-1.5">
+              <label class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
                 <FileText class="w-3.5 h-3.5 text-slate-400" />
                 Catatan Internal
               </label>
@@ -568,6 +674,10 @@ onMounted(() => {
                 class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 bg-slate-50/50 text-slate-800 placeholder-slate-400 resize-none"
               ></textarea>
             </div>
+
+            <p v-if="approvalError" class="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+              {{ approvalError }}
+            </p>
 
             <div class="p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-2 text-[11px] text-amber-800">
               <AlertTriangle class="w-4 h-4 shrink-0 mt-0.5" />
@@ -581,17 +691,18 @@ onMounted(() => {
           <div class="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-2">
             <button
               @click="isPayModalOpen = false"
+              :disabled="isUploadingProof || isSubmitting"
               class="px-5 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 text-xs font-bold transition-all cursor-pointer shadow-2xs"
             >
               Batal
             </button>
             <button
               @click="handleConfirmPaid"
-              :disabled="isSubmitting"
+              :disabled="isUploadingProof || isSubmitting || !payForm.paymentProofUrl || !hasValidCustomerPhone"
               class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
             >
-              <CheckCircle2 class="w-4 h-4" />
-              {{ isSubmitting ? 'Memproses...' : 'Tandai Sudah Dibayar' }}
+              <Upload class="w-4 h-4" />
+              {{ isSubmitting ? 'Memproses...' : 'Setujui & Simpan Bukti' }}
             </button>
           </div>
         </div>

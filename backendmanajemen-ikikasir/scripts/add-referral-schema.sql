@@ -45,8 +45,12 @@ CREATE TABLE IF NOT EXISTS "referral_withdrawals" (
   "notes" text DEFAULT '',
   "createdAt" timestamp without time zone DEFAULT now(),
   "updatedAt" timestamp without time zone DEFAULT now(),
+  "paymentProofUrl" text,
   CONSTRAINT "referral_withdrawals_pkey" PRIMARY KEY ("id"),
   CONSTRAINT "referral_withdrawals_customerId_fkey" FOREIGN KEY ("customerId") REFERENCES "customers"("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
+
+ALTER TABLE "referral_withdrawals"
+  ADD COLUMN IF NOT EXISTS "paymentProofUrl" text;
 
 CREATE INDEX IF NOT EXISTS "referral_withdrawals_customerId_idx" ON "referral_withdrawals"("customerId");

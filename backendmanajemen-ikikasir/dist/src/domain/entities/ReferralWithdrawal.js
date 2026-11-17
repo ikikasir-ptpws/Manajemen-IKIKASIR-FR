@@ -12,6 +12,7 @@ export class ReferralWithdrawal {
     invoiceNo;
     processedBy;
     transferReference;
+    paymentProofUrl;
     waSentAt;
     rejectionReason;
     rejectedAt;
@@ -36,6 +37,7 @@ export class ReferralWithdrawal {
         this.invoiceNo = props.invoiceNo ?? null;
         this.processedBy = props.processedBy ?? '';
         this.transferReference = props.transferReference ?? '';
+        this.paymentProofUrl = props.paymentProofUrl ?? null;
         this.waSentAt = props.waSentAt ?? null;
         this.rejectionReason = props.rejectionReason ?? '';
         this.rejectedAt = props.rejectedAt ?? null;
@@ -62,6 +64,7 @@ export class ReferralWithdrawal {
             invoiceNo: this.invoiceNo,
             processedBy: this.processedBy,
             transferReference: this.transferReference,
+            paymentProofUrl: this.paymentProofUrl,
             waSentAt: this.waSentAt ? this.waSentAt.toISOString() : null,
             rejectionReason: this.rejectionReason,
             rejectedAt: this.rejectedAt ? this.rejectedAt.toISOString() : null,

@@ -63,6 +63,8 @@ const {
   leads, 
   invoices, 
   packages,
+  currentUser,
+  currentRole,
   technicianQueue, 
   getComputedCustomerStatus, 
   startTechnicianSetup, 
@@ -128,6 +130,34 @@ const showDeleteConfirm = ref(false)
 const showAddEditModal = ref(false)
 const editMode = ref(false)
 const selectedCustomer = ref<any>(null)
+
+const canDeleteCustomer = computed(() => {
+  const activeRole = (currentRole.value || '').trim()
+  if (activeRole.toLowerCase().includes('super')) return true
+
+  if (typeof localStorage !== 'undefined') {
+    const storedRoles = localStorage.getItem('ikikasir_roles_v2')
+    if (storedRoles) {
+      try {
+        const roles = JSON.parse(storedRoles)
+        const role = Array.isArray(roles)
+          ? roles.find((item: any) => (item.name || '').trim().toLowerCase() === activeRole.toLowerCase())
+          : undefined
+        const permission = role?.permissions?.semuaPelanggan?.delete
+        if (typeof permission === 'boolean') return permission
+      } catch (error) {
+        console.warn('Gagal membaca konfigurasi izin role:', error)
+      }
+    }
+  }
+
+  if ((currentUser.value?.role || '').trim().toLowerCase() === activeRole.toLowerCase()) {
+    const permission = currentUser.value?.roleDetail?.permissions?.semuaPelanggan?.delete
+    if (typeof permission === 'boolean') return permission
+  }
+
+  return false
+})
 
 const form = ref({ name: '', business: '', type: 'Basic' as 'Basic' | 'Pro' | 'Custom / IT One', phone: '', address: '' })
 
@@ -424,11 +454,20 @@ const handleCustomerSaved = (savedCust: any) => {
 }
 
 const confirmDelete = (cust: any) => {
+  if (!canDeleteCustomer.value) {
+    showToast('Role Anda tidak memiliki izin untuk menghapus pelanggan.')
+    return
+  }
   selectedCustomer.value = cust
   showDeleteConfirm.value = true
 }
 
 const deleteCustomer = () => {
+  if (!canDeleteCustomer.value) {
+    showDeleteConfirm.value = false
+    showToast('Role Anda tidak memiliki izin untuk menghapus pelanggan.')
+    return
+  }
   if (!selectedCustomer.value) return
   const cust = selectedCustomer.value
   customers.value = customers.value.filter(c => c.id !== cust.id)
@@ -1003,6 +1042,7 @@ const openAgreementPreview = (user?: any) => {
                       <span class="text-[11px] font-bold">Edit</span>
                     </button>
                     <button 
+                      v-if="canDeleteCustomer"
                       @click="confirmDelete(cust)" 
                       class="px-2 py-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50/70 transition-all cursor-pointer" 
                       title="Hapus Data Pelanggan"
@@ -1156,6 +1196,7 @@ const openAgreementPreview = (user?: any) => {
             <Edit2 class="w-3.5 h-3.5" />
           </button>
           <button 
+            v-if="canDeleteCustomer"
             @click="confirmDelete(cust)" 
             class="py-2 px-3 rounded-xl bg-rose-50 text-rose-700 border border-rose-200 font-bold text-xs hover:bg-rose-100 cursor-pointer"
           >

@@ -25,11 +25,16 @@ export const confirmWithdrawalSchema = z
         message: 'Status pencairan tidak valid.',
     }),
     transferReference: z.string().trim().optional(),
+    paymentProofUrl: z.string().trim().optional(),
     notes: z.string().trim().optional(),
     rejectionReason: z.string().trim().optional(),
 })
     .refine((data) => data.status !== 'DITOLAK' || !!data.rejectionReason, {
     message: 'Alasan penolakan wajib diisi.',
     path: ['rejectionReason'],
+})
+    .refine((data) => data.status !== 'SELESAI' || !!data.paymentProofUrl, {
+    message: 'Bukti pembayaran wajib diunggah sebelum penarikan disetujui.',
+    path: ['paymentProofUrl'],
 });
 //# sourceMappingURL=referral.validation.js.map

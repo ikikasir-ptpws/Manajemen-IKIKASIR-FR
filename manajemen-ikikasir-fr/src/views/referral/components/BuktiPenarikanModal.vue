@@ -7,13 +7,15 @@ import {
   Check,
   X,
   BadgeCheck,
-  Building
+  Building,
+  ExternalLink
 } from 'lucide-vue-next'
 import {
   buildWhatsappMessage,
   normalizeWaNumber
 } from '../../../composables/useReferralWithdrawal'
 import type { ReferralWithdrawalListItem } from '../../../types/referral'
+import { resolveReceiptUrl } from '../../../api'
 
 const props = defineProps<{
   item: ReferralWithdrawalListItem
@@ -25,6 +27,9 @@ const emit = defineEmits<{
 }>()
 
 const copied = ref(false)
+const isSharingProof = ref(false)
+const shareNotice = ref<string | null>(null)
+const shareError = ref<string | null>(null)
 
 const formatCurrency = (val: number) => {
   return new Intl.NumberFormat('id-ID', {
@@ -53,11 +58,13 @@ const whatsappMessage = computed(() =>
     bankOrWallet: props.item.bankOrWallet,
     accountNumber: props.item.accountNumber,
     accountHolder: props.item.accountHolder,
-    completedDate: props.item.completedDate
+    completedDate: props.item.completedDate,
+    paymentProofUrl: props.item.paymentProofUrl
   })
 )
 
 const waNumber = computed(() => normalizeWaNumber(props.item.customerPhone))
+const proofUrl = computed(() => resolveReceiptUrl(props.item.paymentProofUrl))
 
 const sendWhatsapp = () => {
   if (!waNumber.value) return
@@ -78,6 +85,68 @@ const copyMessage = async () => {
 
 const printProof = () => {
   window.print()
+}
+
+const fetchProofFile = async (): Promise<File> => {
+  if (!proofUrl.value) throw new Error('Bukti pembayaran tidak ditemukan.')
+
+  const response = await fetch(proofUrl.value)
+  if (!response.ok) throw new Error('Gagal mengambil file bukti pembayaran dari server.')
+
+  const blob = await response.blob()
+  if (!blob.type.startsWith('image/')) {
+    throw new Error('File bukti pembayaran bukan gambar yang dapat dibagikan.')
+  }
+
+  const extension = blob.type.split('/')[1]?.replace('jpeg', 'jpg') || 'jpg'
+  const invoice = props.item.invoiceNo || props.item.id || 'referral'
+  return new File([blob], `bukti-penarikan-${invoice}.${extension}`, { type: blob.type })
+}
+
+const downloadProofFile = (file: File) => {
+  const fileUrl = URL.createObjectURL(file)
+  const link = document.createElement('a')
+  link.href = fileUrl
+  link.download = file.name
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  window.setTimeout(() => URL.revokeObjectURL(fileUrl), 1000)
+}
+
+const shareProofToWhatsapp = async () => {
+  isSharingProof.value = true
+  shareNotice.value = null
+  shareError.value = null
+  try {
+    const file = await fetchProofFile()
+    const shareData: ShareData = {
+      files: [file],
+      text: whatsappMessage.value,
+      title: 'Bukti pembayaran referral'
+    }
+
+    if (
+      typeof navigator.share !== 'function' ||
+      typeof navigator.canShare !== 'function' ||
+      !navigator.canShare({ files: [file] })
+    ) {
+      downloadProofFile(file)
+      shareNotice.value = 'Browser ini belum mendukung lampiran langsung. Bukti sudah diunduh; buka WhatsApp lalu lampirkan file tersebut.'
+      return
+    }
+
+    await navigator.share(shareData)
+    shareNotice.value = 'Pilih WhatsApp pada menu berbagi, pilih chat pelanggan, lalu tekan Kirim untuk mengirim gambar bukti.'
+  } catch (error: any) {
+    if (error?.name === 'AbortError') {
+      shareNotice.value = 'Berbagi bukti dibatalkan.'
+    } else {
+      shareError.value = error?.message || 'Gagal menyiapkan bukti pembayaran untuk dibagikan.'
+    }
+  } finally {
+    isSharingProof.value = false
+  }
 }
 </script>
 
@@ -137,6 +206,15 @@ const printProof = () => {
         </div>
       </div>
 
+      <div v-if="proofUrl" class="border-t border-slate-200 py-4">
+        <p class="mb-2 text-xs font-semibold text-slate-500">Bukti transfer</p>
+        <a :href="proofUrl" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600">
+          <ExternalLink class="w-3.5 h-3.5" />
+          Lihat bukti pembayaran
+        </a>
+        <img :src="proofUrl" alt="Bukti pembayaran penarikan referral" class="mt-3 max-h-56 rounded-xl border border-slate-200 object-contain" />
+      </div>
+
       <div v-if="item.notes" class="py-3 border-t border-dashed border-slate-300 text-xs">
         <span class="text-slate-400 font-medium block mb-1">Catatan</span>
         <p class="text-slate-700 leading-relaxed">{{ item.notes }}</p>
@@ -170,6 +248,17 @@ const printProof = () => {
 
       <div class="flex items-center gap-2 flex-wrap justify-end">
         <button
+          v-if="proofUrl"
+          @click="shareProofToWhatsapp"
+          :disabled="isSharingProof || !waNumber"
+          class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+          title="Bagikan gambar bukti pembayaran dan pesan konfirmasi"
+        >
+          <MessageCircle class="w-3.5 h-3.5" />
+          {{ isSharingProof ? 'Menyiapkan bukti...' : 'Bagikan Bukti + Konfirmasi' }}
+        </button>
+
+        <button
           @click="copyMessage"
           class="px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
         >
@@ -195,6 +284,13 @@ const printProof = () => {
           <MessageCircle class="w-3.5 h-3.5" />
           Kirim ke WhatsApp
         </button>
+
+        <p v-if="shareNotice" class="w-full rounded-xl border border-emerald-200 bg-white px-3 py-2 text-xs leading-relaxed text-emerald-800">
+          {{ shareNotice }}
+        </p>
+        <p v-if="shareError" class="w-full rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs leading-relaxed text-rose-700">
+          {{ shareError }}
+        </p>
 
         <button
           v-if="!item.waSentAt"

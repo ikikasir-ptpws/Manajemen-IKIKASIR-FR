@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { getAll, getExpired, getById, create, update, renew, deleteCustomer, getHistories, getAllHistories, markHistoryPaid, } from '../controllers/CustomerController.js';
 import { validateBody } from '../middlewares/validation.middleware.js';
 import { createCustomerSchema, updateCustomerSchema, renewSubscriptionSchema, } from '../validations/customer.validation.js';
-import { authenticate, authorizeRoles, denySalesCrmAccess } from '../middlewares/auth.middleware.js';
+import { authenticate, authorizePermission, authorizeRoles, denySalesCrmAccess, } from '../middlewares/auth.middleware.js';
 const router = Router();
 // Semua rute manajemen pelanggan di bawah memerlukan autentikasi Admin / Super Admin
 router.use(authenticate, denySalesCrmAccess);
@@ -55,6 +55,6 @@ router.post('/:id/renew', authorizeRoles('SUPERADMIN', 'Super Admin', 'ADMIN', '
  * Route: Menghapus pelanggan
  * DELETE /api/customers/:id
  */
-router.delete('/:id', authorizeRoles('SUPERADMIN', 'Super Admin', 'ADMIN', 'Admin'), deleteCustomer);
+router.delete('/:id', authorizeRoles('SUPERADMIN', 'Super Admin', 'ADMIN', 'Admin'), authorizePermission('semuaPelanggan', 'delete'), deleteCustomer);
 export default router;
 //# sourceMappingURL=customer.routes.js.map

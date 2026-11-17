@@ -17,7 +17,12 @@ import {
   updateCustomerSchema,
   renewSubscriptionSchema,
 } from '../validations/customer.validation.js';
-import { authenticate, authorizeRoles, denySalesCrmAccess } from '../middlewares/auth.middleware.js';
+import {
+  authenticate,
+  authorizePermission,
+  authorizeRoles,
+  denySalesCrmAccess,
+} from '../middlewares/auth.middleware.js';
 
 const router = Router();
 
@@ -100,6 +105,7 @@ router.post(
 router.delete(
   '/:id',
   authorizeRoles('SUPERADMIN', 'Super Admin', 'ADMIN', 'Admin'),
+  authorizePermission('semuaPelanggan', 'delete'),
   deleteCustomer
 );
 

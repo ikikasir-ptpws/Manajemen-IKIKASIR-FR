@@ -43,6 +43,7 @@ export interface ReferralWithdrawalItem {
   invoiceNo?: string | null
   processedBy?: string | null
   transferReference?: string | null
+  paymentProofUrl?: string | null
   waSentAt?: string | null
   rejectionReason?: string | null
 }
@@ -76,6 +77,7 @@ export interface ReferralWithdrawalList {
 export interface ConfirmWithdrawalPayload {
   status: 'SELESAI' | 'DITOLAK'
   transferReference?: string
+  paymentProofUrl?: string
   notes?: string
   rejectionReason?: string
 }

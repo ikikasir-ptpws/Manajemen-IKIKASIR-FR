@@ -39,6 +39,7 @@ export interface ReferralWithdrawalItemDto {
   invoiceNo?: string | null;
   processedBy?: string;
   transferReference?: string;
+  paymentProofUrl?: string | null;
   waSentAt?: string | null;
   rejectionReason?: string;
 }
@@ -123,6 +124,8 @@ export interface ConfirmWithdrawalPayoutDto {
   status: 'SELESAI' | 'DITOLAK';
   /** Nomor referensi transfer dana ke pelanggan */
   transferReference?: string;
+  /** URL bukti transfer dana ke pelanggan */
+  paymentProofUrl?: string;
   notes?: string;
   /** Alasan penolakan (wajib bila status DITOLAK) */
   rejectionReason?: string;
