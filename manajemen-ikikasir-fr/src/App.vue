@@ -22,7 +22,6 @@ import {
   TrendingUp,
   UserPlus,
   Users,
-  Wallet,
   Wrench,
   Check,
   CheckCircle2,
@@ -200,7 +199,7 @@ const canAccessMenu = (menuKey: string): boolean => {
 
   // 3. Fallback defaults by role
   if (lowerRole === 'finance') {
-    return ['calonClient', 'semuaPelanggan', 'arusKas', 'labaRugi', 'neraca', 'penarikanReferral'].includes(menuKey);
+    return ['calonClient', 'semuaPelanggan', 'arusKas', 'labaRugi', 'neraca'].includes(menuKey);
   }
   if (lowerRole === 'teknisi') {
     return ['semuaPelanggan'].includes(menuKey);
@@ -693,29 +692,6 @@ const confirmLogout = () => {
                 <span>Laporan Penjualan</span>
               </RouterLink>
             </div>
-          </div>
-
-          <!-- Section: REFERRAL -->
-          <div v-if="canAccessMenu('penarikanReferral')">
-            <h3 class="px-3 text-[11px] font-bold tracking-wider text-slate-400 uppercase mb-2">
-              REFERRAL
-            </h3>
-            <RouterLink
-              to="/penarikan-referral"
-              @click="isMobileDrawerOpen = false"
-              class="flex items-center gap-3 px-3.5 py-2 rounded-xl text-sm font-medium transition-all duration-200 group"
-              :class="
-                route.path === '/penarikan-referral'
-                  ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-semibold'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50 hover:text-slate-900 dark:hover:text-slate-200'
-              "
-            >
-              <Wallet
-                class="w-4 h-4"
-                :class="route.path === '/penarikan-referral' ? 'text-indigo-600' : 'text-slate-400'"
-              />
-              <span>Penarikan Referral</span>
-            </RouterLink>
           </div>
 
           <!-- Section: LANDING PAGE -->

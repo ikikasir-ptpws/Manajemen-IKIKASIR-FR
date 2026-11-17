@@ -36,8 +36,7 @@ const router = createRouter({
     },
     {
       path: '/penarikan-referral',
-      name: 'penarikan-referral',
-      component: () => import('../views/referral/PenarikanReferralIndex.vue')
+      redirect: '/semua-pelanggan'
     },
     {
       path: '/manajemen-pengguna',
@@ -204,7 +203,7 @@ router.beforeEach((to, _from, next) => {
 
     // 3. Fallback defaults
     if (lowerRole === 'finance') {
-      return ['calonClient', 'semuaPelanggan', 'arusKas', 'labaRugi', 'neraca', 'penarikanReferral'].includes(menuKey)
+      return ['calonClient', 'semuaPelanggan', 'arusKas', 'labaRugi', 'neraca'].includes(menuKey)
     }
     if (lowerRole === 'teknisi') {
       return ['semuaPelanggan'].includes(menuKey)
@@ -219,7 +218,6 @@ router.beforeEach((to, _from, next) => {
     '/dashboard': 'dashboard',
     '/sales-dashboard': 'dashboard',
     '/list-seles': 'listSales',
-    '/penarikan-referral': 'penarikanReferral',
     '/manajemen-pengguna': 'manajemenPengguna',
     '/manajemen-role': 'manajemenRole',
     '/manajemen-promo': 'manajemenPromo',
