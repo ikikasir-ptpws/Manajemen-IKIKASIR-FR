@@ -54,8 +54,8 @@ import CustomerFormModal from '../../components/crm/CustomerFormModal.vue'
 import { 
   useAppData, 
   getPackageDurationMonths,
-  SAMPLE_RECEIPT_BCA, 
-  SAMPLE_RECEIPT_QRIS, 
+  SAMPLE_RECEIPT_BCA,
+  SAMPLE_RECEIPT_QRIS,
   getCustomerWaUrl, 
   getOrCreateCustomerReferralCode 
 } from '../../composables/useAppData'
@@ -137,6 +137,50 @@ const showAddEditModal = ref(false)
 const editMode = ref(false)
 const selectedCustomer = ref<any>(null)
 
+const getCustomerPackage = (customer: any) => {
+  if (!customer) return undefined
+  const packageName = customer.packageName || customer.packageType || customer.type
+  return packages.value.find(pkg => customer.packageId && pkg.id === customer.packageId)
+    || packages.value.find(pkg => packageName && pkg.name.toLowerCase() === String(packageName).toLowerCase())
+}
+
+const getCustomerPackageName = (customer: any) => {
+  return getCustomerPackage(customer)?.name
+    || customer?.packageName
+    || customer?.packageType
+    || customer?.type
+    || 'Paket belum ditentukan'
+}
+
+const getCustomerPackagePrice = (customer: any) => {
+  return getCustomerPackage(customer)?.price ?? customer?.packagePrice ?? customer?.amount ?? 0
+}
+
+const selectedCustomerPackage = computed(() => getCustomerPackage(selectedCustomer.value))
+const selectedCustomerPackageName = computed(() => getCustomerPackageName(selectedCustomer.value))
+const selectedCustomerPackagePrice = computed(() => getCustomerPackagePrice(selectedCustomer.value))
+
+const getCustomerPaymentMethod = (customer: any) => {
+  const method = typeof customer?.paymentMethod === 'string' ? customer.paymentMethod.trim() : ''
+  return method
+    .replace(/\s*\(PT PUNDI MAS BERKAH\)/i, '')
+    .replace(/\s*[•-]\s*PT PUNDI MAS BERKAH/i, '')
+    .trim() || 'Belum ada data'
+}
+
+const getPaymentStatusLabel = (status?: string) => {
+  switch (status?.toUpperCase()) {
+    case 'PAID':
+      return 'Lunas'
+    case 'PENDING':
+      return 'Menunggu pembayaran'
+    case 'FAILED':
+      return 'Gagal'
+    default:
+      return 'Belum ada data'
+  }
+}
+
 const canDeleteCustomer = computed(() => {
   const activeRole = (currentRole.value || '').trim()
   if (activeRole.toLowerCase().includes('super')) return true
@@ -195,6 +239,35 @@ const canSetupCustomer = computed(() => {
   // 3. Fallback default jika belum ada konfigurasi: hanya role teknisi default yang aktif
   const lower = activeRole.toLowerCase()
   return lower.includes('teknisi')
+})
+
+const canUpdateCustomer = computed(() => {
+  const activeRole = (currentRole.value || currentUser.value?.role || '').trim()
+  if (activeRole.toLowerCase().includes('super')) return true
+
+  if (typeof localStorage !== 'undefined') {
+    const storedRoles = localStorage.getItem('ikikasir_roles_v2')
+    if (storedRoles) {
+      try {
+        const roles = JSON.parse(storedRoles)
+        const role = Array.isArray(roles)
+          ? roles.find((item: any) =>
+              (item.name || '').trim().toLowerCase() === activeRole.toLowerCase() ||
+              (currentUser.value?.role && (item.name || '').trim().toLowerCase() === currentUser.value.role.trim().toLowerCase())
+            )
+          : undefined
+        const permission = role?.permissions?.semuaPelanggan?.update
+        if (typeof permission === 'boolean') return permission
+      } catch (error) {
+        console.warn('Gagal membaca konfigurasi izin role:', error)
+      }
+    }
+  }
+
+  const userPerm = (currentUser.value?.roleDetail?.permissions as any)?.semuaPelanggan?.update
+  if (typeof userPerm === 'boolean') return userPerm
+
+  return false
 })
 
 const form = ref({ name: '', business: '', type: 'Basic' as 'Basic' | 'Pro' | 'Custom / IT One', phone: '', address: '' })
@@ -321,20 +394,23 @@ watch([searchQuery, filterType, filterTeknisiStatus, pageSize], () => {
 // Detail Modal State & Helpers
 const activeDetailTab = ref<'profil' | 'langganan' | 'teknisi'>('profil')
 const isPasswordVisible = ref(false)
+const isEditingCredentials = ref(false)
+const isSavingCredentials = ref(false)
+const credentialError = ref('')
+const credentialForm = ref({ email: '', password: '' })
 const copiedField = ref<string | null>(null)
 const isReceiptZoomOpen = ref(false)
 const zoomedReceiptUrl = ref<string | null>(null)
 
 const openReceiptZoom = (url: string) => {
+  if (!url) return
   zoomedReceiptUrl.value = resolveReceiptUrl(url)
   isReceiptZoomOpen.value = true
 }
 
 const handleImageLoadError = (event: Event) => {
   const target = event.target as HTMLImageElement
-  if (target && target.src !== SAMPLE_RECEIPT_BCA) {
-    target.src = SAMPLE_RECEIPT_BCA
-  }
+  if (target) target.style.display = 'none'
 }
 
 const copyToClipboard = (text: string, fieldName: string) => {
@@ -373,22 +449,22 @@ const formatStorageUrl = (url?: string): string => {
 }
 
 const getCustomerPaymentProof = (cust: any) => {
-  if (!cust) return formatStorageUrl('/uploads/receipts/default-receipt.svg')
-  if (cust.paymentProofUrl) return formatStorageUrl(cust.paymentProofUrl)
+  if (!cust) return ''
   const lead = getAssociatedLead(cust)
-  if (lead && lead.paymentProofUrl) return formatStorageUrl(lead.paymentProofUrl)
   const invs = getAssociatedInvoices(cust)
-  const invWithProof = invs.find((i: any) => i.paymentProofUrl)
-  if (invWithProof) return formatStorageUrl(invWithProof.paymentProofUrl)
-  if (cust.paymentMethod?.toLowerCase().includes('qris')) return SAMPLE_RECEIPT_QRIS
-  return formatStorageUrl('/uploads/receipts/default-receipt.svg')
+  const sampleProofs = [SAMPLE_RECEIPT_BCA, SAMPLE_RECEIPT_QRIS]
+  const proof = [
+    cust.paymentProofUrl,
+    lead?.paymentProofUrl,
+    ...invs.map((invoice: any) => invoice.paymentProofUrl)
+  ].find((url: string | undefined) => url && !sampleProofs.includes(url))
+  return proof ? formatStorageUrl(proof) : ''
 }
 
 const getCustomerCredentials = (cust: any) => {
   if (!cust) return { username: '', password: '', apkUrl: '', guideUrl: '', spkNumber: '' }
-  const cleanName = (cust.business || cust.name || 'kasir').toLowerCase().replace(/[^a-z0-9]/g, '')
-  const username = cust.appUsername || `${cleanName}.pos`
-  const password = cust.appPassword || 'Ikikasir#2026'
+  const username = cust.appUsername || cust.email || ''
+  const password = cust.appPassword || ''
   const apkUrl = cust.appDownloadUrl || 'https://ikikasir.com/download/ikikasir-pos-v2.apk'
   const guideUrl = cust.guideBookUrl || 'https://ikikasir.com/docs/buku-panduan-ikikasir.pdf'
   const spkNumber = cust.rentalAgreementNumber || ('SPK/IKIKASIR/' + new Date().getFullYear() + '/' + (cust.id ? cust.id.replace(/\D/g, '').slice(-3) || '101' : '101'))
@@ -405,10 +481,73 @@ const openDetail = (cust: any) => {
   }
   activeDetailTab.value = 'profil'
   isPasswordVisible.value = false
+  isEditingCredentials.value = false
+  credentialError.value = ''
   showDetailModal.value = true
 
   if (cust?.id) {
     loadCustomerReferralData(cust.id)
+  }
+}
+
+const beginEditCredentials = () => {
+  if (!canUpdateCustomer.value || !selectedCustomer.value) return
+  credentialForm.value = {
+    email: selectedCustomer.value.appUsername || selectedCustomer.value.email || '',
+    password: ''
+  }
+  credentialError.value = ''
+  isEditingCredentials.value = true
+}
+
+const cancelEditCredentials = () => {
+  isEditingCredentials.value = false
+  credentialError.value = ''
+  credentialForm.value.password = ''
+}
+
+const saveCustomerCredentials = async () => {
+  const target = selectedCustomer.value
+  if (!canUpdateCustomer.value || !target) return
+
+  const email = credentialForm.value.email.trim().toLowerCase()
+  const password = credentialForm.value.password.trim()
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    credentialError.value = 'Format email akun tidak valid.'
+    return
+  }
+  if (password && password.length < 6) {
+    credentialError.value = 'Password minimal 6 karakter.'
+    return
+  }
+
+  isSavingCredentials.value = true
+  credentialError.value = ''
+  try {
+    await customersApi.update(target.id, {
+      email,
+      appUsername: email,
+      ...(password ? { appPassword: password } : {})
+    })
+
+    const updatedCredentials = {
+      email,
+      appUsername: email,
+      ...(password ? { appPassword: password } : {})
+    }
+    Object.assign(target, updatedCredentials)
+    const storedCustomer = customers.value.find(customer => customer.id === target.id)
+    if (storedCustomer) Object.assign(storedCustomer, updatedCredentials)
+    localStorage.setItem('ikikasir_customers_v4', JSON.stringify(customers.value))
+
+    isEditingCredentials.value = false
+    isPasswordVisible.value = false
+    credentialForm.value.password = ''
+    showToast('Detail akun pelanggan berhasil diperbarui di Webbase.')
+  } catch (error: any) {
+    credentialError.value = error?.message || 'Gagal memperbarui detail akun pelanggan.'
+  } finally {
+    isSavingCredentials.value = false
   }
 }
 
@@ -758,10 +897,10 @@ const openInvoiceFromDetail = (user?: any) => {
   
   const invoiceNum = existingInv?.id || target.invoiceNumber || ('INV-' + new Date().getFullYear() + String(new Date().getMonth() + 1).padStart(2, '0') + '-' + (target.id ? String(target.id).replace(/\D/g, '').slice(-4) || '1001' : '1001'))
   
-  const pkg = target.packageType || target.type || target.packageInterest || existingInv?.package || 'Basic'
+  const pkg = getCustomerPackageName(target)
   const matchedPkg = packages.value.find(p => (target.packageId && p.id === target.packageId) || (p.name && p.name.toLowerCase() === String(pkg).toLowerCase()))
   const defaultMonths = getPackageDurationMonths(matchedPkg)
-  const amt = existingInv?.amount || target.amount || (pkg === 'Pro' ? 500000 : 250000)
+  const amt = existingInv?.amount ?? target.amount ?? target.paymentAmount ?? matchedPkg?.price ?? 0
   const stat = existingInv?.status || ((target.status === 'active' || target.status === 'Aktif') ? 'Paid' : 'Pending')
 
   const lead = getAssociatedLead(target)
@@ -781,7 +920,7 @@ const openInvoiceFromDetail = (user?: any) => {
     amount: amt,
     billingCycleMonths: existingInv?.billingCycleMonths || defaultMonths || 1,
     date: existingInv?.date || target.registrationDate || new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }),
-    paymentMethod: existingInv?.paymentMethod || target.paymentMethod || 'QRIS IKI KASIR',
+    paymentMethod: existingInv?.paymentMethod || getCustomerPaymentMethod(target),
     status: stat,
     paymentProofUrl: getCustomerPaymentProof(target) || existingInv?.paymentProofUrl
   }
@@ -977,7 +1116,7 @@ const openAgreementPreview = (user?: any) => {
     agreementNumber: target.rentalAgreementNumber || ('SPK/IKIKASIR/' + new Date().getFullYear() + '/' + String(Math.floor(100 + Math.random() * 900))),
     startDate: new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }),
     expiredDate: target.expiredDate || '2026-10-31',
-    monthlyFee: target.amount || (target.packageInterest === 'Pro' ? 500000 : 250000)
+    monthlyFee: getCustomerPackagePrice(target)
   }
   isRentalAgreementOpen.value = true
 }
@@ -1917,12 +2056,12 @@ const openAgreementPreview = (user?: any) => {
                   <span 
                     class="px-2.5 py-0.5 rounded-md text-[10px] font-bold border"
                     :class="{
-                      'bg-purple-50 text-purple-700 border-purple-200': selectedCustomer.type === 'Custom / IT One',
-                      'bg-indigo-50 text-indigo-700 border-indigo-200': selectedCustomer.type === 'Pro',
-                      'bg-slate-100 text-slate-700 border-slate-200': selectedCustomer.type === 'Basic'
+                      'bg-purple-50 text-purple-700 border-purple-200': selectedCustomerPackageName === 'Custom / IT One',
+                      'bg-indigo-50 text-indigo-700 border-indigo-200': selectedCustomerPackageName === 'Pro',
+                      'bg-slate-100 text-slate-700 border-slate-200': selectedCustomerPackageName === 'Basic'
                     }"
                   >
-                    Paket {{ selectedCustomer.type }}
+                    Paket {{ selectedCustomerPackageName }}
                   </span>
 
                   <!-- Status Masa Aktif -->
@@ -2054,7 +2193,7 @@ const openAgreementPreview = (user?: any) => {
                     <span>Paket & Langganan</span>
                   </button>
 
-                  <!-- Tab 3: Akun Kasir & Teknisi -->
+                  <!-- Tab 3: Detail Akun & Penyiapan Teknisi -->
                   <button 
                     @click="activeDetailTab = 'teknisi'"
                     class="flex-1 py-2 px-3 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 relative"
@@ -2063,7 +2202,7 @@ const openAgreementPreview = (user?: any) => {
                       : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'"
                   >
                     <Wrench class="w-3.5 h-3.5" />
-                    <span>Akun Kasir & Teknisi</span>
+                    <span>Detail Akun</span>
                     <!-- Dot indicator if issue -->
                     <span 
                       v-if="selectedCustomer.emailIssueReported || selectedCustomer.technicianStatus === 'issue'" 
@@ -2511,12 +2650,12 @@ const openAgreementPreview = (user?: any) => {
                       <span 
                         class="px-2.5 py-0.5 rounded-md text-[11px] font-bold border"
                         :class="{
-                          'bg-purple-50 text-purple-700 border-purple-200': selectedCustomer.type === 'Custom / IT One',
-                          'bg-indigo-50 text-indigo-700 border-indigo-200': selectedCustomer.type === 'Pro',
-                          'bg-slate-100 text-slate-700 border-slate-200': selectedCustomer.type === 'Basic'
+                          'bg-purple-50 text-purple-700 border-purple-200': selectedCustomerPackageName === 'Custom / IT One',
+                          'bg-indigo-50 text-indigo-700 border-indigo-200': selectedCustomerPackageName === 'Pro',
+                          'bg-slate-100 text-slate-700 border-slate-200': selectedCustomerPackageName === 'Basic'
                         }"
                       >
-                        Paket {{ selectedCustomer.type }}
+                        Paket {{ selectedCustomerPackageName }}
                       </span>
                     </div>
 
@@ -2525,8 +2664,8 @@ const openAgreementPreview = (user?: any) => {
                       <div class="p-3.5 bg-gradient-to-br from-indigo-50/50 to-purple-50/30 rounded-2xl border border-indigo-100/70">
                         <span class="text-slate-500 block text-[11px] font-medium">Biaya Berlangganan:</span>
                         <div class="text-lg font-black text-slate-900 mt-0.5">
-                          Rp {{ Number(selectedCustomer.amount || (selectedCustomer.type === 'Pro' ? 500000 : (selectedCustomer.type === 'Custom / IT One' ? 1500000 : 250000))).toLocaleString('id-ID') }}
-                          <span class="text-xs font-normal text-slate-400">/ bulan</span>
+                          Rp {{ Number(selectedCustomerPackagePrice).toLocaleString('id-ID') }}
+                          <span class="text-xs font-normal text-slate-400">{{ selectedCustomerPackage?.period || selectedCustomer.packagePeriod || '' }}</span>
                         </div>
                         <span class="text-[10px] text-indigo-600 font-bold mt-1 block">Termasuk modul POS & Cloud Sync</span>
                       </div>
@@ -2554,7 +2693,7 @@ const openAgreementPreview = (user?: any) => {
                       <!-- Metode Pembayaran -->
                       <div class="p-3 bg-slate-50/80 rounded-xl border border-slate-100">
                         <span class="text-slate-400 block text-[11px]">Metode Pembayaran:</span>
-                        <p class="font-bold text-slate-800 mt-0.5">{{ selectedCustomer.paymentMethod || 'Transfer BCA (PT PUNDI MAS BERKAH)' }}</p>
+                        <p class="font-bold text-slate-800 mt-0.5">{{ getCustomerPaymentMethod(selectedCustomer) }}</p>
                       </div>
 
                       <!-- Status Pelanggan -->
@@ -2575,15 +2714,19 @@ const openAgreementPreview = (user?: any) => {
                         <Receipt class="w-4 h-4 text-indigo-600" />
                         <span>Bukti Pembayaran / Struk Transfer</span>
                       </h4>
-                      <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 flex items-center gap-1">
+                      <span
+                        class="px-2 py-0.5 rounded text-[10px] font-bold flex items-center gap-1"
+                        :class="selectedCustomer.paymentStatus?.toUpperCase() === 'PAID' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'"
+                      >
                         <CheckCircle2 class="w-3 h-3" />
-                        <span>Terverifikasi Finance</span>
+                        <span>{{ getPaymentStatusLabel(selectedCustomer.paymentStatus) }}</span>
                       </span>
                     </div>
 
                     <div class="flex flex-col sm:flex-row items-center gap-4 bg-slate-50/60 p-3.5 rounded-2xl border border-slate-100">
                       <!-- Struk Thumbnail -->
-                      <div 
+                      <div
+                        v-if="getCustomerPaymentProof(selectedCustomer)"
                         class="relative w-36 h-48 bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs cursor-pointer group shrink-0"
                         @click="openReceiptZoom(getCustomerPaymentProof(selectedCustomer))"
                       >
@@ -2596,29 +2739,34 @@ const openAgreementPreview = (user?: any) => {
                           <ZoomIn class="w-6 h-6" />
                         </div>
                       </div>
+                      <div v-else class="w-36 h-48 bg-white rounded-xl border border-dashed border-slate-300 text-slate-400 flex flex-col items-center justify-center gap-2 shrink-0 text-center px-3">
+                        <Receipt class="w-6 h-6" />
+                        <span class="text-[11px]">Bukti pembayaran belum tersedia</span>
+                      </div>
 
                       <!-- Struk Details -->
                       <div class="flex-1 space-y-2 text-xs">
                         <div>
                           <span class="text-slate-400 block text-[11px]">Metode / Channel Pembayaran:</span>
                           <p class="font-bold text-slate-800">
-                            {{ selectedCustomer.paymentMethod || 'Transfer Mandiri' }} &bull; PT PUNDI MAS BERKAH
+                            {{ getCustomerPaymentMethod(selectedCustomer) }}
                           </p>
                         </div>
                         <div>
                           <span class="text-slate-400 block text-[11px]">Nominal Transfer:</span>
                           <p class="font-extrabold text-slate-900 text-sm">
-                            Rp {{ Number(selectedCustomer.amount || selectedCustomer.packagePrice || 250000).toLocaleString('id-ID') }}
+                            Rp {{ Number(selectedCustomer.amount ?? selectedCustomer.paymentAmount ?? 0).toLocaleString('id-ID') }}
                           </p>
                         </div>
                         <div>
                           <span class="text-slate-400 block text-[11px]">Status Struk:</span>
-                          <p class="text-emerald-700 font-bold flex items-center gap-1">
-                            <CheckCircle2 class="w-3.5 h-3.5 text-emerald-600" />
-                            <span>Telah diverifikasi sesuai tagihan paket kasir.</span>
+                          <p class="font-bold flex items-center gap-1" :class="selectedCustomer.paymentStatus?.toUpperCase() === 'PAID' ? 'text-emerald-700' : 'text-slate-600'">
+                            <CheckCircle2 v-if="selectedCustomer.paymentStatus?.toUpperCase() === 'PAID'" class="w-3.5 h-3.5 text-emerald-600" />
+                            <AlertCircle v-else class="w-3.5 h-3.5 text-slate-500" />
+                            <span>{{ getPaymentStatusLabel(selectedCustomer.paymentStatus) }}</span>
                           </p>
                         </div>
-                        <div class="pt-1">
+                        <div v-if="getCustomerPaymentProof(selectedCustomer)" class="pt-1">
                           <button 
                             type="button"
                             @click="openReceiptZoom(getCustomerPaymentProof(selectedCustomer))"
@@ -2662,7 +2810,7 @@ const openAgreementPreview = (user?: any) => {
                 </div>
 
                 <!-- ========================================== -->
-                <!-- TAB 3: AKUN KASIR & PENYIAPAN TEKNISI -->
+                <!-- TAB 3: DETAIL AKUN & PENYIAPAN TEKNISI -->
                 <!-- ========================================== -->
                 <div v-if="activeDetailTab === 'teknisi'" class="space-y-4 animate-in fade-in duration-150">
                   
@@ -2746,40 +2894,91 @@ const openAgreementPreview = (user?: any) => {
                     <div class="flex items-center justify-between border-b border-slate-100 pb-2.5">
                       <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
                         <Key class="w-4 h-4 text-indigo-600" />
-                        <span>Kredensial Akun Aplikasi Kasir (Login Device)</span>
+                        <span>Detail Login Akun Kasir</span>
                       </h4>
-                      <span class="text-[11px] text-slate-400">Digunakan kasir di tablet / HP</span>
+                      <button
+                        v-if="canUpdateCustomer && !isEditingCredentials"
+                        type="button"
+                        @click="beginEditCredentials"
+                        class="px-2.5 py-1 rounded-lg border border-indigo-200 text-indigo-700 hover:bg-indigo-50 text-[11px] font-bold cursor-pointer"
+                      >
+                        Edit Detail Akun
+                      </button>
                     </div>
 
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
-                      <!-- Email Akun (Firebase Auth) -->
+                    <form v-if="isEditingCredentials" @submit.prevent="saveCustomerCredentials" class="space-y-3">
+                      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
+                        <label class="space-y-1.5 sm:col-span-2">
+                          <span class="text-slate-600 font-semibold">Email Login Akun</span>
+                          <input
+                            v-model="credentialForm.email"
+                            type="email"
+                            required
+                            autocomplete="email"
+                            class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                          />
+                        </label>
+                        <label class="space-y-1.5 sm:col-span-2">
+                          <span class="text-slate-600 font-semibold">Password Akun</span>
+                          <input
+                            v-model="credentialForm.password"
+                            type="password"
+                            autocomplete="new-password"
+                            minlength="6"
+                            placeholder="Kosongkan jika tidak ingin mengubah password"
+                            class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                          />
+                        </label>
+                      </div>
+                      <p v-if="credentialError" class="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
+                        {{ credentialError }}
+                      </p>
+                      <div class="flex justify-end gap-2">
+                        <button
+                          type="button"
+                          @click="cancelEditCredentials"
+                          :disabled="isSavingCredentials"
+                          class="rounded-xl border border-slate-200 px-3.5 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50 cursor-pointer"
+                        >
+                          Batal
+                        </button>
+                        <button
+                          type="submit"
+                          :disabled="isSavingCredentials"
+                          class="rounded-xl bg-indigo-600 px-3.5 py-2 text-xs font-semibold text-white hover:bg-indigo-700 disabled:opacity-50 cursor-pointer"
+                        >
+                          {{ isSavingCredentials ? 'Menyimpan...' : 'Simpan Detail Akun' }}
+                        </button>
+                      </div>
+                    </form>
+
+                    <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
                       <div class="p-3 bg-slate-50/80 rounded-xl border border-slate-100 flex items-center justify-between sm:col-span-2">
                         <div class="min-w-0 flex-1">
-                          <span class="text-slate-400 block text-[11px] font-semibold">Email Akun Pelanggan (Firebase Auth):</span>
+                          <span class="text-slate-400 block text-[11px] font-semibold">Email Login Akun:</span>
                           <span class="font-mono font-bold text-slate-800 text-sm mt-0.5 block truncate">
-                            {{ selectedCustomer.email || '-' }}
+                            {{ getCustomerCredentials(selectedCustomer).username || '-' }}
                           </span>
                         </div>
-                        <button 
-                          v-if="selectedCustomer.email"
-                          @click="copyToClipboard(selectedCustomer.email, 'Email Akun Firebase')"
+                        <button
+                          v-if="getCustomerCredentials(selectedCustomer).username"
+                          @click="copyToClipboard(getCustomerCredentials(selectedCustomer).username, 'Email Login Akun')"
                           class="p-2 hover:bg-slate-200 rounded-lg text-slate-500 transition-colors cursor-pointer shrink-0 ml-2"
-                          title="Salin Email Firebase"
+                          title="Salin email login akun"
                         >
                           <Copy class="w-4 h-4" />
                         </button>
                       </div>
 
-                      <!-- Password Akun -->
                       <div class="p-3 bg-slate-50/80 rounded-xl border border-slate-100 flex items-center justify-between">
                         <div>
-                          <span class="text-slate-400 block text-[11px] font-semibold">Password Akun (Firebase / Kasir):</span>
+                          <span class="text-slate-400 block text-[11px] font-semibold">Password Akun:</span>
                           <span class="font-mono font-bold text-slate-800 text-sm mt-0.5 block">
-                            {{ isPasswordVisible ? getCustomerCredentials(selectedCustomer).password : '••••••••••••' }}
+                            {{ getCustomerCredentials(selectedCustomer).password ? (isPasswordVisible ? getCustomerCredentials(selectedCustomer).password : '••••••••••••') : 'Belum diatur' }}
                           </span>
                         </div>
-                        <div class="flex items-center gap-1">
-                          <button 
+                        <div v-if="getCustomerCredentials(selectedCustomer).password" class="flex items-center gap-1">
+                          <button
                             @click="isPasswordVisible = !isPasswordVisible"
                             class="p-2 hover:bg-slate-200 rounded-lg text-slate-500 transition-colors cursor-pointer"
                             :title="isPasswordVisible ? 'Sembunyikan Password' : 'Lihat Password'"
@@ -2787,8 +2986,8 @@ const openAgreementPreview = (user?: any) => {
                             <EyeOff v-if="isPasswordVisible" class="w-4 h-4" />
                             <Eye v-else class="w-4 h-4" />
                           </button>
-                          <button 
-                            @click="copyToClipboard(getCustomerCredentials(selectedCustomer).password, 'Password Kasir')"
+                          <button
+                            @click="copyToClipboard(getCustomerCredentials(selectedCustomer).password, 'Password Akun')"
                             class="p-2 hover:bg-slate-200 rounded-lg text-slate-500 transition-colors cursor-pointer"
                             title="Salin Password"
                           >
@@ -2797,15 +2996,15 @@ const openAgreementPreview = (user?: any) => {
                         </div>
                       </div>
 
-                      <!-- Username -->
                       <div class="p-3 bg-slate-50/80 rounded-xl border border-slate-100 flex items-center justify-between">
                         <div>
                           <span class="text-slate-400 block text-[11px] font-semibold">Username Login Kasir:</span>
                           <span class="font-mono font-bold text-slate-800 text-sm mt-0.5 block">
-                            {{ getCustomerCredentials(selectedCustomer).username }}
+                            {{ getCustomerCredentials(selectedCustomer).username || '-' }}
                           </span>
                         </div>
-                        <button 
+                        <button
+                          v-if="getCustomerCredentials(selectedCustomer).username"
                           @click="copyToClipboard(getCustomerCredentials(selectedCustomer).username, 'Username Kasir')"
                           class="p-2 hover:bg-slate-200 rounded-lg text-slate-500 transition-colors cursor-pointer"
                           title="Salin Username"
@@ -2816,7 +3015,7 @@ const openAgreementPreview = (user?: any) => {
                     </div>
 
                     <p class="text-[11px] text-slate-500 leading-relaxed bg-slate-50 p-2.5 rounded-xl border border-slate-100">
-                      <strong>Catatan:</strong> Kredensial ini diserahkan kepada pemilik usaha saat serah terima aplikasi kasir. Pemilik dapat mengganti password melalui menu pengaturan akun di aplikasi kasir.
+                      Detail email dan password ini hanya diperbarui di Webbase; perubahan tidak mengubah akun Firebase Auth.
                     </p>
                   </div>
 

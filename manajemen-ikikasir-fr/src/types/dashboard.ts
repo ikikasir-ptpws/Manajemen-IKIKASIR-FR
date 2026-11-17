@@ -9,6 +9,8 @@ export interface Customer {
   packageId?: string
   packageType: PackageType
   packageName?: string
+  packagePrice?: number
+  packagePeriod?: string
   expiredDate: string
   joinDate?: string
   address?: string
@@ -20,6 +22,7 @@ export interface Customer {
   category?: string
   amount?: number
   paymentMethod?: string
+  paymentStatus?: string
   technicianStatus?: 'pending_setup' | 'in_progress' | 'completed' | 'issue'
   technicianAssignedTo?: string
   appUsername?: string

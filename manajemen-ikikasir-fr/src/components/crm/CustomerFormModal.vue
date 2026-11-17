@@ -79,7 +79,7 @@ const formData = ref({
   packageType: 'Basic' as PackageType | string,
   amount: 250000,
   notes: '',
-  paymentMethod: 'Transfer BCA (PT PUNDI MAS BERKAH)',
+  paymentMethod: 'Transfer BCA',
   paymentDate: new Date().toISOString().substring(0, 10),
   paymentStatus: 'Paid' as 'Paid' | 'Pending',
   paymentProofUrl: '',
@@ -115,7 +115,7 @@ watch(() => props.customerToEdit, (val) => {
       packageType: matchedPkg?.name || val.packageType || 'Basic',
       amount: val.amount !== undefined ? val.amount : (matchedPkg?.price ?? 250000),
       notes: val.notes || '',
-      paymentMethod: val.paymentMethod || 'Transfer BCA (PT PUNDI MAS BERKAH)',
+      paymentMethod: val.paymentMethod?.replace(/\s*\(PT PUNDI MAS BERKAH\)/i, '').trim() || 'Transfer BCA',
       paymentDate: new Date().toISOString().substring(0, 10),
       paymentStatus: 'Paid',
       paymentProofUrl: val.paymentProofUrl || '',
@@ -150,7 +150,7 @@ function resetForm() {
     packageType: initialPkg?.name || 'Basic',
     amount: initialPkg?.price ?? 250000,
     notes: '',
-    paymentMethod: 'Transfer BCA (PT PUNDI MAS BERKAH)',
+    paymentMethod: 'Transfer BCA',
     paymentDate: new Date().toISOString().substring(0, 10),
     paymentStatus: 'Paid',
     paymentProofUrl: '',
@@ -191,7 +191,7 @@ const handleFileUpload = (e: Event) => {
 const useSampleReceipt = (type: 'BCA' | 'QRIS') => {
   formData.value.paymentProofUrl = type === 'BCA' ? SAMPLE_RECEIPT_BCA : SAMPLE_RECEIPT_QRIS
   formData.value.paymentProofFileName = type === 'BCA' ? 'bukti_transfer_bca.jpg' : 'bukti_transfer_qris.jpg'
-  formData.value.paymentMethod = type === 'BCA' ? 'Transfer BCA (PT PUNDI MAS BERKAH)' : 'QRIS'
+  formData.value.paymentMethod = type === 'BCA' ? 'Transfer BCA' : 'QRIS'
 }
 
 const removePaymentProof = () => {
@@ -271,7 +271,7 @@ const handleSubmit = () => {
           packageId: formData.value.packageId || curr.packageId,
           packageType: formData.value.packageType || curr.packageType,
           packageName: formData.value.packageType || curr.packageName,
-          amount: Number(formData.value.amount) || curr.amount || 250000,
+          amount: Number(formData.value.amount),
           expiredDate: updatedExpDate,
           paymentMethod: formData.value.paymentMethod,
           paymentProofUrl: formData.value.paymentProofUrl || curr.paymentProofUrl,
@@ -319,7 +319,7 @@ const handleSubmit = () => {
         packageId: formData.value.packageId,
         packageType: formData.value.packageType,
         packageName: formData.value.packageType,
-        amount: Number(formData.value.amount) || 250000,
+        amount: Number(formData.value.amount),
         paymentMethod: formData.value.paymentMethod,
         paymentProofUrl: formData.value.paymentProofUrl || undefined,
         joinDate: new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }),
@@ -364,7 +364,7 @@ const handleSubmit = () => {
         businessName: savedCustomer.businessName || '',
         phone: savedCustomer.phone || '',
         package: savedCustomer.packageType,
-        amount: savedCustomer.amount || 250000,
+        amount: savedCustomer.amount ?? 0,
         billingCycleMonths: durationMonths,
         date: formData.value.paymentDate || new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }),
         paymentMethod: savedCustomer.paymentMethod || 'Transfer BCA',

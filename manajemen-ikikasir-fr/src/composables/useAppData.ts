@@ -623,7 +623,7 @@ async function ensureAuthenticated(): Promise<boolean> {
 }
 
 function mapBackendCustomerToFrontend(c: any, index: number): Customer {
-  const pName = c.packageName || (c.package?.name) || 'Basic'
+  const pName = c.package?.name || c.packageName || 'Paket belum ditentukan'
   const pkgType: PackageType = pName
 
   // Cross-reference with lead data if available (e.g. converted from lead)
@@ -648,6 +648,8 @@ function mapBackendCustomerToFrontend(c: any, index: number): Customer {
     packageId: c.packageId || leadMatch?.packageId || undefined,
     packageType: pkgType,
     packageName: pName,
+    packagePrice: c.packagePrice ?? c.package?.price ?? undefined,
+    packagePeriod: c.packagePeriod ?? c.package?.period ?? undefined,
     phone: c.phone || '',
     email: c.email || '',
     address: c.address || '',
@@ -655,8 +657,9 @@ function mapBackendCustomerToFrontend(c: any, index: number): Customer {
     joinDate: c.startedAt ? c.startedAt.substring(0, 10) : (c.createdAt ? c.createdAt.substring(0, 10) : '2026-09-01'),
     expiredDate: c.expiresAt ? c.expiresAt.substring(0, 10) : new Date().toISOString().substring(0, 10),
     status: isExpired ? 'expired' : 'active',
-    amount: c.paymentAmount ?? c.packagePrice ?? (c.package?.price) ?? 250000,
-    paymentMethod: c.paymentMethod || leadMatch?.paymentMethod || 'QRIS',
+    amount: c.paymentAmount ?? c.packagePrice ?? c.package?.price ?? 0,
+    paymentMethod: c.paymentMethod || leadMatch?.paymentMethod || 'Belum ada data',
+    paymentStatus: c.paymentStatus || undefined,
     technicianStatus: techStatus,
     technicianAssignedTo: c.technicianAssignedTo || leadMatch?.technicianAssignedTo || 'Doni Teknisi',
     emailIssueReported: isIssue,
@@ -706,11 +709,11 @@ function mapBackendHistoryToInvoice(h: any): SubscriptionInvoice {
     phone: h.phone || h.customer?.phone || cust?.phone || lead?.phone || '',
     email: h.email || h.customer?.email || cust?.email || lead?.email || '',
     address: h.address || h.customer?.address || cust?.address || lead?.address || '',
-    package: (h.packageName || h.package?.name || cust?.packageType || 'Basic') as PackageType,
-    amount: Number(h.amount) || cust?.amount || 250000,
+    package: (h.packageName || h.package?.name || cust?.packageName || cust?.packageType || 'Paket belum ditentukan') as PackageType,
+    amount: Number(h.amount ?? cust?.amount ?? 0),
     billingCycleMonths: h.billingCycleMonths || 1,
     date: dateStr,
-    paymentMethod: h.paymentMethod || cust?.paymentMethod || 'QRIS',
+    paymentMethod: h.paymentMethod || cust?.paymentMethod || 'Belum ada data',
     status: h.paymentStatus?.toUpperCase() === 'PAID' ? 'Paid' : (h.paymentStatus?.toUpperCase() === 'FAILED' ? 'Failed' : 'Pending'),
     paymentProofUrl: h.paymentProofUrl || cust?.paymentProofUrl,
     notes: h.notes || ''

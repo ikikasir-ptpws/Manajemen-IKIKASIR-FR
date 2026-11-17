@@ -387,7 +387,7 @@ const clientToApprove = ref<ClientLead | null>(null)
 const approvalForm = ref({
   packageType: 'Basic' as 'Basic' | 'Pro' | 'Add on' | 'Custom / IT One',
   amount: 250000,
-  paymentMethod: 'Transfer BCA (PT PUNDI MAS BERKAH)',
+  paymentMethod: 'Transfer BCA',
   paymentDate: new Date().toISOString().substring(0, 10),
   referenceNo: '',
   paymentProofUrl: '',
@@ -526,7 +526,7 @@ const handleCreateSampleLead = () => {
     newLead.paymentStatus = 'pending_verification'
     newLead.paymentProofUrl = SAMPLE_RECEIPT_BCA
     newLead.paymentAmount = 250000
-    newLead.paymentMethod = 'Transfer BCA (PT PUNDI MAS BERKAH)'
+    newLead.paymentMethod = 'Transfer BCA'
     newLead.paymentDate = new Date().toISOString().substring(0, 10)
     updateLead(newLead)
   }
@@ -1645,7 +1645,7 @@ const handleClientSaved = (client: ClientLead) => {
                     v-model="approvalForm.paymentMethod"
                     class="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white font-semibold text-slate-800 text-xs focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 cursor-pointer"
                   >
-                    <option value="Transfer BCA (PT PUNDI MAS BERKAH)">Transfer BCA</option>
+                    <option value="Transfer BCA">Transfer BCA</option>
                     <option value="Transfer Mandiri">Transfer Bank Mandiri</option>
                     <option value="Transfer BRI">Transfer Bank BRI</option>
                     <option value="Transfer BNI">Transfer Bank BNI</option>
