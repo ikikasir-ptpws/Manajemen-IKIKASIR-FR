@@ -99,9 +99,8 @@ const statusLabel = (status: string) => {
 const whatsappUrl = computed(() => {
   const withdrawal = approvedWithdrawal.value
   const phone = normalizeWaNumber(detail.value?.phone || '')
-  if (!withdrawal || !hasValidSalesPhone.value || !phone || !withdrawal.paymentProofUrl) return ''
+  if (!withdrawal || !hasValidSalesPhone.value || !phone) return ''
 
-  const proofUrl = resolveReceiptUrl(withdrawal.paymentProofUrl)
   const message = [
     `Halo ${detail.value?.name || 'Sales'},`,
     '',
@@ -112,7 +111,6 @@ const whatsappUrl = computed(() => {
     `Atas nama: ${withdrawal.accountHolder || '-'}`,
     `Nomor referensi: ${withdrawal.transferReference || '-'}`,
     `Nomor invoice: ${withdrawal.invoiceNo || '-'}`,
-    `Bukti pembayaran: ${proofUrl}`,
     '',
     'Terima kasih.',
     'Tim IKIKASIR',

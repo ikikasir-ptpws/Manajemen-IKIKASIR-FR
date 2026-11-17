@@ -167,7 +167,6 @@ export function buildWhatsappMessage(item: {
     `Nomor invoice      : ${item.invoiceNo || '-'}`,
     `Tanggal bayar      : ${item.completedDate || '-'}`,
     `Transfer ke        : ${item.bankOrWallet || '-'} ${item.accountNumber || '-'} (${item.accountHolder || '-'})`,
-    ...(item.paymentProofUrl ? [`Bukti pembayaran   : ${item.paymentProofUrl}`] : []),
     '',
     'Bukti penarikan dapat dicetak dari dashboard IKIKASIR.',
     '',

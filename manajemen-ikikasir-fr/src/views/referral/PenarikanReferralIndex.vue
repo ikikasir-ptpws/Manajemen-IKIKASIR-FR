@@ -13,7 +13,8 @@ import {
   FileText,
   User,
   ExternalLink,
-  Upload
+  Upload,
+  Check
 } from 'lucide-vue-next'
 import { useReferralWithdrawal } from '../../composables/useReferralWithdrawal'
 import GlobalPagination from '../../components/common/GlobalPagination.vue'
@@ -274,18 +275,25 @@ onMounted(() => {
           Penarikan Referral
         </h1>
         <p class="text-xs text-slate-500 mt-1 font-medium">
-          Proses permintaan pencairan saldo komisi referral, konfirmasi pembayaran, lalu kirim bukti invoice ke pelanggan.
+          Proses permintaan pencairan saldo komisi referral dari aplikasi Android pengguna (Komisi Rp 15.000 tetap / pelanggan aktif).
         </p>
       </div>
 
-      <button
-        @click="fetchWithdrawals"
-        :disabled="isLoading"
-        class="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 active:scale-95 text-slate-700 text-xs font-bold transition-all cursor-pointer shadow-2xs disabled:opacity-50 shrink-0"
-      >
-        <RefreshCw class="w-3.5 h-3.5 text-slate-500" :class="isLoading ? 'animate-spin text-blue-600' : ''" />
-        <span class="hidden sm:inline">Refresh</span>
-      </button>
+      <div class="flex items-center gap-2.5 flex-wrap">
+        <div class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-purple-50 border border-purple-200 text-purple-700 text-xs font-bold shadow-2xs">
+          <Banknote class="w-4 h-4 text-purple-600" />
+          <span>Komisi Rp 15.000 Tetap / Aktif</span>
+        </div>
+
+        <button
+          @click="fetchWithdrawals"
+          :disabled="isLoading"
+          class="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 active:scale-95 text-slate-700 text-xs font-bold transition-all cursor-pointer shadow-2xs disabled:opacity-50 shrink-0"
+        >
+          <RefreshCw class="w-3.5 h-3.5 text-slate-500" :class="isLoading ? 'animate-spin text-blue-600' : ''" />
+          <span class="hidden sm:inline">Refresh</span>
+        </button>
+      </div>
     </header>
 
     <!-- KPI Summary -->
@@ -454,10 +462,11 @@ onMounted(() => {
                   <button
                     v-if="item.status === 'MENUNGGU_VERIFIKASI'"
                     @click="openPayModal(item)"
-                    title="Konfirmasi pembayaran pencairan"
-                    class="px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-600 text-emerald-600 hover:text-white transition-all cursor-pointer text-[10px] font-bold shadow-2xs"
+                    title="Setujui dan konfirmasi pembayaran pencairan (ACC)"
+                    class="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition-all cursor-pointer text-[10px] font-bold shadow-2xs inline-flex items-center gap-1"
                   >
-                    Bayar
+                    <Check class="w-3 h-3" />
+                    Setujui
                   </button>
                   <button
                     v-if="item.status === 'MENUNGGU_VERIFIKASI'"
@@ -516,9 +525,10 @@ onMounted(() => {
             <button
               v-if="item.status === 'MENUNGGU_VERIFIKASI'"
               @click="openPayModal(item)"
-              class="px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-600 text-[10px] font-bold"
+              class="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-[10px] font-bold shadow-2xs inline-flex items-center gap-1"
             >
-              Bayar
+              <Check class="w-3 h-3" />
+              Setujui
             </button>
             <button
               v-if="item.status === 'MENUNGGU_VERIFIKASI'"
@@ -573,8 +583,8 @@ onMounted(() => {
                 <Banknote class="w-5 h-5" />
               </div>
               <div>
-                <h3 class="text-sm font-bold text-slate-800">Konfirmasi Pembayaran Pencairan</h3>
-                <p class="text-[11px] text-slate-500">{{ selectedItem.customerName }}</p>
+                <h3 class="text-sm font-bold text-slate-800">Form Persetujuan Penarikan (ACC) Pengguna</h3>
+                <p class="text-[11px] text-slate-500">{{ selectedItem.customerName }} · {{ formatCurrency(selectedItem.amount) }}</p>
               </div>
             </div>
             <button
@@ -589,6 +599,11 @@ onMounted(() => {
             <div class="p-4 rounded-2xl border border-emerald-200/80 bg-emerald-50/60 text-center space-y-1">
               <span class="text-xs font-semibold text-emerald-800">Nominal yang Dibayarkan</span>
               <div class="text-2xl font-black text-emerald-900">{{ formatCurrency(selectedItem.amount) }}</div>
+            </div>
+
+            <div class="p-2.5 rounded-xl border border-purple-200 bg-purple-50/70 flex items-center justify-between text-xs text-purple-900">
+              <span class="font-medium">Komisi Referral Pengguna:</span>
+              <span class="font-extrabold text-purple-700">Rp 15.000 Tetap / User Aktif</span>
             </div>
 
             <div class="grid grid-cols-2 gap-3 text-xs">

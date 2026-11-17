@@ -41,7 +41,11 @@ import {
   AlertCircle, 
   Building2, 
   ChevronRight, 
-  Share2 
+  Share2,
+  Wallet,
+  Upload,
+  MessageCircle,
+  Banknote
 } from 'lucide-vue-next'
 import RentalAgreementModal from '../../components/RentalAgreementModal.vue'
 import InvoiceDetailModal from '../../components/InvoiceDetailModal.vue'
@@ -55,7 +59,9 @@ import {
   getCustomerWaUrl, 
   getOrCreateCustomerReferralCode 
 } from '../../composables/useAppData'
-import { customersApi, leadsApi } from '../../api'
+import { customersApi, leadsApi, referralApi, uploadApi } from '../../api'
+import { normalizeWaNumber } from '../../composables/useReferralWithdrawal'
+import type { ReferralOverview, ReferralWithdrawalItem } from '../../types/referral'
 import { resolveReceiptUrl } from '../../utils/storage'
 
 const { 
@@ -368,6 +374,331 @@ const openDetail = (cust: any) => {
   activeDetailTab.value = 'profil'
   isPasswordVisible.value = false
   showDetailModal.value = true
+
+  if (cust?.id) {
+    loadCustomerReferralData(cust.id)
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// REFERRAL & ACC PENARIKAN SALDO KOMISI PENGGUNA (DARI APLIKASI ANDROID)
+// ─────────────────────────────────────────────────────────────────────────────
+const customerReferralOverview = ref<ReferralOverview | null>(null)
+const customerReferralLoading = ref(false)
+const customerWithdrawals = ref<ReferralWithdrawalItem[]>([])
+
+const withdrawalToApprove = ref<ReferralWithdrawalItem | null>(null)
+const approvedWithdrawal = ref<ReferralWithdrawalItem | null>(null)
+const isApprovalModalOpen = ref(false)
+const isUploadingProof = ref(false)
+const isApprovingWithdrawal = ref(false)
+const isSharingProof = ref(false)
+const approvalError = ref<string | null>(null)
+const whatsappShareNotice = ref<string | null>(null)
+const whatsappShareError = ref<string | null>(null)
+
+const approvalForm = ref({
+  transferReference: '',
+  notes: 'Penarikan komisi referral telah dibayarkan oleh Super Admin.',
+  paymentProofUrl: '',
+  paymentProofFileName: '',
+})
+
+// Modal Tolak Penarikan
+const withdrawalToReject = ref<ReferralWithdrawalItem | null>(null)
+const isRejectModalOpen = ref(false)
+const rejectReason = ref('')
+const isRejectingWithdrawal = ref(false)
+
+const formatCurrency = (val: number) =>
+  new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    maximumFractionDigits: 0,
+  }).format(val || 0)
+
+const formatDate = (value?: string | null) => {
+  if (!value) return '-'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  return new Intl.DateTimeFormat('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }).format(date)
+}
+
+const withdrawalStatusBadgeClass = (status: string) => {
+  if (status === 'SELESAI') return 'bg-emerald-50 text-emerald-700 border-emerald-200'
+  if (status === 'DITOLAK') return 'bg-rose-50 text-rose-700 border-rose-200'
+  return 'bg-amber-50 text-amber-700 border-amber-200'
+}
+
+const withdrawalStatusLabel = (status: string) => {
+  if (status === 'MENUNGGU_VERIFIKASI') return 'Menunggu Verifikasi'
+  if (status === 'SELESAI') return 'Selesai'
+  if (status === 'DITOLAK') return 'Ditolak'
+  return status
+}
+
+const hasValidCustomerPhone = computed(() => {
+  const digits = (selectedCustomer.value?.phone || '').replace(/\D/g, '')
+  return digits.length >= 8 && digits.length <= 15
+})
+
+const customerWaUrl = computed(() => {
+  const withdrawal = approvedWithdrawal.value
+  const phone = normalizeWaNumber(selectedCustomer.value?.phone || '')
+  if (!withdrawal || !hasValidCustomerPhone.value || !phone) return ''
+
+  const message = [
+    `Halo ${selectedCustomer.value?.name || 'Pelanggan'},`,
+    '',
+    'Penarikan komisi referral Anda telah disetujui dan dibayarkan.',
+    `Nominal: ${formatCurrency(withdrawal.amount)}`,
+    `Bank/E-Wallet: ${withdrawal.bankOrWallet || '-'}`,
+    `Nomor rekening/akun: ${withdrawal.accountNumber || '-'}`,
+    `Atas nama: ${withdrawal.accountHolder || '-'}`,
+    `Nomor referensi: ${withdrawal.transferReference || '-'}`,
+    `Nomor invoice: ${withdrawal.invoiceNo || '-'}`,
+    '',
+    'Terima kasih telah menggunakan IKIKASIR.',
+    'Tim IKIKASIR',
+  ].join('\n')
+
+  return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`
+})
+
+const whatsappAttachmentMessage = computed(() => {
+  const withdrawal = approvedWithdrawal.value
+  if (!withdrawal) return ''
+
+  return [
+    `Halo ${selectedCustomer.value?.name || 'Pelanggan'},`,
+    '',
+    'Penarikan komisi referral Anda telah disetujui dan dibayarkan.',
+    `Nominal: ${formatCurrency(withdrawal.amount)}`,
+    `Bank/E-Wallet: ${withdrawal.bankOrWallet || '-'}`,
+    `Nomor rekening/akun: ${withdrawal.accountNumber || '-'}`,
+    `Atas nama: ${withdrawal.accountHolder || '-'}`,
+    `Nomor referensi: ${withdrawal.transferReference || '-'}`,
+    `Nomor invoice: ${withdrawal.invoiceNo || '-'}`,
+    'Bukti pembayaran terlampir sebagai gambar.',
+    '',
+    'Terima kasih telah menggunakan IKIKASIR.',
+    'Tim IKIKASIR',
+  ].join('\n')
+})
+
+const loadCustomerReferralData = async (customerId: string) => {
+  if (!customerId) return
+  customerReferralLoading.value = true
+  try {
+    const res = await referralApi.getOverview(customerId)
+    if (res.data) {
+      customerReferralOverview.value = res.data
+      customerWithdrawals.value = res.data.withdrawals || []
+    }
+  } catch (err) {
+    console.warn('Gagal memuat overview referral pelanggan:', err)
+    customerReferralOverview.value = null
+    customerWithdrawals.value = []
+  } finally {
+    customerReferralLoading.value = false
+  }
+}
+
+const openApprovalModal = (item: ReferralWithdrawalItem) => {
+  withdrawalToApprove.value = item
+  approvedWithdrawal.value = null
+  approvalError.value = null
+  whatsappShareNotice.value = null
+  whatsappShareError.value = null
+  approvalForm.value = {
+    transferReference: item.transferReference || '',
+    notes: 'Penarikan komisi referral telah dibayarkan oleh Super Admin.',
+    paymentProofUrl: item.paymentProofUrl || '',
+    paymentProofFileName: item.paymentProofUrl ? 'bukti-tersimpan.jpg' : '',
+  }
+  isApprovalModalOpen.value = true
+}
+
+const closeApprovalModal = () => {
+  if (isUploadingProof.value || isApprovingWithdrawal.value || isSharingProof.value) return
+  isApprovalModalOpen.value = false
+  withdrawalToApprove.value = null
+  approvedWithdrawal.value = null
+  approvalError.value = null
+  whatsappShareNotice.value = null
+  whatsappShareError.value = null
+}
+
+const handlePaymentProofUpload = async (event: Event) => {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp']
+  if (!allowedTypes.includes(file.type)) {
+    approvalError.value = 'Format bukti tidak didukung. Gunakan gambar JPG, PNG, atau WEBP.'
+    input.value = ''
+    return
+  }
+  if (file.size > 10 * 1024 * 1024) {
+    approvalError.value = 'Ukuran bukti pembayaran maksimal 10MB.'
+    input.value = ''
+    return
+  }
+
+  approvalError.value = null
+  isUploadingProof.value = true
+  try {
+    const response = await uploadApi.uploadFile(file)
+    if (!response.data?.url) {
+      throw new Error('Server tidak mengembalikan tautan bukti pembayaran.')
+    }
+    approvalForm.value.paymentProofUrl = response.data.url
+    approvalForm.value.paymentProofFileName = file.name
+  } catch (err: any) {
+    approvalForm.value.paymentProofUrl = ''
+    approvalForm.value.paymentProofFileName = ''
+    approvalError.value = err?.message || 'Gagal mengunggah bukti pembayaran.'
+  } finally {
+    isUploadingProof.value = false
+  }
+}
+
+const handleApproveWithdrawal = async () => {
+  const item = withdrawalToApprove.value
+  if (!item) return
+
+  if (!hasValidCustomerPhone.value) {
+    approvalError.value = 'Nomor WhatsApp pelanggan belum valid. Perbarui nomor telepon pelanggan sebelum menyetujui penarikan.'
+    return
+  }
+  if (!approvalForm.value.paymentProofUrl) {
+    approvalError.value = 'Unggah bukti pembayaran sebelum menyetujui penarikan.'
+    return
+  }
+
+  approvalError.value = null
+  isApprovingWithdrawal.value = true
+  try {
+    const response = await referralApi.confirmWithdrawal(item.id, {
+      status: 'SELESAI',
+      transferReference: approvalForm.value.transferReference.trim() || undefined,
+      paymentProofUrl: approvalForm.value.paymentProofUrl,
+      notes: approvalForm.value.notes.trim() || undefined,
+    })
+    if (!response.data?.id) {
+      throw new Error('Server tidak mengembalikan data penarikan yang berhasil diproses.')
+    }
+    approvedWithdrawal.value = response.data as any
+    showToast(`Penarikan ${formatCurrency(item.amount)} berhasil disetujui!`)
+    if (selectedCustomer.value?.id) {
+      await loadCustomerReferralData(selectedCustomer.value.id)
+    }
+  } catch (err: any) {
+    approvalError.value = err?.message || 'Gagal memproses penarikan.'
+  } finally {
+    isApprovingWithdrawal.value = false
+  }
+}
+
+const openRejectWithdrawalModal = (item: ReferralWithdrawalItem) => {
+  withdrawalToReject.value = item
+  rejectReason.value = ''
+  isRejectModalOpen.value = true
+}
+
+const handleConfirmRejectWithdrawal = async () => {
+  const item = withdrawalToReject.value
+  if (!item) return
+
+  if (!rejectReason.value.trim()) {
+    showToast('Alasan penolakan wajib diisi.')
+    return
+  }
+
+  isRejectingWithdrawal.value = true
+  try {
+    await referralApi.confirmWithdrawal(item.id, {
+      status: 'DITOLAK',
+      rejectionReason: rejectReason.value.trim(),
+      notes: rejectReason.value.trim(),
+    })
+    isRejectModalOpen.value = false
+    withdrawalToReject.value = null
+    showToast('Pengajuan penarikan berhasil ditolak.')
+    if (selectedCustomer.value?.id) {
+      await loadCustomerReferralData(selectedCustomer.value.id)
+    }
+  } catch (err: any) {
+    showToast(err?.message || 'Gagal menolak penarikan.')
+  } finally {
+    isRejectingWithdrawal.value = false
+  }
+}
+
+const fetchProofFile = async (): Promise<File> => {
+  const proofUrl = resolveReceiptUrl(approvedWithdrawal.value?.paymentProofUrl || '')
+  if (!proofUrl) throw new Error('Bukti pembayaran tidak ditemukan.')
+
+  const response = await fetch(proofUrl)
+  if (!response.ok) throw new Error('Gagal mengambil file bukti pembayaran dari server.')
+
+  const blob = await response.blob()
+  if (!blob.type.startsWith('image/')) {
+    throw new Error('File bukti pembayaran bukan gambar yang dapat dibagikan.')
+  }
+
+  const extension = blob.type.split('/')[1]?.replace('jpeg', 'jpg') || 'jpg'
+  const invoice = approvedWithdrawal.value?.invoiceNo || approvedWithdrawal.value?.id || 'pengguna'
+  return new File([blob], `bukti-penarikan-${invoice}.${extension}`, { type: blob.type })
+}
+
+const downloadProofFile = (file: File) => {
+  const fileUrl = URL.createObjectURL(file)
+  const link = document.createElement('a')
+  link.href = fileUrl
+  link.download = file.name
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  window.setTimeout(() => URL.revokeObjectURL(fileUrl), 1000)
+}
+
+const shareProofToWhatsapp = async () => {
+  if (!approvedWithdrawal.value) return
+
+  isSharingProof.value = true
+  whatsappShareNotice.value = null
+  whatsappShareError.value = null
+  try {
+    const file = await fetchProofFile()
+    const shareData: ShareData = {
+      files: [file],
+      text: whatsappAttachmentMessage.value,
+      title: 'Bukti Pembayaran Komisi Referral Pengguna',
+    }
+
+    if (
+      typeof navigator.share !== 'function' ||
+      typeof navigator.canShare !== 'function' ||
+      !navigator.canShare({ files: [file] })
+    ) {
+      downloadProofFile(file)
+      whatsappShareNotice.value = 'Browser ini belum mendukung lampiran langsung. Bukti sudah diunduh; buka WhatsApp lalu lampirkan file tersebut.'
+      return
+    }
+
+    await navigator.share(shareData)
+    whatsappShareNotice.value = 'Pilih WhatsApp pada menu berbagi, pilih chat Pelanggan, lalu tekan Kirim untuk mengirim gambar bukti.'
+  } catch (err: any) {
+    if (err?.name === 'AbortError') {
+      whatsappShareNotice.value = 'Berbagi bukti dibatalkan.'
+    } else {
+      whatsappShareError.value = err?.message || 'Gagal menyiapkan bukti pembayaran untuk dibagikan.'
+    }
+  } finally {
+    isSharingProof.value = false
+  }
 }
 
 const openEditFromDetail = () => {
@@ -1968,6 +2299,138 @@ const openAgreementPreview = (user?: any) => {
                         </p>
                       </div>
                     </div>
+
+                    <!-- Banner Komisi Tetap Rp 15.000 -->
+                    <div class="p-3 bg-purple-50/80 border border-purple-200/80 rounded-xl flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap">
+                      <div class="flex items-center gap-2.5">
+                        <div class="w-8 h-8 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center shrink-0 shadow-2xs">
+                          <Banknote class="w-4 h-4" />
+                        </div>
+                        <div>
+                          <span class="text-xs font-bold text-purple-950 block">Komisi Referral Pengguna (Aplikasi Android)</span>
+                          <p class="text-[11px] text-purple-700 mt-0.5">Komisi tetap sebesar <strong>Rp 15.000</strong> per pelanggan aktif yang mendaftar via kode referral pengguna ini.</p>
+                        </div>
+                      </div>
+                      <span class="px-2.5 py-1 rounded-lg text-xs font-extrabold bg-purple-600 text-white shadow-2xs shrink-0 whitespace-nowrap">
+                        Rp 15.000 Tetap / Aktif
+                      </span>
+                    </div>
+
+                    <!-- 4 KPI Metrik Saldo Referral Pengguna -->
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                      <div class="p-3 bg-emerald-50/70 rounded-xl border border-emerald-200/80">
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-800">Saldo Tersedia</span>
+                        <p class="text-base font-extrabold text-emerald-900 mt-0.5">
+                          {{ formatCurrency(customerReferralOverview?.availableBalance || 0) }}
+                        </p>
+                        <span class="text-[9px] text-emerald-700">Dapat ditarik di aplikasi</span>
+                      </div>
+                      <div class="p-3 bg-indigo-50/70 rounded-xl border border-indigo-200/80">
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-indigo-800">Total Didapat</span>
+                        <p class="text-base font-extrabold text-indigo-900 mt-0.5">
+                          {{ formatCurrency(customerReferralOverview?.totalEarnings || 0) }}
+                        </p>
+                        <span class="text-[9px] text-indigo-700">Akumulasi komisi</span>
+                      </div>
+                      <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-slate-600">Total Ditarik</span>
+                        <p class="text-base font-extrabold text-slate-800 mt-0.5">
+                          {{ formatCurrency(customerReferralOverview?.totalWithdrawn || 0) }}
+                        </p>
+                        <span class="text-[9px] text-slate-500">Sudah dibayarkan</span>
+                      </div>
+                      <div class="p-3 bg-amber-50/70 rounded-xl border border-amber-200/80">
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-amber-800">Pending ACC</span>
+                        <p class="text-base font-extrabold text-amber-900 mt-0.5">
+                          {{ formatCurrency(customerReferralOverview?.totalPending || 0) }}
+                        </p>
+                        <span class="text-[9px] text-amber-700">Menunggu verifikasi</span>
+                      </div>
+                    </div>
+
+                    <!-- Riwayat Penarikan Saldo Komisi Pengguna (Aplikasi Android) -->
+                    <div class="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-2xs">
+                      <div class="px-4 py-3 bg-slate-50/80 border-b border-slate-200 flex items-center justify-between">
+                        <div class="flex items-center gap-2 text-slate-800 font-bold text-xs">
+                          <Wallet class="w-4 h-4 text-emerald-600" />
+                          <span>Riwayat Penarikan Komisi Pengguna (Aplikasi Android)</span>
+                        </div>
+                        <span class="text-[11px] font-semibold text-slate-500">
+                          {{ customerWithdrawals.length }} pengajuan
+                        </span>
+                      </div>
+
+                      <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs min-w-[700px]">
+                          <thead class="bg-slate-50 text-slate-600 border-b border-slate-200 text-[11px]">
+                            <tr>
+                              <th class="px-3.5 py-2.5 font-semibold">Nominal</th>
+                              <th class="px-3.5 py-2.5 font-semibold">Bank / E-Wallet</th>
+                              <th class="px-3.5 py-2.5 font-semibold">No. Rekening</th>
+                              <th class="px-3.5 py-2.5 font-semibold">Atas Nama</th>
+                              <th class="px-3.5 py-2.5 font-semibold">Status</th>
+                              <th class="px-3.5 py-2.5 font-semibold">Bukti Pembayaran</th>
+                              <th class="px-3.5 py-2.5 font-semibold">Tanggal</th>
+                              <th class="px-3.5 py-2.5 font-semibold text-center">Aksi</th>
+                            </tr>
+                          </thead>
+                          <tbody class="divide-y divide-slate-100">
+                            <tr v-if="customerReferralLoading" class="text-slate-500">
+                              <td colspan="8" class="px-4 py-6 text-center">Memuat riwayat penarikan...</td>
+                            </tr>
+                            <tr v-else-if="!customerWithdrawals.length" class="text-slate-500">
+                              <td colspan="8" class="px-4 py-6 text-center text-slate-400">
+                                Belum ada pengajuan penarikan komisi dari pengguna ini.
+                              </td>
+                            </tr>
+                            <tr v-for="item in customerWithdrawals" :key="item.id" class="hover:bg-slate-50/60 transition-colors">
+                              <td class="px-3.5 py-2.5 font-extrabold text-emerald-600">{{ formatCurrency(item.amount || 0) }}</td>
+                              <td class="px-3.5 py-2.5 text-slate-700 font-medium">{{ item.bankOrWallet || '-' }}</td>
+                              <td class="px-3.5 py-2.5 font-mono text-slate-600">{{ item.accountNumber || '-' }}</td>
+                              <td class="px-3.5 py-2.5 text-slate-700">{{ item.accountHolder || '-' }}</td>
+                              <td class="px-3.5 py-2.5">
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border" :class="withdrawalStatusBadgeClass(item.status)">
+                                  {{ withdrawalStatusLabel(item.status) }}
+                                </span>
+                              </td>
+                              <td class="px-3.5 py-2.5">
+                                <a
+                                  v-if="item.paymentProofUrl"
+                                  :href="resolveReceiptUrl(item.paymentProofUrl)"
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  class="inline-flex items-center gap-1 text-[11px] font-semibold text-indigo-600 hover:text-indigo-800"
+                                >
+                                  <ExternalLink class="h-3 w-3" />
+                                  Lihat Bukti
+                                </a>
+                                <span v-else class="text-[11px] text-slate-400">Belum ada</span>
+                              </td>
+                              <td class="px-3.5 py-2.5 text-slate-600 whitespace-nowrap">{{ formatDate(item.requestDate) }}</td>
+                              <td class="px-3.5 py-2.5 text-center whitespace-nowrap">
+                                <div v-if="item.status === 'MENUNGGU_VERIFIKASI'" class="flex items-center justify-center gap-1.5">
+                                  <button
+                                    @click="openApprovalModal(item)"
+                                    type="button"
+                                    class="inline-flex items-center px-2.5 py-1 rounded-lg bg-emerald-600 text-white text-[10px] font-bold hover:bg-emerald-700 transition cursor-pointer shadow-2xs"
+                                  >
+                                    Setujui
+                                  </button>
+                                  <button
+                                    @click="openRejectWithdrawalModal(item)"
+                                    type="button"
+                                    class="inline-flex items-center px-2.5 py-1 rounded-lg bg-rose-600 text-white text-[10px] font-bold hover:bg-rose-700 transition cursor-pointer shadow-2xs"
+                                  >
+                                    Tolak
+                                  </button>
+                                </div>
+                                <span v-else class="text-slate-400 text-[10px] font-medium">Selesai diproses</span>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
                   </div>
 
                 </div>
@@ -2489,6 +2952,267 @@ const openAgreementPreview = (user?: any) => {
         <div class="flex items-center gap-3 mt-6">
           <button @click="showDeleteConfirm = false" class="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50 cursor-pointer">Batal</button>
           <button @click="deleteCustomer" class="flex-1 px-4 py-2.5 rounded-xl bg-rose-600 text-white text-sm font-semibold hover:bg-rose-700 shadow-md shadow-rose-200 cursor-pointer">Ya, Hapus</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL FORM ACC PENARIKAN KOMISI PENGGUNA (APLIKASI ANDROID) -->
+    <div
+      v-if="isApprovalModalOpen && withdrawalToApprove"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-xs"
+      @click.self="closeApprovalModal"
+    >
+      <div class="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-3xl border border-slate-100 bg-white shadow-2xl">
+        <div class="sticky top-0 z-10 flex items-center justify-between border-b border-slate-100 bg-slate-50 px-6 py-5">
+          <div>
+            <h2 class="text-base font-bold text-slate-900">
+              {{ approvedWithdrawal ? 'Penarikan Berhasil Disetujui' : 'Form ACC Penarikan Pengguna' }}
+            </h2>
+            <p class="mt-1 text-xs text-slate-500">
+              {{ selectedCustomer?.businessName || selectedCustomer?.name || 'Pengguna' }} · {{ formatCurrency(withdrawalToApprove.amount) }}
+            </p>
+          </div>
+          <button
+            type="button"
+            @click="closeApprovalModal"
+            :disabled="isUploadingProof || isApprovingWithdrawal"
+            class="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:bg-slate-200 hover:text-slate-700 disabled:opacity-50"
+            aria-label="Tutup"
+          >
+            <X class="h-4 w-4" />
+          </button>
+        </div>
+
+        <!-- Approved View (Success) -->
+        <div v-if="approvedWithdrawal" class="space-y-5 p-6">
+          <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+            <p class="font-semibold text-emerald-800">Pembayaran berhasil dicatat dan saldo komisi pengguna telah diperbarui.</p>
+            <p class="mt-1 text-sm text-emerald-700">Bukti pembayaran kini dapat dilihat oleh pengguna di aplikasi Android.</p>
+          </div>
+
+          <div class="grid grid-cols-1 gap-3 rounded-2xl bg-slate-50 p-4 text-xs sm:grid-cols-2">
+            <div>
+              <p class="text-slate-500">Nomor Invoice</p>
+              <p class="font-mono font-bold text-slate-800 mt-0.5">{{ approvedWithdrawal.invoiceNo || '-' }}</p>
+            </div>
+            <div>
+              <p class="text-slate-500">Nominal Penarikan</p>
+              <p class="font-extrabold text-emerald-600 mt-0.5">{{ formatCurrency(approvedWithdrawal.amount) }}</p>
+            </div>
+            <div>
+              <p class="text-slate-500">Penerima Transfer</p>
+              <p class="font-bold text-slate-800 mt-0.5">{{ approvedWithdrawal.bankOrWallet }} · {{ approvedWithdrawal.accountNumber }}</p>
+            </div>
+            <div>
+              <p class="text-slate-500">Atas Nama</p>
+              <p class="font-bold text-slate-800 mt-0.5">{{ approvedWithdrawal.accountHolder }}</p>
+            </div>
+          </div>
+
+          <div class="space-y-3">
+            <a
+              v-if="approvedWithdrawal.paymentProofUrl"
+              :href="resolveReceiptUrl(approvedWithdrawal.paymentProofUrl)"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="inline-flex items-center gap-2 text-xs font-semibold text-indigo-600 hover:text-indigo-800"
+            >
+              <ExternalLink class="h-4 w-4" />
+              Lihat Bukti Pembayaran
+            </a>
+
+            <div class="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 space-y-2">
+              <p class="text-xs font-bold text-slate-700">Kirim Bukti ke WhatsApp Pengguna</p>
+              <p class="text-xs leading-relaxed text-slate-600">
+                Bagikan gambar bukti bersama pesan konfirmasi. Jika browser tidak mendukung lampiran langsung, file akan otomatis diunduh agar dapat dilampirkan secara manual di WhatsApp.
+              </p>
+
+              <div class="flex flex-wrap items-center gap-3 pt-1">
+                <button
+                  type="button"
+                  @click="shareProofToWhatsapp"
+                  :disabled="isSharingProof"
+                  class="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50 cursor-pointer shadow-2xs"
+                >
+                  <MessageCircle class="h-4 w-4" />
+                  {{ isSharingProof ? 'Menyiapkan bukti...' : 'Bagikan Bukti + Konfirmasi' }}
+                </button>
+
+                <a
+                  v-if="customerWaUrl"
+                  :href="customerWaUrl"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="inline-flex items-center gap-2 rounded-xl border border-emerald-300 bg-white px-4 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-50 shadow-2xs"
+                >
+                  <MessageSquare class="h-4 w-4 text-emerald-600" />
+                  Buka WhatsApp Web
+                </a>
+              </div>
+
+              <p v-if="whatsappShareNotice" class="text-xs text-indigo-600 mt-2 font-medium">
+                {{ whatsappShareNotice }}
+              </p>
+              <p v-if="whatsappShareError" class="text-xs text-rose-600 mt-2 font-medium">
+                {{ whatsappShareError }}
+              </p>
+            </div>
+          </div>
+
+          <div class="flex justify-end pt-2 border-t border-slate-100">
+            <button
+              type="button"
+              @click="closeApprovalModal"
+              class="rounded-xl border border-slate-200 px-5 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 cursor-pointer shadow-2xs"
+            >
+              Selesai
+            </button>
+          </div>
+        </div>
+
+        <!-- Form Mode: Acc Penarikan -->
+        <form v-else @submit.prevent="handleApproveWithdrawal" class="space-y-4 p-6">
+          <div class="grid grid-cols-1 gap-3 rounded-2xl bg-slate-50 p-4 text-sm sm:grid-cols-2">
+            <div>
+              <p class="text-xs text-slate-500">Tujuan Transfer</p>
+              <p class="mt-1 font-semibold text-slate-800">{{ withdrawalToApprove.bankOrWallet }} · {{ withdrawalToApprove.accountNumber }}</p>
+            </div>
+            <div>
+              <p class="text-xs text-slate-500">Atas Nama</p>
+              <p class="mt-1 font-semibold text-slate-800">{{ withdrawalToApprove.accountHolder }}</p>
+            </div>
+          </div>
+
+          <div v-if="!hasValidCustomerPhone" class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-relaxed text-amber-800">
+            Nomor WhatsApp pelanggan belum valid. Lengkapi melalui form edit pelanggan sebelum menyetujui penarikan.
+          </div>
+
+          <div>
+            <label class="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-700">
+              Nomor Referensi Transfer <span class="font-normal normal-case text-slate-400">(opsional)</span>
+            </label>
+            <input
+              v-model="approvalForm.transferReference"
+              type="text"
+              placeholder="Contoh: TRX-123456 / Ref BCA"
+              class="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 bg-slate-50/50"
+            />
+          </div>
+
+          <div>
+            <label class="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-700">
+              Bukti Pembayaran <span class="text-rose-500">*</span>
+            </label>
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              :disabled="isUploadingProof || isApprovingWithdrawal"
+              @change="handlePaymentProofUpload"
+              class="block w-full rounded-xl border border-slate-200 bg-white text-xs text-slate-600 file:mr-3 file:border-0 file:bg-indigo-50 file:px-4 file:py-2.5 file:text-xs file:font-semibold file:text-indigo-700 hover:file:bg-indigo-100 disabled:opacity-50"
+            />
+            <p class="mt-1 text-[11px] text-slate-500">JPG, PNG, atau WEBP; maksimal 10MB.</p>
+            <p v-if="isUploadingProof" class="mt-2 text-xs font-medium text-indigo-600">Mengunggah bukti pembayaran...</p>
+            <div v-else-if="approvalForm.paymentProofUrl" class="mt-3 flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+              <img :src="resolveReceiptUrl(approvalForm.paymentProofUrl)" alt="Pratinjau bukti pembayaran" class="h-14 w-14 rounded-lg border border-emerald-100 object-cover" />
+              <div class="min-w-0 flex-1">
+                <p class="truncate text-xs font-semibold text-slate-800">{{ approvalForm.paymentProofFileName }}</p>
+                <p class="text-[11px] text-emerald-700">Bukti berhasil diunggah</p>
+              </div>
+              <a :href="resolveReceiptUrl(approvalForm.paymentProofUrl)" target="_blank" rel="noopener noreferrer" aria-label="Lihat bukti">
+                <ExternalLink class="h-4 w-4 text-indigo-600" />
+              </a>
+            </div>
+          </div>
+
+          <div>
+            <label class="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-700">
+              Catatan <span class="font-normal normal-case text-slate-400">(opsional)</span>
+            </label>
+            <textarea
+              v-model="approvalForm.notes"
+              rows="2"
+              placeholder="Catatan transfer..."
+              class="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 bg-slate-50/50 resize-none"
+            ></textarea>
+          </div>
+
+          <p v-if="approvalError" class="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
+            {{ approvalError }}
+          </p>
+
+          <div class="p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-2 text-[11px] text-amber-800">
+            <AlertTriangle class="w-4 h-4 shrink-0 mt-0.5" />
+            <p class="leading-relaxed">
+              Pastikan dana sudah benar-benar ditransfer ke rekening tujuan sebelum menyetujui.
+              Pencairan yang disetujui akan otomatis mengurangi saldo referral pengguna, menerbitkan invoice resmi, dan mencatat transaksi kas keluar.
+            </p>
+          </div>
+
+          <div class="flex items-center gap-3 pt-2">
+            <button
+              type="button"
+              @click="closeApprovalModal"
+              :disabled="isUploadingProof || isApprovingWithdrawal"
+              class="flex-1 rounded-xl border border-slate-200 px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50 cursor-pointer"
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              :disabled="isUploadingProof || isApprovingWithdrawal || !approvalForm.paymentProofUrl || !hasValidCustomerPhone"
+              class="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer shadow-2xs"
+            >
+              <Upload class="h-4 w-4" />
+              {{ isApprovingWithdrawal ? 'Memproses...' : 'Setujui & Simpan Bukti' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- MODAL TOLAK PENARIKAN PENGGUNA -->
+    <div
+      v-if="isRejectModalOpen && withdrawalToReject"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-xs"
+      @click.self="isRejectModalOpen = false"
+    >
+      <div class="w-full max-w-md rounded-3xl border border-slate-100 bg-white p-6 shadow-2xl space-y-4">
+        <div class="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mx-auto">
+          <AlertCircle class="w-6 h-6" />
+        </div>
+        <div class="text-center">
+          <h4 class="text-sm font-bold text-slate-800">Tolak Pengajuan Penarikan</h4>
+          <p class="text-xs text-slate-500 mt-1">
+            Penarikan sebesar <strong class="text-slate-700">{{ formatCurrency(withdrawalToReject.amount) }}</strong> atas nama <strong>{{ withdrawalToReject.accountHolder }}</strong> akan ditolak. Saldo akan dikembalikan ke akun pengguna.
+          </p>
+        </div>
+
+        <div class="space-y-1.5">
+          <label class="text-xs font-bold text-slate-700">Alasan Penolakan <span class="text-rose-500">*</span></label>
+          <textarea
+            v-model="rejectReason"
+            rows="3"
+            placeholder="Contoh: Nomor rekening tujuan tidak sesuai dengan data identitas pengguna"
+            class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-100 bg-slate-50/50 text-slate-800 placeholder-slate-400 resize-none"
+          ></textarea>
+        </div>
+
+        <div class="flex items-center gap-2 pt-2">
+          <button
+            type="button"
+            @click="isRejectModalOpen = false"
+            class="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-xs font-bold hover:bg-slate-50 transition-all cursor-pointer"
+          >
+            Batal
+          </button>
+          <button
+            type="button"
+            @click="handleConfirmRejectWithdrawal"
+            :disabled="isRejectingWithdrawal || !rejectReason.trim()"
+            class="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all cursor-pointer disabled:opacity-50"
+          >
+            {{ isRejectingWithdrawal ? 'Memproses...' : 'Ya, Tolak' }}
+          </button>
         </div>
       </div>
     </div>
