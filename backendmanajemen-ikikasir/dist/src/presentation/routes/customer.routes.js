@@ -45,12 +45,12 @@ router.post('/', authorizeRoles('SUPERADMIN', 'Super Admin', 'ADMIN', 'Admin'), 
  * Route: Memperbarui data profil pelanggan
  * PUT /api/customers/:id
  */
-router.put('/:id', authorizeRoles('SUPERADMIN', 'Super Admin', 'ADMIN', 'Admin'), validateBody(updateCustomerSchema), update);
+router.put('/:id', authorizePermission('semuaPelanggan', 'update', 'setup'), validateBody(updateCustomerSchema), update);
 /**
  * Route: Memperpanjang masa aktif pelanggan (Renew Subscription)
  * POST /api/customers/:id/renew
  */
-router.post('/:id/renew', authorizeRoles('SUPERADMIN', 'Super Admin', 'ADMIN', 'Admin'), validateBody(renewSubscriptionSchema), renew);
+router.post('/:id/renew', authorizeRoles('SUPERADMIN', 'Super Admin', 'ADMIN', 'Admin', 'FINANCE', 'Finance'), validateBody(renewSubscriptionSchema), renew);
 /**
  * Route: Menghapus pelanggan
  * DELETE /api/customers/:id

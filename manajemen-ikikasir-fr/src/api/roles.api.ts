@@ -23,6 +23,7 @@ export interface MenuCrudPermission {
   read: boolean
   update: boolean
   delete: boolean
+  setup?: boolean
 }
 
 export type RolePermissions = Record<keyof RoleMenuAccess | string, MenuCrudPermission>

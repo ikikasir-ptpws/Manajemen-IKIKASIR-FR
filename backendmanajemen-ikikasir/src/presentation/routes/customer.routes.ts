@@ -82,7 +82,7 @@ router.post(
  */
 router.put(
   '/:id',
-  authorizeRoles('SUPERADMIN', 'Super Admin', 'ADMIN', 'Admin'),
+  authorizePermission('semuaPelanggan', 'update', 'setup'),
   validateBody(updateCustomerSchema),
   update
 );
@@ -93,7 +93,7 @@ router.put(
  */
 router.post(
   '/:id/renew',
-  authorizeRoles('SUPERADMIN', 'Super Admin', 'ADMIN', 'Admin'),
+  authorizeRoles('SUPERADMIN', 'Super Admin', 'ADMIN', 'Admin', 'FINANCE', 'Finance'),
   validateBody(renewSubscriptionSchema),
   renew
 );

@@ -168,7 +168,7 @@ export class PrismaRoleRepository {
                 for (const key of Role.defaultMenuKeys) {
                     const perm = data.permissions[key];
                     if (perm) {
-                        menuAccessInput[key] = Boolean(perm.read || perm.create || perm.update || perm.delete);
+                        menuAccessInput[key] = Boolean(perm.read || perm.create || perm.update || perm.delete || perm.setup);
                     }
                 }
             }
@@ -221,7 +221,7 @@ export class PrismaRoleRepository {
                     for (const key of Role.defaultMenuKeys) {
                         const perm = effectivePerms[key];
                         if (perm) {
-                            menuAccessInput[key] = Boolean(perm.read || perm.create || perm.update || perm.delete);
+                            menuAccessInput[key] = Boolean(perm.read || perm.create || perm.update || perm.delete || perm.setup);
                         }
                     }
                 }

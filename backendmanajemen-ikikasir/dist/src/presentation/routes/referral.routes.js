@@ -24,12 +24,12 @@ router.get('/validate', authorizeRoles('SUPERADMIN', 'Super Admin', 'ADMIN', 'Ad
  * Route: Mengambil ringkasan halaman Referral (kode, upline, saldo, downline, pencairan)
  * GET /api/referrals/customers/:id
  */
-router.get('/customers/:id', authorizeRoles('SUPERADMIN', 'Super Admin', 'ADMIN', 'Admin'), getOverview);
+router.get('/customers/:id', authorizeRoles('SUPERADMIN', 'Super Admin', 'ADMIN', 'Admin', 'FINANCE', 'Finance', 'TEKNISI', 'Teknisi'), getOverview);
 /**
  * Route: Membuat permintaan pencairan saldo komisi referral
  * POST /api/referrals/customers/:id/withdrawals
  */
-router.post('/customers/:id/withdrawals', authorizeRoles('SUPERADMIN', 'Super Admin', 'ADMIN', 'Admin'), validateBody(requestReferralWithdrawalSchema), requestWithdrawal);
+router.post('/customers/:id/withdrawals', authorizeRoles('SUPERADMIN', 'Super Admin', 'ADMIN', 'Admin', 'FINANCE', 'Finance'), validateBody(requestReferralWithdrawalSchema), requestWithdrawal);
 /**
  * Route: Memperbarui status pencairan referral (verifikasi finance)
  * PATCH /api/referrals/withdrawals/:id

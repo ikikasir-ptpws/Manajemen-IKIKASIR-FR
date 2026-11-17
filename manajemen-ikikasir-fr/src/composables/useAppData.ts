@@ -1758,14 +1758,18 @@ export function useAppData() {
       lead.technicianStatus = 'in_progress'
       lead.technicianAssignedTo = teknisiName
       saveStorage(STORAGE_KEY_LEADS, leads.value)
-      leadsApi.update(lead.id, { technicianStatus: 'in_progress', technicianAssignedTo: teknisiName }).catch(err => console.warn('Backend leadsApi.update warning:', err))
+      if (!lead.id.startsWith('c-')) {
+        leadsApi.update(lead.id, { technicianStatus: 'in_progress', technicianAssignedTo: teknisiName }).catch(err => console.warn('Backend leadsApi.update warning:', err))
+      }
     }
     const cust = customers.value.find(c => c.id === id || c.id === 'cust-' + id || (lead && (c.phone === lead.phone || c.email === lead.email)))
     if (cust) {
       cust.technicianStatus = 'in_progress'
       cust.technicianAssignedTo = teknisiName
       saveStorage(STORAGE_KEY_CUSTOMERS, customers.value)
-      customersApi.update(cust.id, { technicianStatus: 'in_progress' }).catch(err => console.warn('Backend customersApi.update warning:', err))
+      if (!cust.id.startsWith('cust-')) {
+        customersApi.update(cust.id, { technicianStatus: 'in_progress' }).catch(err => console.warn('Backend customersApi.update warning:', err))
+      }
     }
   }
 
@@ -1778,20 +1782,24 @@ export function useAppData() {
       lead.emailIssueNotes = issueNotes
       lead.technicianStatus = 'issue'
       saveStorage(STORAGE_KEY_LEADS, leads.value)
-      leadsApi.update(lead.id, { 
-        technicianStatus: 'issue', 
-        emailIssueReported: true, 
-        emailIssueNotes: issueNotes 
-      }).catch(err => console.warn('Backend leadsApi.update warning:', err))
+      if (!lead.id.startsWith('c-')) {
+        leadsApi.update(lead.id, { 
+          technicianStatus: 'issue', 
+          emailIssueReported: true, 
+          emailIssueNotes: issueNotes 
+        }).catch(err => console.warn('Backend leadsApi.update warning:', err))
+      }
     }
     if (cust) {
       cust.emailIssueReported = true
       cust.emailIssueNotes = issueNotes
       cust.technicianStatus = 'issue'
       saveStorage(STORAGE_KEY_CUSTOMERS, customers.value)
-      customersApi.update(cust.id, { 
-        technicianStatus: 'issue' 
-      }).catch(err => console.warn('Backend customersApi.update warning:', err))
+      if (!cust.id.startsWith('cust-')) {
+        customersApi.update(cust.id, { 
+          technicianStatus: 'issue' 
+        }).catch(err => console.warn('Backend customersApi.update warning:', err))
+      }
     }
 
     const name = lead?.name || cust?.name || 'Pelanggan'
@@ -1824,12 +1832,14 @@ export function useAppData() {
         notes: `Alamat email klien berhasil diperbarui menjadi ${newEmail} (Kendala terselesaikan).`
       })
       saveStorage(STORAGE_KEY_LEADS, leads.value)
-      leadsApi.update(lead.id, { 
-        email: newEmail, 
-        emailIssueReported: false, 
-        emailIssueNotes: '', 
-        technicianStatus: 'in_progress' 
-      }).catch(err => console.warn('Backend leadsApi.update warning:', err))
+      if (!lead.id.startsWith('c-')) {
+        leadsApi.update(lead.id, { 
+          email: newEmail, 
+          emailIssueReported: false, 
+          emailIssueNotes: '', 
+          technicianStatus: 'in_progress' 
+        }).catch(err => console.warn('Backend leadsApi.update warning:', err))
+      }
     }
 
     if (cust) {
@@ -1838,10 +1848,12 @@ export function useAppData() {
       cust.emailIssueNotes = undefined
       cust.technicianStatus = 'in_progress'
       saveStorage(STORAGE_KEY_CUSTOMERS, customers.value)
-      customersApi.update(cust.id, { 
-        email: newEmail, 
-        technicianStatus: 'in_progress' 
-      }).catch(err => console.warn('Backend customersApi.update warning:', err))
+      if (!cust.id.startsWith('cust-')) {
+        customersApi.update(cust.id, { 
+          email: newEmail, 
+          technicianStatus: 'in_progress' 
+        }).catch(err => console.warn('Backend customersApi.update warning:', err))
+      }
     }
   }
 
@@ -1890,17 +1902,19 @@ export function useAppData() {
         notes: `Aplikasi selesai disiapkan oleh Teknisi (${teknisi}). Kredensial, panduan, dan surat sewa diserahkan ke klien.`
       })
       saveStorage(STORAGE_KEY_LEADS, leads.value)
-      leadsApi.update(lead.id, {
-        technicianStatus: 'completed',
-        technicianAssignedTo: teknisi,
-        appUsername: setupData.appUsername,
-        appPassword: setupData.appPassword,
-        appDownloadUrl,
-        guideBookUrl,
-        rentalAgreementNumber,
-        rentalAgreementDate: setupData.rentalAgreementDate || today,
-        emailIssueReported: false
-      }).catch(err => console.warn('Backend leadsApi.update warning:', err))
+      if (!lead.id.startsWith('c-')) {
+        leadsApi.update(lead.id, {
+          technicianStatus: 'completed',
+          technicianAssignedTo: teknisi,
+          appUsername: setupData.appUsername,
+          appPassword: setupData.appPassword,
+          appDownloadUrl,
+          guideBookUrl,
+          rentalAgreementNumber,
+          rentalAgreementDate: setupData.rentalAgreementDate || today,
+          emailIssueReported: false
+        }).catch(err => console.warn('Backend leadsApi.update warning:', err))
+      }
     }
 
     if (cust) {
@@ -1917,12 +1931,14 @@ export function useAppData() {
       cust.status = 'active'
       cust.emailIssueReported = false
       saveStorage(STORAGE_KEY_CUSTOMERS, customers.value)
-      customersApi.update(cust.id, {
-        technicianStatus: 'completed',
-        appUsername: setupData.appUsername,
-        appPassword: setupData.appPassword,
-        status: 'ACTIVE'
-      }).catch(err => console.warn('Backend customersApi.update warning:', err))
+      if (!cust.id.startsWith('cust-')) {
+        customersApi.update(cust.id, {
+          technicianStatus: 'completed',
+          appUsername: setupData.appUsername,
+          appPassword: setupData.appPassword,
+          status: 'ACTIVE'
+        }).catch(err => console.warn('Backend customersApi.update warning:', err))
+      }
     }
 
     const clientName = lead?.name || cust?.name || 'Pelanggan'

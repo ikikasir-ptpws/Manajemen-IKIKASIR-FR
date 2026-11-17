@@ -173,7 +173,7 @@ const STORAGE_KEY_ROLES = 'ikikasir_roles_v2'
 const createBlankPermissions = (): RolePermissions => {
   const perms: RolePermissions = {}
   MENU_CATALOG.forEach(m => {
-    perms[m.key] = { create: false, read: false, update: false, delete: false }
+    perms[m.key] = { create: false, read: false, update: false, delete: false, setup: false }
   })
   return perms
 }
@@ -181,7 +181,7 @@ const createBlankPermissions = (): RolePermissions => {
 const createFullPermissions = (): RolePermissions => {
   const perms: RolePermissions = {}
   MENU_CATALOG.forEach(m => {
-    perms[m.key] = { create: true, read: true, update: true, delete: true }
+    perms[m.key] = { create: true, read: true, update: true, delete: true, setup: true }
   })
   return perms
 }
@@ -496,11 +496,12 @@ const getRoleStats = (role: RoleItem) => {
   let canRead = 0
   let canUpdate = 0
   let canDelete = 0
+  let canSetup = 0
 
   MENU_CATALOG.forEach(m => {
     const isMenuAccess = Boolean(role.menuAccess?.[m.key])
     const p = role.permissions?.[m.key]
-    const hasAnyCrud = Boolean(p && (p.read || p.create || p.update || p.delete))
+    const hasAnyCrud = Boolean(p && (p.read || p.create || p.update || p.delete || p.setup))
 
     if (isMenuAccess || hasAnyCrud) {
       activeMenus++
@@ -509,9 +510,10 @@ const getRoleStats = (role: RoleItem) => {
     if (p?.read || (isMenuAccess && (!p || p.read))) canRead++
     if (p?.update) canUpdate++
     if (p?.delete) canDelete++
+    if (p?.setup) canSetup++
   })
 
-  const totalCrud = canCreate + canRead + canUpdate + canDelete
+  const totalCrud = canCreate + canRead + canUpdate + canDelete + canSetup
   const canDeleteNone = canDelete === 0 && (canCreate > 0 || canUpdate > 0)
 
   return {
@@ -521,6 +523,7 @@ const getRoleStats = (role: RoleItem) => {
     canRead,
     canUpdate,
     canDelete,
+    canSetup,
     totalCrud,
     canDeleteNone
   }
@@ -745,7 +748,7 @@ const openDeleteConfirm = (role: RoleItem) => {
 const ensurePermission = (key: keyof RoleMenuAccess): MenuCrudPermission => {
   const existing = form.value.permissions[key]
   if (existing) return existing
-  const created: MenuCrudPermission = { create: false, read: false, update: false, delete: false }
+  const created: MenuCrudPermission = { create: false, read: false, update: false, delete: false, setup: false }
   form.value.permissions[key] = created
   return created
 }
@@ -768,7 +771,8 @@ const toggleMenuAccess = (key: keyof RoleMenuAccess) => {
       create: false,
       read: false,
       update: false,
-      delete: false
+      delete: false,
+      setup: false
     }
   }
 }
@@ -779,8 +783,8 @@ const togglePermission = (key: keyof RoleMenuAccess, action: keyof MenuCrudPermi
   const next = !current
   perms[action] = next
 
-  // If user toggles create, update, or delete ON, ensure read and menuAccess are also ON
-  if (next && (action === 'create' || action === 'update' || action === 'delete')) {
+  // If user toggles create, update, delete, or setup ON, ensure read and menuAccess are also ON
+  if (next && (action === 'create' || action === 'update' || action === 'delete' || action === 'setup')) {
     perms.read = true
     form.value.menuAccess[key] = true
   }
@@ -792,7 +796,7 @@ const togglePermission = (key: keyof RoleMenuAccess, action: keyof MenuCrudPermi
 
   // If all CRUD are false, toggle menuAccess OFF
   const p = perms
-  if (!p.read && !p.create && !p.update && !p.delete) {
+  if (!p.read && !p.create && !p.update && !p.delete && !p.setup) {
     form.value.menuAccess[key] = false
   }
 }
@@ -800,15 +804,15 @@ const togglePermission = (key: keyof RoleMenuAccess, action: keyof MenuCrudPermi
 // Toggle all CRUD for a single menu row
 const toggleRowAllCrud = (key: keyof RoleMenuAccess) => {
   const p = ensurePermission(key)
-  const isAllChecked = p.create && p.read && p.update && p.delete
+  const isAllChecked = p.create && p.read && p.update && p.delete && p.setup
 
   if (isAllChecked) {
     // Uncheck all
-    form.value.permissions[key] = { create: false, read: false, update: false, delete: false }
+    form.value.permissions[key] = { create: false, read: false, update: false, delete: false, setup: false }
     form.value.menuAccess[key] = false
   } else {
-    // Check all CRUD
-    form.value.permissions[key] = { create: true, read: true, update: true, delete: true }
+    // Check all CRUD + Setup
+    form.value.permissions[key] = { create: true, read: true, update: true, delete: true, setup: true }
     form.value.menuAccess[key] = true
   }
 }
@@ -817,23 +821,23 @@ const toggleRowAllCrud = (key: keyof RoleMenuAccess) => {
 const setPresetFullCrud = () => {
   MENU_CATALOG.forEach(m => {
     form.value.menuAccess[m.key] = true
-    form.value.permissions[m.key] = { create: true, read: true, update: true, delete: true }
+    form.value.permissions[m.key] = { create: true, read: true, update: true, delete: true, setup: true }
   })
-  showToast('Semua menu dan seluruh izin CRUD berhasil dicentang.', 'info')
+  showToast('Semua menu dan seluruh izin CRUD + Setup berhasil dicentang.', 'info')
 }
 
 const setPresetAddAndEditNoDelete = () => {
   MENU_CATALOG.forEach(m => {
     form.value.menuAccess[m.key] = true
-    form.value.permissions[m.key] = { create: true, read: true, update: true, delete: false }
+    form.value.permissions[m.key] = { create: true, read: true, update: true, delete: false, setup: true }
   })
-  showToast('Preset aktif: Bisa tambah & edit data, tanpa izin hapus data.', 'info')
+  showToast('Preset aktif: Bisa tambah, edit & setup data, tanpa izin hapus data.', 'info')
 }
 
 const setPresetReadOnly = () => {
   MENU_CATALOG.forEach(m => {
     form.value.menuAccess[m.key] = true
-    form.value.permissions[m.key] = { create: false, read: true, update: false, delete: false }
+    form.value.permissions[m.key] = { create: false, read: true, update: false, delete: false, setup: false }
   })
   showToast('Preset aktif: Hanya izin lihat data (Read-Only).', 'info')
 }
@@ -841,7 +845,7 @@ const setPresetReadOnly = () => {
 const resetAllPermissions = () => {
   MENU_CATALOG.forEach(m => {
     form.value.menuAccess[m.key] = false
-    form.value.permissions[m.key] = { create: false, read: false, update: false, delete: false }
+    form.value.permissions[m.key] = { create: false, read: false, update: false, delete: false, setup: false }
   })
   showToast('Semua izin akses menu telah direset.', 'info')
 }
@@ -875,7 +879,7 @@ const handleSaveRole = async () => {
   const finalMenuAccess: RoleMenuAccess = { ...form.value.menuAccess }
   MENU_CATALOG.forEach(m => {
     const p = form.value.permissions[m.key]
-    if (p && (p.read || p.create || p.update || p.delete)) {
+    if (p && (p.read || p.create || p.update || p.delete || p.setup)) {
       finalMenuAccess[m.key] = true
     } else {
       finalMenuAccess[m.key] = false
@@ -1580,17 +1584,33 @@ const totalAssignedUsers = computed(() => roles.value.reduce((acc, r) => acc + (
                       <span>Hapus (Delete)</span>
                     </label>
 
+                    <!-- Checkbox: Setup (Setup Status) -->
+                    <label
+                      class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-semibold cursor-pointer select-none transition-all"
+                      :class="form.permissions[item.key]?.setup
+                        ? 'bg-cyan-50 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 border-cyan-200 dark:border-cyan-800 shadow-2xs'
+                        : 'bg-white dark:bg-slate-700/50 text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700 hover:border-slate-300'"
+                    >
+                      <input
+                        type="checkbox"
+                        :checked="form.permissions[item.key]?.setup"
+                        @change="togglePermission(item.key, 'setup')"
+                        class="rounded text-cyan-600 focus:ring-cyan-500 h-3.5 w-3.5"
+                      />
+                      <span>Setup Status</span>
+                    </label>
+
                     <!-- Quick Button: Toggle All CRUD for Row -->
                     <button
                       type="button"
                       @click="toggleRowAllCrud(item.key)"
                       class="px-2 py-1 rounded-lg text-[11px] font-bold border transition-colors cursor-pointer"
-                      :class="form.permissions[item.key]?.create && form.permissions[item.key]?.read && form.permissions[item.key]?.update && form.permissions[item.key]?.delete
+                      :class="form.permissions[item.key]?.create && form.permissions[item.key]?.read && form.permissions[item.key]?.update && form.permissions[item.key]?.delete && form.permissions[item.key]?.setup
                         ? 'bg-indigo-50 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800'
                         : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-600 hover:bg-slate-200'"
-                      title="Centang / Hilangkan semua CRUD modul ini"
+                      title="Centang / Hilangkan semua CRUD + Setup modul ini"
                     >
-                      CRUD Semua
+                      Pilih Semua
                     </button>
                   </div>
                 </div>
@@ -1665,7 +1685,7 @@ const totalAssignedUsers = computed(() => roles.value.reduce((acc, r) => acc + (
         <!-- Body: Matrix View -->
         <div class="p-6 overflow-y-auto flex-1 space-y-4">
           <!-- Summary chips -->
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+          <div class="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
             <div class="p-3 rounded-xl bg-blue-50/60 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/40 text-center">
               <span class="text-xs text-blue-600 dark:text-blue-400 font-bold block">Lihat (Read)</span>
               <span class="text-xl font-extrabold text-blue-900 dark:text-blue-200">{{ getRoleStats(selectedRole).canRead }} Modul</span>
@@ -1682,6 +1702,10 @@ const totalAssignedUsers = computed(() => roles.value.reduce((acc, r) => acc + (
               <span class="text-xs text-rose-600 dark:text-rose-400 font-bold block">Hapus (Delete)</span>
               <span class="text-xl font-extrabold text-rose-900 dark:text-rose-200">{{ getRoleStats(selectedRole).canDelete }} Modul</span>
             </div>
+            <div class="p-3 rounded-xl bg-cyan-50/60 dark:bg-cyan-950/30 border border-cyan-100 dark:border-cyan-900/40 text-center col-span-2 sm:col-span-1">
+              <span class="text-xs text-cyan-600 dark:text-cyan-400 font-bold block">Setup Status</span>
+              <span class="text-xl font-extrabold text-cyan-900 dark:text-cyan-200">{{ getRoleStats(selectedRole).canSetup }} Modul</span>
+            </div>
           </div>
 
           <!-- Modules Table Matrix -->
@@ -1695,6 +1719,7 @@ const totalAssignedUsers = computed(() => roles.value.reduce((acc, r) => acc + (
                   <th class="py-3 px-2.5 text-center">Tambah</th>
                   <th class="py-3 px-2.5 text-center">Edit</th>
                   <th class="py-3 px-2.5 text-center">Hapus</th>
+                  <th class="py-3 px-2.5 text-center">Setup</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-100 dark:divide-slate-700/60">
@@ -1731,6 +1756,10 @@ const totalAssignedUsers = computed(() => roles.value.reduce((acc, r) => acc + (
                   </td>
                   <td class="py-2.5 px-2.5 text-center">
                     <CheckCircle2 v-if="selectedRole.permissions?.[item.key]?.delete" class="w-4 h-4 text-rose-600 dark:text-rose-400 mx-auto" />
+                    <span v-else class="text-slate-300 dark:text-slate-600">-</span>
+                  </td>
+                  <td class="py-2.5 px-2.5 text-center">
+                    <CheckCircle2 v-if="selectedRole.permissions?.[item.key]?.setup" class="w-4 h-4 text-cyan-600 dark:text-cyan-400 mx-auto" />
                     <span v-else class="text-slate-300 dark:text-slate-600">-</span>
                   </td>
                 </tr>

@@ -154,9 +154,10 @@ export function authorizeMenuAccess(menuKey) {
 }
 /**
  * Middleware Otorisasi Berdasarkan Izin Aksi CRUD Per Menu
- * action: 'create' (tambah) | 'read' (lihat) | 'update' (edit) | 'delete' (hapus)
+ * actions: 'create' (tambah) | 'read' (lihat) | 'update' (edit) | 'delete' (hapus) | 'setup' (setup status)
+ * Jika diberikan beberapa action, user diizinkan jika memiliki salah satu izin aksi tersebut.
  */
-export function authorizePermission(menuKey, action) {
+export function authorizePermission(menuKey, ...actions) {
     return async (req, res, next) => {
         try {
             if (!req.user) {
@@ -172,15 +173,22 @@ export function authorizePermission(menuKey, action) {
             }
             const permissions = user.roleDetail?.permissions;
             const perm = permissions ? permissions[menuKey] : undefined;
-            const hasActionPermission = perm ? Boolean(perm[action]) : false;
+            const hasActionPermission = perm ? actions.some((act) => Boolean(perm[act])) : false;
+            // Fallback untuk akun lama tanpa roleDetail jika rolenya adalah admin/teknisi/finance
+            const roleNorm = normalizeRole(user.role);
+            if (!user.roleDetail && ['SUPERADMIN', 'ADMIN', 'TEKNISI', 'FINANCE'].includes(roleNorm)) {
+                return next();
+            }
             if (!hasActionPermission) {
                 const actionLabels = {
                     create: 'tambah data',
                     read: 'melihat data',
                     update: 'mengedit data',
                     delete: 'menghapus data',
+                    setup: 'setup status pengerjaan',
                 };
-                throw new ForbiddenError(`Akses ditolak: Akun role '${user.role}' tidak memiliki izin ${actionLabels[action] || action} pada modul '${String(menuKey)}'.`);
+                const requestedLabels = actions.map((a) => actionLabels[a] || a).join(' atau ');
+                throw new ForbiddenError(`Akses ditolak: Akun role '${user.role}' tidak memiliki izin ${requestedLabels} pada modul '${String(menuKey)}'.`);
             }
             next();
         }

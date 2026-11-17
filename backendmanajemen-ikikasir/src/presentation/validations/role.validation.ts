@@ -23,6 +23,7 @@ export const menuCrudPermissionSchema = z.object({
   read: z.boolean().default(false),
   update: z.boolean().default(false),
   delete: z.boolean().default(false),
+  setup: z.boolean().default(false),
 });
 
 export const rolePermissionsSchema = z.record(z.string(), menuCrudPermissionSchema);

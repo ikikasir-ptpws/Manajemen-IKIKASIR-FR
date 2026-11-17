@@ -165,6 +165,36 @@ const canDeleteCustomer = computed(() => {
   return false
 })
 
+const canSetupCustomer = computed(() => {
+  const activeRole = (currentRole.value || '').trim()
+  if (activeRole.toLowerCase().includes('super')) return true
+
+  if (typeof localStorage !== 'undefined') {
+    const storedRoles = localStorage.getItem('ikikasir_roles_v2')
+    if (storedRoles) {
+      try {
+        const roles = JSON.parse(storedRoles)
+        const role = Array.isArray(roles)
+          ? roles.find((item: any) => (item.name || '').trim().toLowerCase() === activeRole.toLowerCase())
+          : undefined
+        const permission = role?.permissions?.semuaPelanggan?.setup ?? role?.permissions?.semuaPelanggan?.update
+        if (typeof permission === 'boolean') return permission
+      } catch (error) {
+        console.warn('Gagal membaca konfigurasi izin role:', error)
+      }
+    }
+  }
+
+  if ((currentUser.value?.role || '').trim().toLowerCase() === activeRole.toLowerCase()) {
+    const perm = currentUser.value?.roleDetail?.permissions?.semuaPelanggan as any
+    const permission = perm?.setup ?? perm?.update
+    if (typeof permission === 'boolean') return permission
+  }
+
+  const lower = activeRole.toLowerCase()
+  return lower.includes('teknisi') || lower.includes('admin')
+})
+
 const form = ref({ name: '', business: '', type: 'Basic' as 'Basic' | 'Pro' | 'Custom / IT One', phone: '', address: '' })
 
 // Teknisi Metrics
@@ -877,22 +907,25 @@ const saveSetupStatus = async () => {
   }
 
   // Simpan permanen ke Backend Database PostgreSQL
-  try {
-    await customersApi.update(target.id, {
-      technicianStatus: finalTechStatus,
-    })
-  } catch (err) {
-    console.warn('Backend customersApi.update warning:', err)
+  if (!target.id.startsWith('cust-')) {
+    try {
+      await customersApi.update(target.id, {
+        technicianStatus: finalTechStatus,
+        ...(isCompleted ? { status: 'ACTIVE' } : {})
+      })
+    } catch (err: any) {
+      console.warn('Backend customersApi.update warning:', err)
+    }
   }
 
-  if (lead) {
+  if (lead && !lead.id.startsWith('c-')) {
     try {
       await leadsApi.update(lead.id, {
         technicianStatus: finalTechStatus,
         emailIssueReported: isIssue,
         emailIssueNotes: target.emailIssueNotes
       })
-    } catch (err) {
+    } catch (err: any) {
       console.warn('Backend leadsApi.update warning:', err)
     }
   }
@@ -1488,6 +1521,7 @@ const openAgreementPreview = (user?: any) => {
 
         <div class="flex items-center gap-2 pt-1 flex-wrap" @click.stop>
           <button 
+            v-if="canSetupCustomer"
             @click="openSetupModal(cust)"
             class="flex-1 py-2 px-3 rounded-xl bg-cyan-600 text-white font-bold text-xs flex items-center justify-center gap-1 shadow-md shadow-cyan-200 cursor-pointer"
           >
@@ -1829,6 +1863,7 @@ const openAgreementPreview = (user?: any) => {
 
               <!-- Setup Status Teknisi -->
               <button 
+                v-if="canSetupCustomer"
                 @click="openSetupFromDetail"
                 class="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95"
               >
@@ -2636,6 +2671,7 @@ const openAgreementPreview = (user?: any) => {
                         <span>Status Pengerjaan Teknisi</span>
                       </h4>
                       <button 
+                        v-if="canSetupCustomer"
                         @click="openSetupFromDetail"
                         class="px-2.5 py-1 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white font-bold text-xs flex items-center gap-1 shadow-2xs cursor-pointer"
                       >
@@ -2884,6 +2920,7 @@ const openAgreementPreview = (user?: any) => {
                 Tutup
               </button>
               <button 
+                v-if="canSetupCustomer"
                 @click="openSetupFromDetail"
                 class="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white font-bold text-xs shadow-xs cursor-pointer flex items-center gap-1"
               >

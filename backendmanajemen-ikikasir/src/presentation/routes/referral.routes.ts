@@ -50,7 +50,7 @@ router.get(
  */
 router.get(
   '/customers/:id',
-  authorizeRoles('SUPERADMIN', 'Super Admin', 'ADMIN', 'Admin'),
+  authorizeRoles('SUPERADMIN', 'Super Admin', 'ADMIN', 'Admin', 'FINANCE', 'Finance', 'TEKNISI', 'Teknisi'),
   getOverview
 );
 
@@ -60,7 +60,7 @@ router.get(
  */
 router.post(
   '/customers/:id/withdrawals',
-  authorizeRoles('SUPERADMIN', 'Super Admin', 'ADMIN', 'Admin'),
+  authorizeRoles('SUPERADMIN', 'Super Admin', 'ADMIN', 'Admin', 'FINANCE', 'Finance'),
   validateBody(requestReferralWithdrawalSchema),
   requestWithdrawal
 );

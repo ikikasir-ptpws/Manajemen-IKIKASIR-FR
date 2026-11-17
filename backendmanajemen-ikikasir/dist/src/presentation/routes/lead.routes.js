@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { getAll, getStatistics, getById, create, update, updateStatus, addFollowUp, approve, reject, deleteLead, } from '../controllers/LeadController.js';
 import { validateBody } from '../middlewares/validation.middleware.js';
 import { createLeadSchema, updateLeadSchema, updateLeadStatusSchema, addFollowUpSchema, approveLeadSchema, rejectLeadSchema, } from '../validations/lead.validation.js';
-import { authenticate, authorizeRoles, denySalesCrmAccess } from '../middlewares/auth.middleware.js';
+import { authenticate, authorizeRoles, authorizePermission, denySalesCrmAccess } from '../middlewares/auth.middleware.js';
 const router = Router();
 /**
  * Route: Mendaftarkan calon client baru (Bisa dari Website/Landing Page publik maupun form admin)
@@ -30,17 +30,17 @@ router.get('/:id', getById);
  * Route: Memperbarui data profil calon client
  * PUT /api/leads/:id
  */
-router.put('/:id', authorizeRoles('SUPERADMIN', 'Super Admin', 'ADMIN', 'Admin'), validateBody(updateLeadSchema), update);
+router.put('/:id', authorizePermission('calonClient', 'update', 'setup'), validateBody(updateLeadSchema), update);
 /**
  * Route: Memperbarui status prospek calon client (New, Contacted, Follow Up, Interested, Converted, Lost)
  * PATCH /api/leads/:id/status
  */
-router.patch('/:id/status', authorizeRoles('SUPERADMIN', 'Super Admin', 'ADMIN', 'Admin'), validateBody(updateLeadStatusSchema), updateStatus);
+router.patch('/:id/status', authorizePermission('calonClient', 'update', 'setup'), validateBody(updateLeadStatusSchema), updateStatus);
 /**
  * Route: Menambahkan catatan riwayat follow-up
  * POST /api/leads/:id/follow-up
  */
-router.post('/:id/follow-up', authorizeRoles('SUPERADMIN', 'Super Admin', 'ADMIN', 'Admin'), validateBody(addFollowUpSchema), addFollowUp);
+router.post('/:id/follow-up', authorizePermission('calonClient', 'update', 'setup', 'create'), validateBody(addFollowUpSchema), addFollowUp);
 /**
  * Route: Menyetujui calon client menjadi pelanggan aktif (Convert to Customer)
  * POST /api/leads/:id/approve

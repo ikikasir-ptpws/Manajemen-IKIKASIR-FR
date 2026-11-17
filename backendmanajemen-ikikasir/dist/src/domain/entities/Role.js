@@ -47,6 +47,7 @@ export class Role {
                 read: isEnabled,
                 update: isEnabled,
                 delete: isEnabled,
+                setup: isEnabled,
             };
         }
         return permissions;

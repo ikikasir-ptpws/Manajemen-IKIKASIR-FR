@@ -10,7 +10,7 @@ export interface RoleDetail {
   name: string
   description?: string | null
   menuAccess?: Record<string, boolean>
-  permissions?: Record<string, { create: boolean; read: boolean; update: boolean; delete: boolean }>
+  permissions?: Record<string, { create: boolean; read: boolean; update: boolean; delete: boolean; setup?: boolean }>
 }
 
 export interface AuthUser {

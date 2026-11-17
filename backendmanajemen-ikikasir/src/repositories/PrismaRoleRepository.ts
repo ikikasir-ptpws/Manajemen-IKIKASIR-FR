@@ -62,22 +62,22 @@ export class PrismaRoleRepository implements IRoleRepository {
 
     const menuAccess: MenuAccessProps = record.menuAccess
       ? {
-          dashboard: record.menuAccess.dashboard,
-          manajemenPengguna: record.menuAccess.manajemenPengguna,
-          manajemenRole: record.menuAccess.manajemenRole,
-          manajemenPromo: record.menuAccess.manajemenPromo,
-          kelolaPaket: record.menuAccess.kelolaPaket,
-          calonClient: record.menuAccess.calonClient,
-          semuaPelanggan: record.menuAccess.semuaPelanggan,
-          langganan: record.menuAccess.langganan,
-          expired: record.menuAccess.expired,
-          arusKas: record.menuAccess.arusKas,
-          labaRugi: record.menuAccess.labaRugi,
-          neraca: record.menuAccess.neraca,
-          laporanPenjualan: record.menuAccess.laporanPenjualan,
-          landingPage: record.menuAccess.landingPage,
-          penarikanReferral: record.menuAccess.penarikanReferral,
-        }
+        dashboard: record.menuAccess.dashboard,
+        manajemenPengguna: record.menuAccess.manajemenPengguna,
+        manajemenRole: record.menuAccess.manajemenRole,
+        manajemenPromo: record.menuAccess.manajemenPromo,
+        kelolaPaket: record.menuAccess.kelolaPaket,
+        calonClient: record.menuAccess.calonClient,
+        semuaPelanggan: record.menuAccess.semuaPelanggan,
+        langganan: record.menuAccess.langganan,
+        expired: record.menuAccess.expired,
+        arusKas: record.menuAccess.arusKas,
+        labaRugi: record.menuAccess.labaRugi,
+        neraca: record.menuAccess.neraca,
+        laporanPenjualan: record.menuAccess.laporanPenjualan,
+        landingPage: record.menuAccess.landingPage,
+        penarikanReferral: record.menuAccess.penarikanReferral,
+      }
       : this.defaultMenuAccess();
 
     // Role lama belum punya key menu baru di JSON permissions ->
@@ -179,7 +179,7 @@ export class PrismaRoleRepository implements IRoleRepository {
         for (const key of Role.defaultMenuKeys) {
           const perm = data.permissions[key];
           if (perm) {
-            menuAccessInput[key] = Boolean(perm.read || perm.create || perm.update || perm.delete);
+            menuAccessInput[key] = Boolean(perm.read || perm.create || perm.update || perm.delete || perm.setup);
           }
         }
       }
@@ -239,7 +239,7 @@ export class PrismaRoleRepository implements IRoleRepository {
           for (const key of Role.defaultMenuKeys) {
             const perm = effectivePerms[key];
             if (perm) {
-              menuAccessInput[key] = Boolean(perm.read || perm.create || perm.update || perm.delete);
+              menuAccessInput[key] = Boolean(perm.read || perm.create || perm.update || perm.delete || perm.setup);
             }
           }
         }

@@ -20,7 +20,7 @@ import {
   approveLeadSchema,
   rejectLeadSchema,
 } from '../validations/lead.validation.js';
-import { authenticate, authorizeRoles, denySalesCrmAccess } from '../middlewares/auth.middleware.js';
+import { authenticate, authorizeRoles, authorizePermission, denySalesCrmAccess } from '../middlewares/auth.middleware.js';
 
 const router = Router();
 
@@ -61,7 +61,7 @@ router.get('/:id', getById);
  */
 router.put(
   '/:id',
-  authorizeRoles('SUPERADMIN', 'Super Admin', 'ADMIN', 'Admin'),
+  authorizePermission('calonClient', 'update', 'setup'),
   validateBody(updateLeadSchema),
   update
 );
@@ -72,7 +72,7 @@ router.put(
  */
 router.patch(
   '/:id/status',
-  authorizeRoles('SUPERADMIN', 'Super Admin', 'ADMIN', 'Admin'),
+  authorizePermission('calonClient', 'update', 'setup'),
   validateBody(updateLeadStatusSchema),
   updateStatus
 );
@@ -83,7 +83,7 @@ router.patch(
  */
 router.post(
   '/:id/follow-up',
-  authorizeRoles('SUPERADMIN', 'Super Admin', 'ADMIN', 'Admin'),
+  authorizePermission('calonClient', 'update', 'setup', 'create'),
   validateBody(addFollowUpSchema),
   addFollowUp
 );

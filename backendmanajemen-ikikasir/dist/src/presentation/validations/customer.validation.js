@@ -76,6 +76,7 @@ export const updateCustomerSchema = z.object({
     paymentProofUrl: z.string().trim().optional(),
     paymentDate: z.union([z.string(), z.date()]).optional(),
     paymentStatus: z.string().trim().optional(),
+    status: z.string().trim().optional(),
     appUsername: z.string().trim().optional(),
     appPassword: z.string().trim().optional(),
     technicianStatus: z.string().trim().optional(),

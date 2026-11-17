@@ -21,6 +21,7 @@ export interface MenuCrudPermission {
   read: boolean;
   update: boolean;
   delete: boolean;
+  setup?: boolean;
 }
 
 export type RolePermissions = Record<keyof MenuAccessProps | string, MenuCrudPermission>;
@@ -88,6 +89,7 @@ export class Role {
         read: isEnabled,
         update: isEnabled,
         delete: isEnabled,
+        setup: isEnabled,
       };
     }
     return permissions;
