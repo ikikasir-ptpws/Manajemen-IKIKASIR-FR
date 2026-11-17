@@ -26,6 +26,7 @@ import {
   PieChart,
   Calculator,
   Globe,
+  Wallet,
   SlidersHorizontal,
   Info
 } from 'lucide-vue-next'
@@ -155,6 +156,14 @@ const MENU_CATALOG: MenuCatalogItem[] = [
     route: '/landing',
     description: 'Akses ke halaman depan publik profil IKIKASIR',
     icon: Globe
+  },
+  {
+    key: 'penarikanReferral',
+    label: 'Penarikan Referral',
+    section: 'REFERAL',
+    route: '/penarikan-referral',
+    description: 'Konfirmasi pembayaran penarikan saldo referral pelanggan',
+    icon: Wallet
   }
 ]
 
@@ -192,7 +201,8 @@ const createBlankMenuAccess = (): RoleMenuAccess => {
     labaRugi: false,
     neraca: false,
     laporanPenjualan: false,
-    landingPage: false
+    landingPage: false,
+    penarikanReferral: false
   }
 }
 
@@ -216,7 +226,8 @@ const initialRoles: RoleItem[] = [
       labaRugi: true,
       neraca: true,
       laporanPenjualan: true,
-      landingPage: true
+      landingPage: true,
+      penarikanReferral: true
     },
     permissions: createFullPermissions(),
     userCount: 1,
@@ -240,7 +251,8 @@ const initialRoles: RoleItem[] = [
       labaRugi: true,
       neraca: true,
       laporanPenjualan: true,
-      landingPage: false
+      landingPage: false,
+      penarikanReferral: true
     },
     permissions: {
       ...createBlankPermissions(),
@@ -250,7 +262,8 @@ const initialRoles: RoleItem[] = [
       arusKas: { create: true, read: true, update: true, delete: false },
       labaRugi: { create: true, read: true, update: true, delete: false },
       neraca: { create: true, read: true, update: true, delete: false },
-      laporanPenjualan: { create: false, read: true, update: false, delete: false }
+      laporanPenjualan: { create: false, read: true, update: false, delete: false },
+      penarikanReferral: { create: false, read: true, update: true, delete: false }
     },
     userCount: 2,
     createdAt: new Date().toISOString()
@@ -273,7 +286,8 @@ const initialRoles: RoleItem[] = [
       labaRugi: false,
       neraca: false,
       laporanPenjualan: false,
-      landingPage: false
+      landingPage: false,
+      penarikanReferral: false
     },
     permissions: {
       ...createBlankPermissions(),
@@ -302,7 +316,8 @@ const initialRoles: RoleItem[] = [
       labaRugi: true,
       neraca: true,
       laporanPenjualan: true,
-      landingPage: true
+      landingPage: true,
+      penarikanReferral: false
     },
     permissions: {
       ...createBlankPermissions(),
@@ -340,7 +355,8 @@ const initialRoles: RoleItem[] = [
       labaRugi: false,
       neraca: false,
       laporanPenjualan: true,
-      landingPage: true
+      landingPage: true,
+      penarikanReferral: false
     },
     permissions: {
       ...createBlankPermissions(),
@@ -372,7 +388,8 @@ const initialRoles: RoleItem[] = [
       labaRugi: false,
       neraca: false,
       laporanPenjualan: true,
-      landingPage: true
+      landingPage: true,
+      penarikanReferral: false
     },
     permissions: {
       ...createBlankPermissions(),

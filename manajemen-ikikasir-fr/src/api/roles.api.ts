@@ -15,6 +15,7 @@ export interface RoleMenuAccess {
   neraca: boolean
   laporanPenjualan: boolean
   landingPage: boolean
+  penarikanReferral: boolean
 }
 
 export interface MenuCrudPermission {
