@@ -50,7 +50,8 @@ export const ModelName = {
     ReferralWithdrawal: 'ReferralWithdrawal',
     LeadFollowUp: 'LeadFollowUp',
     CashTransaction: 'CashTransaction',
-    NeracaItem: 'NeracaItem'
+    NeracaItem: 'NeracaItem',
+    SalesWithdrawal: 'SalesWithdrawal'
 };
 /*
  * Enums
@@ -100,7 +101,11 @@ export const UserScalarFieldEnum = {
     isActive: 'isActive',
     lastLogin: 'lastLogin',
     createdAt: 'createdAt',
-    updatedAt: 'updatedAt'
+    updatedAt: 'updatedAt',
+    salesReferralCode: 'salesReferralCode',
+    salesBalance: 'salesBalance',
+    salesTotalEarned: 'salesTotalEarned',
+    salesTotalWithdrawn: 'salesTotalWithdrawn'
 };
 export const PackageScalarFieldEnum = {
     id: 'id',
@@ -144,7 +149,9 @@ export const CustomerScalarFieldEnum = {
     referredByCustomerName: 'referredByCustomerName',
     referredByBusinessName: 'referredByBusinessName',
     referralBoundAt: 'referralBoundAt',
-    referralSource: 'referralSource'
+    referralSource: 'referralSource',
+    salesReferralCode: 'salesReferralCode',
+    salesUserId: 'salesUserId'
 };
 export const SubscriptionHistoryScalarFieldEnum = {
     id: 'id',
@@ -262,6 +269,8 @@ export const CashTransactionScalarFieldEnum = {
     category: 'category',
     desc: 'desc',
     amount: 'amount',
+    referralCommission: 'referralCommission',
+    referralSource: 'referralSource',
     date: 'date',
     rawDate: 'rawDate',
     displayDate: 'displayDate',
@@ -281,6 +290,26 @@ export const NeracaItemScalarFieldEnum = {
     name: 'name',
     amount: 'amount',
     sortOrder: 'sortOrder',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+};
+export const SalesWithdrawalScalarFieldEnum = {
+    id: 'id',
+    userId: 'userId',
+    amount: 'amount',
+    bankOrWallet: 'bankOrWallet',
+    accountNumber: 'accountNumber',
+    accountHolder: 'accountHolder',
+    requestDate: 'requestDate',
+    completedDate: 'completedDate',
+    status: 'status',
+    notes: 'notes',
+    invoiceNo: 'invoiceNo',
+    paymentProofUrl: 'paymentProofUrl',
+    processedBy: 'processedBy',
+    transferReference: 'transferReference',
+    rejectionReason: 'rejectionReason',
+    rejectedAt: 'rejectedAt',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
 };

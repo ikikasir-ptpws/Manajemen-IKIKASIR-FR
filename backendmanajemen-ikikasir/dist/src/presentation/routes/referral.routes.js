@@ -24,7 +24,7 @@ router.get('/validate', authorizeRoles('SUPERADMIN', 'Super Admin', 'ADMIN', 'Ad
  * Route: Mengambil ringkasan halaman Referral (kode, upline, saldo, downline, pencairan)
  * GET /api/referrals/customers/:id
  */
-router.get('/customers/:id', authorizeRoles('SUPERADMIN', 'Super Admin', 'ADMIN', 'Admin', 'SALES', 'Sales'), getOverview);
+router.get('/customers/:id', authorizeRoles('SUPERADMIN', 'Super Admin', 'ADMIN', 'Admin'), getOverview);
 /**
  * Route: Membuat permintaan pencairan saldo komisi referral
  * POST /api/referrals/customers/:id/withdrawals

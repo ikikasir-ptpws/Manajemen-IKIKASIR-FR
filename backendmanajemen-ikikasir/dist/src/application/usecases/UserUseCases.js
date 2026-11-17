@@ -1,4 +1,10 @@
 import { BadRequestError, NotFoundError, ConflictError, } from '../../domain/errors/AppError.js';
+import { SalesUseCases } from './SalesUseCases.js';
+const isSalesRole = (role) => ['sales', 'seles'].includes(role.trim().toLowerCase());
+const isValidWhatsappNumber = (phone) => {
+    const digits = (phone || '').replace(/\D/g, '');
+    return digits.length >= 8 && digits.length <= 15;
+};
 /**
  * Use Case: Mengambil daftar pengguna sistem dengan filter dan pencarian
  */
@@ -60,6 +66,9 @@ export class CreateUserUseCase {
         if (!dto.password || dto.password.length < 6) {
             throw new BadRequestError('Kata sandi wajib diisi minimal 6 karakter.');
         }
+        if (isSalesRole(role) && !isValidWhatsappNumber(dto.phone)) {
+            throw new BadRequestError('Nomor WhatsApp Sales wajib diisi dengan 8–15 digit.');
+        }
         // Periksa duplikasi email
         const emailExists = await this.userRepository.existsByEmail(email);
         if (emailExists) {
@@ -78,6 +87,9 @@ export class CreateUserUseCase {
             phone: dto.phone,
             isActive,
         });
+        if (user.isSales()) {
+            await new SalesUseCases().generateSalesReferralCode(user.id);
+        }
         return user.toSafeUser();
     }
 }
@@ -95,6 +107,11 @@ export class UpdateUserUseCase {
         const user = await this.userRepository.findById(id);
         if (!user) {
             throw new NotFoundError(`Pengguna dengan ID '${id}' tidak ditemukan.`);
+        }
+        const nextRole = dto.role?.trim() ?? user.role;
+        const nextPhone = dto.phone !== undefined ? dto.phone : user.phone;
+        if (isSalesRole(nextRole) && !isValidWhatsappNumber(nextPhone)) {
+            throw new BadRequestError('Nomor WhatsApp Sales wajib diisi dengan 8–15 digit.');
         }
         const updatePayload = {};
         if (dto.name !== undefined) {

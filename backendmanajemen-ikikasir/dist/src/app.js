@@ -1,4 +1,7 @@
 import express from 'express';
+import dotenv from 'dotenv';
+// Pastikan .env terbaca sebelum allowedOrigins dihitung
+dotenv.config();
 import cors from 'cors';
 import helmet from 'helmet';
 import path from 'path';
@@ -15,14 +18,32 @@ import uploadRoutes from './presentation/routes/upload.routes.js';
 import cashTransactionRoutes from './presentation/routes/cash-transaction.routes.js';
 import laporanRoutes from './presentation/routes/laporan.routes.js';
 import neracaItemRoutes from './presentation/routes/neraca-items.routes.js';
+import dashboardRoutes from './presentation/routes/dashboard.routes.js';
+import salesRoutes from './presentation/routes/sales.routes.js';
 import { errorHandler } from './presentation/middlewares/error.middleware.js';
 import { NotFoundError } from './domain/errors/AppError.js';
-const allowedOrigins = (process.env.CORS_ORIGINS ?? 'https://ikikasir.com,https://www.ikikasir.com')
-    .split(',')
-    .map((o) => o.trim())
-    .filter(Boolean);
+const DEFAULT_DEV_ORIGINS = ['http://localhost:5173', 'http://127.0.0.1:5173'];
+function getAllowedOrigins() {
+    const configured = (process.env.CORS_ORIGINS ?? '')
+        .split(',')
+        .map((o) => o.trim())
+        .filter(Boolean);
+    const origins = configured.length
+        ? configured
+        : ['https://ikikasir.com', 'https://www.ikikasir.com'];
+    // Di development, izinkan juga frontend Vite lokal
+    if ((process.env.NODE_ENV ?? 'development') !== 'production') {
+        for (const o of DEFAULT_DEV_ORIGINS) {
+            if (!origins.includes(o))
+                origins.push(o);
+        }
+    }
+    return origins;
+}
 export function createApp() {
     const app = express();
+    app.set('trust proxy', 1);
+    const allowedOrigins = getAllowedOrigins();
     // Middleware Keamanan & Parser
     app.use(helmet({
         crossOriginResourcePolicy: { policy: 'cross-origin' },
@@ -47,7 +68,12 @@ export function createApp() {
     if (!fs.existsSync(uploadsDir)) {
         fs.mkdirSync(uploadsDir, { recursive: true });
     }
-    app.use('/uploads', express.static(uploadsDir));
+    app.use('/uploads', (_req, res, next) => {
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+        res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+        next();
+    }, express.static(uploadsDir));
     // Endpoint Health Check
     app.get('/api/health', (_req, res) => {
         res.status(200).json({
@@ -72,6 +98,8 @@ export function createApp() {
     app.use('/api/arus-kas', cashTransactionRoutes);
     app.use('/api/laporan', laporanRoutes);
     app.use('/api/neraca-items', neracaItemRoutes);
+    app.use('/api/dashboard', dashboardRoutes);
+    app.use('/api/sales', salesRoutes);
     // Penanganan rute 404 Not Found
     app.use((req, _res, next) => {
         next(new NotFoundError(`Rute '${req.method} ${req.originalUrl}' tidak ditemukan.`));

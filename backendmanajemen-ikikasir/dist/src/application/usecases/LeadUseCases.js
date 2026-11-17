@@ -1,6 +1,9 @@
 import { NotFoundError, BadRequestError } from '../../domain/errors/AppError.js';
 import { saveProofFileToStorage } from '../../infrastructure/utils/storage.util.js';
 import { PrismaCashTransactionRepository } from '../../repositories/PrismaCashTransactionRepository.js';
+import { REFERRAL_REWARD_PER_ACTIVE_USER } from './ReferralUseCases.js';
+import { SalesUseCases, SALES_COMMISSION_PER_CLIENT, SALES_REFERRAL_CODE_PREFIX, } from './SalesUseCases.js';
+const salesUseCases = new SalesUseCases();
 export class LeadUseCases {
     leadRepository;
     customerRepository;
@@ -28,6 +31,9 @@ export class LeadUseCases {
                 if (found) {
                     return { packageId: found.id, packageName: found.name, packagePrice: found.price };
                 }
+                // ID paket tidak dikenal (mis. key lokal frontend seperti "basic"),
+                // abaikan agar tidak menjadi foreign key yang invalid.
+                finalId = null;
             }
             // Lookup by package name if packageId not found or not given
             if (finalName) {
@@ -122,23 +128,41 @@ export class LeadUseCases {
         // Ambil packageId & harga paket dari packageRepository
         const pkgInfo = await this.resolvePackage(dto.packageId, dto.packageInterest);
         const estimatedDeal = dto.estimatedDeal && dto.estimatedDeal > 0 ? dto.estimatedDeal : pkgInfo.packagePrice;
-        // Sinkronisasi data upline referral jika ada kode referral atau ID pelanggan pengundang
+        const referralCode = dto.referralCode?.trim().toUpperCase();
+        if (referralCode?.startsWith(SALES_REFERRAL_CODE_PREFIX)) {
+            const validation = await salesUseCases.validateSalesReferralCode(referralCode);
+            if (!validation.valid) {
+                throw new BadRequestError(validation.message);
+            }
+        }
+        // Sinkronisasi data upline referral pelanggan jika kode bukan kode sales
         let refUpline = null;
         if (this.customerRepository) {
             if (dto.referredByCustomerId) {
                 refUpline = await this.customerRepository.findById(dto.referredByCustomerId);
             }
-            else if (dto.referralCode) {
-                refUpline = await this.customerRepository.findByReferralCode(dto.referralCode.trim().toUpperCase());
+            else if (referralCode && !referralCode.startsWith(SALES_REFERRAL_CODE_PREFIX)) {
+                refUpline = await this.customerRepository.findByReferralCode(referralCode);
             }
         }
         const leadData = {
             ...dto,
+            referralCode: referralCode || undefined,
             packageId: pkgInfo.packageId ?? undefined,
             packageInterest: pkgInfo.packageName,
             estimatedDeal: estimatedDeal,
             paymentProofUrl: dto.paymentProofUrl ? saveProofFileToStorage(dto.paymentProofUrl) : undefined,
+            paymentDate: dto.paymentDate ? new Date(dto.paymentDate) : undefined,
         };
+        // Pendaftaran dari form publik biasanya sudah menyertakan bukti pembayaran.
+        // Status otomatis "pending_verification" agar masuk antrean verifikasi Finance.
+        if (leadData.paymentProofUrl && !leadData.paymentStatus) {
+            leadData.paymentStatus = 'pending_verification';
+        }
+        // Nominal yang ditransfer pengguna menjadi nilai deal yang tercatat.
+        if (leadData.paymentAmount && leadData.paymentAmount > 0) {
+            leadData.estimatedDeal = leadData.paymentAmount;
+        }
         if (refUpline) {
             leadData.referredByCustomerId = refUpline.id;
             leadData.referredByCustomerName = refUpline.name;
@@ -362,6 +386,19 @@ export class LeadUseCases {
                 if (finalAmount > 0) {
                     try {
                         const cashRepo = new PrismaCashTransactionRepository();
+                        const hasSalesReferral = lead.referralCode
+                            ?.toUpperCase()
+                            .startsWith(SALES_REFERRAL_CODE_PREFIX) ?? false;
+                        const referralCommission = hasSalesReferral
+                            ? SALES_COMMISSION_PER_CLIENT
+                            : lead.referredByCustomerId
+                                ? REFERRAL_REWARD_PER_ACTIVE_USER
+                                : 0;
+                        const referralSource = hasSalesReferral
+                            ? 'SALES'
+                            : lead.referredByCustomerId
+                                ? 'CUSTOMER'
+                                : '';
                         const year = now.getFullYear();
                         const month = String(now.getMonth() + 1).padStart(2, '0');
                         const day = String(now.getDate()).padStart(2, '0');
@@ -373,6 +410,8 @@ export class LeadUseCases {
                             category: 'Lisensi POS',
                             desc: `Pendaftaran Pelanggan Baru (Lead) - ${clientLabel} (${lead.packageInterest || 'Basic'})`,
                             amount: finalAmount,
+                            referralCommission,
+                            referralSource,
                             date: now,
                             rawDate,
                             customer: clientLabel,
@@ -391,6 +430,10 @@ export class LeadUseCases {
             catch (custErr) {
                 console.warn('⚠️ Gagal sinkronisasi otomatis ke tabel customers:', custErr.message);
             }
+        }
+        if (createdCustomer &&
+            lead.referralCode?.toUpperCase().startsWith(SALES_REFERRAL_CODE_PREFIX)) {
+            await salesUseCases.bindCustomerToSales(createdCustomer.id, lead.referralCode);
         }
         const updatedLead = await this.leadRepository.findById(id);
         return {

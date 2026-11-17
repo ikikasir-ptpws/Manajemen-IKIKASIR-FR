@@ -1,7 +1,7 @@
 import { PrismaCashTransactionRepository } from '../../repositories/PrismaCashTransactionRepository.js';
 import { NotFoundError, ConflictError, BadRequestError, } from '../../domain/errors/AppError.js';
 import { saveProofFileToStorage } from '../../infrastructure/utils/storage.util.js';
-import { ReferralUseCases } from './ReferralUseCases.js';
+import { ReferralUseCases, REFERRAL_REWARD_PER_ACTIVE_USER } from './ReferralUseCases.js';
 import { PrismaReferralRepository } from '../../repositories/PrismaReferralRepository.js';
 export class CustomerUseCases {
     customerRepository;
@@ -51,6 +51,8 @@ export class CustomerUseCases {
                 category: 'Lisensi POS',
                 desc: `${titleAction} - ${clientLabel} (${params.packageName})`,
                 amount: params.amount,
+                referralCommission: params.referralCommission,
+                referralSource: params.referralSource,
                 date: dateObj,
                 rawDate,
                 customer: clientLabel,
@@ -179,6 +181,8 @@ export class CustomerUseCases {
                     paymentProofUrl: finalProof,
                     date: dto.paymentDate ? new Date(dto.paymentDate) : startedAt,
                     notes: dto.notes || `Pendaftaran pelanggan baru paket ${packageName} (${months} Bulan)`,
+                    referralCommission: upline ? REFERRAL_REWARD_PER_ACTIVE_USER : 0,
+                    referralSource: upline ? 'CUSTOMER' : '',
                     isRenewal: false,
                 });
             }

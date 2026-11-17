@@ -36,6 +36,20 @@ export const uploadMiddleware = multer({
         fileSize: 10 * 1024 * 1024, // Maksimal 10MB
     },
 });
+// Helper URL publik uploads
+const getPublicUploadUrl = (req, relativePath) => {
+    const envUrl = process.env.BASE_URL || process.env.API_URL || config.baseUrl;
+    if (envUrl && config.nodeEnv === 'production') {
+        const clean = envUrl.replace(/\/api\/?$/, '').replace(/\/+$/, '');
+        return `${clean}${relativePath}`;
+    }
+    const host = req.get('x-forwarded-host') || req.get('host') || `localhost:${config.port}`;
+    const protocol = req.get('x-forwarded-proto') || req.protocol || 'http';
+    if (config.nodeEnv === 'production' && (host.includes('localhost') || host.includes('127.0.0.1'))) {
+        return `https://api.ikikasir.com${relativePath}`;
+    }
+    return `${protocol}://${host}${relativePath}`;
+};
 /**
  * Controller untuk menangani upload file bukti pembayaran (multipart/form-data)
  * POST /api/upload/payment-proof
@@ -45,11 +59,9 @@ export const uploadPaymentProof = async (req, res, next) => {
         if (!req.file) {
             throw new BadRequestError('Berkas bukti pembayaran tidak ditemukan dalam request (field: "file" atau "image").');
         }
-        const host = req.get('host') || `localhost:${config.port}`;
-        const protocol = req.protocol || 'http';
         const filename = req.file.filename;
         const relativePath = `/uploads/receipts/${filename}`;
-        const fullUrl = `${protocol}://${host}${relativePath}`;
+        const fullUrl = getPublicUploadUrl(req, relativePath);
         res.status(201).json({
             success: true,
             message: 'Berkas bukti pembayaran berhasil diunggah ke storage.',
@@ -103,10 +115,8 @@ export const uploadBase64Proof = async (req, res, next) => {
         const filename = `proof-${uniqueSuffix}${ext}`;
         const targetPath = path.join(uploadDir, filename);
         await fs.promises.writeFile(targetPath, buffer);
-        const host = req.get('host') || `localhost:${config.port}`;
-        const protocol = req.protocol || 'http';
         const relativePath = `/uploads/receipts/${filename}`;
-        const fullUrl = `${protocol}://${host}${relativePath}`;
+        const fullUrl = getPublicUploadUrl(req, relativePath);
         res.status(201).json({
             success: true,
             message: 'Bukti pembayaran Base64 berhasil disimpan ke storage berkas.',

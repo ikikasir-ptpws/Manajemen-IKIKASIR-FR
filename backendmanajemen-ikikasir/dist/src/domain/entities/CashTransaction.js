@@ -4,6 +4,8 @@ export class CashTransaction {
     category;
     desc;
     amount;
+    referralCommission;
+    referralSource;
     date;
     rawDate;
     displayDate;
@@ -22,6 +24,8 @@ export class CashTransaction {
         this.category = props.category;
         this.desc = props.desc;
         this.amount = props.amount;
+        this.referralCommission = props.referralCommission ?? 0;
+        this.referralSource = props.referralSource || '';
         this.date = props.date;
         this.rawDate = props.rawDate || this.formatRawDate(props.date);
         this.displayDate = props.displayDate || this.formatDisplayDate(props.date);

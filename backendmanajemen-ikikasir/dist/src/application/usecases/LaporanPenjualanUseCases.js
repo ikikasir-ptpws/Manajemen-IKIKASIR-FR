@@ -20,6 +20,9 @@ export class LaporanPenjualanUseCases {
             displayDate: trx.displayDate,
             time: trx.time,
             customer: trx.customer || 'Pelanggan',
+            referralCommission: trx.referralCommission,
+            referralSource: trx.referralSource,
+            netAmount: trx.amount - trx.referralCommission,
             items: [
                 {
                     name: trx.desc,

@@ -98,6 +98,24 @@ export function authorizeRoles(...allowedRoles) {
     };
 }
 /**
+ * CRM client hanya tersedia untuk peran selain Sales.
+ */
+export function denySalesCrmAccess(req, res, next) {
+    try {
+        if (!req.user) {
+            throw new UnauthorizedError('Akses tidak diizinkan. Silakan login terlebih dahulu.');
+        }
+        const role = normalizeRole(req.user.role);
+        if (role === 'SALES' || role === 'SELES') {
+            throw new ForbiddenError('Role Sales hanya dapat mengakses dashboard referral dan penarikan saldo.');
+        }
+        next();
+    }
+    catch (error) {
+        next(error);
+    }
+}
+/**
  * Middleware Otorisasi Berdasarkan Hak Akses Menu Boolean
  * Mengecek apakah role pengguna memiliki izin aktif pada switch menu tertentu
  */

@@ -24,7 +24,9 @@ export const createLeadSchema = z.object({
         .optional(),
     source: z.string().trim().optional(),
     packageInterest: z.string().trim().optional(),
-    packageId: z.string().uuid('ID Paket harus berupa format UUID yang valid.').optional().nullable(),
+    // ID paket bisa berupa UUID dari database maupun key lokal frontend (mis. "basic"),
+    // karena itu divalidasi di usecase (resolvePackage) sebelum disimpan.
+    packageId: z.string().trim().optional().nullable(),
     estimatedDeal: z.number().nonnegative().optional(),
     notes: z.string().trim().optional(),
     followUpSchedule: z.string().trim().optional(),
@@ -46,6 +48,10 @@ export const createLeadSchema = z.object({
     paymentProofUrl: z.string().trim().optional(),
     paymentMethod: z.string().trim().optional(),
     paymentAmount: z.number().nonnegative().optional(),
+    paymentStatus: z
+        .enum(['unpaid', 'pending_verification', 'verified', 'rejected'])
+        .optional(),
+    paymentDate: z.string().trim().optional(),
 });
 export const updateLeadSchema = z.object({
     name: z.string().trim().min(2, 'Nama minimal 2 karakter.').optional(),
@@ -58,7 +64,7 @@ export const updateLeadSchema = z.object({
     status: z.string().trim().optional(),
     source: z.string().trim().optional(),
     packageInterest: z.string().trim().optional(),
-    packageId: z.string().uuid().optional().nullable(),
+    packageId: z.string().trim().optional().nullable(),
     estimatedDeal: z.number().nonnegative().optional(),
     notes: z.string().trim().optional(),
     followUpSchedule: z.string().trim().optional(),
