@@ -962,7 +962,7 @@ const handleClientSaved = (client: ClientLead) => {
                 <div class="inline-flex items-center justify-center gap-1.5">
                   <!-- Tombol Acc Finance jika ada pending verification -->
                   <button 
-                    v-if="client.paymentStatus === 'pending_verification'"
+                    v-if="client.status !== 'Converted' && client.status !== 'Lost' && client.paymentStatus === 'pending_verification'"
                     @click="openApprovalModal(client)"
                     title="Verifikasi Pembayaran & Acc Langganan"
                     class="px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold text-xs flex items-center gap-1 shadow-sm shadow-amber-200 transition-all cursor-pointer whitespace-nowrap"
@@ -973,13 +973,23 @@ const handleClientSaved = (client: ClientLead) => {
 
                   <!-- Tombol Setujui Langsung untuk konversi ke Pelanggan jika belum converted -->
                   <button 
-                    v-else-if="client.status !== 'Converted'"
+                    v-else-if="client.status !== 'Converted' && client.status !== 'Lost'"
                     @click="openApprovalModal(client)"
                     title="Setujui pendaftaran dan otomatis jadikan Pelanggan"
                     class="px-2.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1 shadow-sm shadow-emerald-200 transition-all cursor-pointer whitespace-nowrap"
                   >
                     <UserCheck class="w-3.5 h-3.5 shrink-0" />
                     <span>Setujui</span>
+                  </button>
+
+                  <button
+                    v-if="client.status !== 'Converted' && client.status !== 'Lost'"
+                    @click="handleRejectClient(client)"
+                    title="Tolak pendaftaran calon client"
+                    class="px-2.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs flex items-center gap-1 shadow-sm shadow-rose-200 transition-all cursor-pointer whitespace-nowrap"
+                  >
+                    <UserX class="w-3.5 h-3.5 shrink-0" />
+                    <span>Tolak</span>
                   </button>
 
                   <!-- Segmented Toolbar: Rapi, Terstruktur & Sejajar (Detail, Edit, WA, Hapus) -->

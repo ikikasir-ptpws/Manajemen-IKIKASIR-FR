@@ -561,6 +561,7 @@ const customerWithdrawals = ref<ReferralWithdrawalItem[]>([])
 const withdrawalToApprove = ref<ReferralWithdrawalItem | null>(null)
 const approvedWithdrawal = ref<ReferralWithdrawalItem | null>(null)
 const isApprovalModalOpen = ref(false)
+const returnToCustomerDetailAfterWithdrawalDialog = ref(false)
 const isUploadingProof = ref(false)
 const isApprovingWithdrawal = ref(false)
 const isSharingProof = ref(false)
@@ -676,6 +677,8 @@ const loadCustomerReferralData = async (customerId: string) => {
 }
 
 const openApprovalModal = (item: ReferralWithdrawalItem) => {
+  returnToCustomerDetailAfterWithdrawalDialog.value = showDetailModal.value
+  showDetailModal.value = false
   withdrawalToApprove.value = item
   approvedWithdrawal.value = null
   approvalError.value = null
@@ -698,6 +701,10 @@ const closeApprovalModal = () => {
   approvalError.value = null
   whatsappShareNotice.value = null
   whatsappShareError.value = null
+  if (returnToCustomerDetailAfterWithdrawalDialog.value) {
+    showDetailModal.value = true
+  }
+  returnToCustomerDetailAfterWithdrawalDialog.value = false
 }
 
 const handlePaymentProofUpload = async (event: Event) => {
@@ -773,9 +780,22 @@ const handleApproveWithdrawal = async () => {
 }
 
 const openRejectWithdrawalModal = (item: ReferralWithdrawalItem) => {
+  returnToCustomerDetailAfterWithdrawalDialog.value = showDetailModal.value
+  showDetailModal.value = false
   withdrawalToReject.value = item
   rejectReason.value = ''
   isRejectModalOpen.value = true
+}
+
+const closeRejectWithdrawalModal = () => {
+  if (isRejectingWithdrawal.value) return
+  isRejectModalOpen.value = false
+  withdrawalToReject.value = null
+  rejectReason.value = ''
+  if (returnToCustomerDetailAfterWithdrawalDialog.value) {
+    showDetailModal.value = true
+  }
+  returnToCustomerDetailAfterWithdrawalDialog.value = false
 }
 
 const handleConfirmRejectWithdrawal = async () => {
@@ -796,10 +816,15 @@ const handleConfirmRejectWithdrawal = async () => {
     })
     isRejectModalOpen.value = false
     withdrawalToReject.value = null
+    rejectReason.value = ''
     showToast('Pengajuan penarikan berhasil ditolak.')
     if (selectedCustomer.value?.id) {
       await loadCustomerReferralData(selectedCustomer.value.id)
     }
+    if (returnToCustomerDetailAfterWithdrawalDialog.value) {
+      showDetailModal.value = true
+    }
+    returnToCustomerDetailAfterWithdrawalDialog.value = false
   } catch (err: any) {
     showToast(err?.message || 'Gagal menolak penarikan.')
   } finally {
@@ -3328,7 +3353,7 @@ const openAgreementPreview = (user?: any) => {
     <div
       v-if="isRejectModalOpen && withdrawalToReject"
       class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-xs"
-      @click.self="isRejectModalOpen = false"
+      @click.self="closeRejectWithdrawalModal"
     >
       <div class="w-full max-w-md rounded-3xl border border-slate-100 bg-white p-6 shadow-2xl space-y-4">
         <div class="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mx-auto">
@@ -3354,7 +3379,8 @@ const openAgreementPreview = (user?: any) => {
         <div class="flex items-center gap-2 pt-2">
           <button
             type="button"
-            @click="isRejectModalOpen = false"
+            @click="closeRejectWithdrawalModal"
+            :disabled="isRejectingWithdrawal"
             class="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-xs font-bold hover:bg-slate-50 transition-all cursor-pointer"
           >
             Batal
