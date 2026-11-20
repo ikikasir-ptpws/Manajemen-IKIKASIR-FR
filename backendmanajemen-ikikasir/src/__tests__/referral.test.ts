@@ -224,6 +224,63 @@ describe('API Referral Pelanggan (Halaman Tambah Client - Sumber Referral)', () 
     expect(res.body.data.userReferrals[0].ownerName).toBe('Siti Rahma');
   });
 
+  it('10a. GET referral/customer menyembunyikan upline yang tidak terdaftar', async () => {
+    const original = await prisma.customer.findUniqueOrThrow({
+      where: { id: downlineId },
+      select: {
+        referredByCustomerId: true,
+        referredByCustomerName: true,
+        referredByBusinessName: true,
+        referralBoundAt: true,
+      },
+    });
+
+    const linkedOverview = await request(app)
+      .get('/api/referrals/overview')
+      .query({ email: downlineEmail });
+
+    expect(linkedOverview.body.data.uplineName).toBe('Budi Hartono');
+    expect(linkedOverview.body.data.uplineCustomerId).toBe(uplineId);
+    expect(linkedOverview.body.data.isBound).toBe(true);
+
+    await prisma.customer.update({
+      where: { id: downlineId },
+      data: {
+        referredByCustomerId: 'MUB-9921',
+        referredByCustomerName: 'MUhib',
+        referredByBusinessName: '',
+        referralBoundAt: new Date('2026-09-10'),
+      },
+    });
+
+    try {
+      const overviewRes = await request(app)
+        .get('/api/referrals/overview')
+        .query({ email: downlineEmail });
+
+      expect(overviewRes.status).toBe(200);
+      expect(overviewRes.body.data.uplineName).toBe('');
+      expect(overviewRes.body.data.uplineCustomerId).toBe('');
+      expect(overviewRes.body.data.uplineBoundDate).toBeNull();
+      expect(overviewRes.body.data.isBound).toBe(false);
+
+      const customerRes = await request(app)
+        .get(`/api/customers/${downlineId}`)
+        .set('Authorization', `Bearer ${superAdminToken}`);
+
+      expect(customerRes.status).toBe(200);
+      expect(customerRes.body.data.referredByCustomerId).toBeNull();
+      expect(customerRes.body.data.referredByCustomerName).toBe('');
+      expect(customerRes.body.data.referredByBusinessName).toBe('');
+      expect(customerRes.body.data.referralBoundAt).toBeNull();
+    } finally {
+      await prisma.customer.update({
+        where: { id: downlineId },
+        data: original,
+      });
+    }
+  });
+
   it('11. POST /api/referrals/submit-client - Calon client dari aplikasi terikat ke pengundang', async () => {
     const res = await request(app)
       .post('/api/referrals/submit-client')

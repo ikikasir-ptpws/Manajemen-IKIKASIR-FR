@@ -25,6 +25,38 @@ export class CustomerUseCases {
         }
         return expiry;
     }
+    async toCustomerResponse(customer, uplineCache = new Map()) {
+        const response = customer.toJSON();
+        const uplineId = customer.referredByCustomerId;
+        if (!uplineId || uplineId === customer.id) {
+            return {
+                ...response,
+                referredByCustomerId: null,
+                referredByCustomerName: '',
+                referredByBusinessName: '',
+                referralBoundAt: null,
+            };
+        }
+        if (!uplineCache.has(uplineId)) {
+            uplineCache.set(uplineId, this.customerRepository.findById(uplineId));
+        }
+        const upline = await uplineCache.get(uplineId);
+        if (!upline) {
+            return {
+                ...response,
+                referredByCustomerId: null,
+                referredByCustomerName: '',
+                referredByBusinessName: '',
+                referralBoundAt: null,
+            };
+        }
+        return {
+            ...response,
+            referredByCustomerId: upline.id,
+            referredByCustomerName: upline.name,
+            referredByBusinessName: upline.businessName,
+        };
+    }
     /**
      * Catat transaksi pemasukan kas secara otomatis ke tabel CashTransaction
      */
@@ -201,25 +233,26 @@ export class CustomerUseCases {
             console.warn('⚠️ Gagal memproses data referral pelanggan:', referralErr);
         }
         const finalCustomer = await this.customerRepository.findById(newCustomer.id);
-        return (finalCustomer || newCustomer).toJSON();
+        return this.toCustomerResponse(finalCustomer || newCustomer);
     }
     async getAllCustomers(filter) {
         const list = await this.customerRepository.findAll(filter);
-        return list.map((c) => c.toJSON());
+        const uplineCache = new Map();
+        return Promise.all(list.map((customer) => this.toCustomerResponse(customer, uplineCache)));
     }
     async getCustomerById(id) {
         const customer = await this.customerRepository.findById(id);
         if (!customer) {
             throw new NotFoundError(`Pelanggan dengan ID '${id}' tidak ditemukan.`);
         }
-        return customer.toJSON();
+        return this.toCustomerResponse(customer);
     }
     async getCustomerByEmail(email) {
         const customer = await this.customerRepository.findByEmail(email);
         if (!customer) {
             throw new NotFoundError(`Pelanggan dengan email '${email}' tidak ditemukan.`);
         }
-        return customer.toJSON();
+        return this.toCustomerResponse(customer);
     }
     async updateCustomer(id, dto) {
         const customer = await this.customerRepository.findById(id);
@@ -246,7 +279,7 @@ export class CustomerUseCases {
             updateData.paymentProofUrl = saveProofFileToStorage(dto.paymentProofUrl);
         }
         const updated = await this.customerRepository.update(id, updateData);
-        return updated.toJSON();
+        return this.toCustomerResponse(updated);
     }
     async renewSubscription(id, dto) {
         const customer = await this.customerRepository.findById(id);
@@ -312,11 +345,12 @@ export class CustomerUseCases {
                 isRenewal: true,
             });
         }
-        return updatedCustomer.toJSON();
+        return this.toCustomerResponse(updatedCustomer);
     }
     async getExpiredCustomers(search) {
         const list = await this.customerRepository.findExpired(search);
-        return list.map((c) => c.toJSON());
+        const uplineCache = new Map();
+        return Promise.all(list.map((customer) => this.toCustomerResponse(customer, uplineCache)));
     }
     async deleteCustomer(id) {
         const customer = await this.customerRepository.findById(id);
@@ -388,10 +422,6 @@ export class CustomerUseCases {
                     startedAt: isClient ? new Date() : new Date(Date.now() - 32 * 24 * 60 * 60 * 1000),
                     expiresAt: isClient ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) : new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
                     referralCode: isClient ? 'IKIKASIR-0WTCK' : undefined,
-                    referredByCustomerName: isClient ? 'MUhib' : undefined,
-                    referredByCustomerId: isClient ? 'MUB-9921' : undefined,
-                    referralBoundAt: isClient ? new Date('2026-09-10') : undefined,
-                    referralSource: isClient ? 'Aplikasi' : undefined,
                     notes: isClient ? 'Akun lisensi IKIKASIR - Sayyid' : '[Auto-created for Testing] Akun admin@gmail.com otomatis expired untuk pengujian Android',
                 });
             }
@@ -614,14 +644,14 @@ export class CustomerUseCases {
                 expiresAt: pastDate,
                 notes: `[Auto-created for Testing] Simulasi expired untuk ${cleanEmail}`,
             });
-            return newCust.toJSON();
+            return this.toCustomerResponse(newCust);
         }
         const updated = await this.customerRepository.update(customer.id, {
             status: 'EXPIRED',
             expiresAt: pastDate,
             notes: `[Simulasi Testing] Masa aktif diubah ke ${daysAgo} hari yang lalu untuk pengujian popup Android.`,
         });
-        return updated.toJSON();
+        return this.toCustomerResponse(updated);
     }
 }
 //# sourceMappingURL=CustomerUseCases.js.map

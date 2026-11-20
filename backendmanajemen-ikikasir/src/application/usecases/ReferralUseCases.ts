@@ -244,10 +244,6 @@ export class ReferralUseCases {
           startedAt: isClient ? new Date() : new Date(Date.now() - 32 * 24 * 60 * 60 * 1000),
           expiresAt: isClient ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) : new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
           referralCode: isClient ? 'IKIKASIR-0WTCK' : undefined,
-          referredByCustomerName: isClient ? 'MUhib' : undefined,
-          referredByCustomerId: isClient ? 'MUB-9921' : undefined,
-          referralBoundAt: isClient ? new Date('2026-09-10') : undefined,
-          referralSource: isClient ? 'Aplikasi' : undefined,
           notes: 'Akun lisensi IKIKASIR - Sayyid',
         });
       } catch (err) {
@@ -332,21 +328,18 @@ export class ReferralUseCases {
 
     const withdrawalItems: ReferralWithdrawalItemDto[] = withdrawals.map(toWithdrawalItemDto);
 
-    // Kode referral milik upline (bukan ID pelanggan)
-    let uplineCode = '';
-    if (customer.referredByCustomerId) {
-      const upline = await this.customerRepository.findById(customer.referredByCustomerId);
-      uplineCode = upline?.referralCode ?? '';
-    }
+    const upline = customer.referredByCustomerId && customer.referredByCustomerId !== customer.id
+      ? await this.customerRepository.findById(customer.referredByCustomerId)
+      : null;
 
     const referralInfo = {
       customerId: customer.id,
       referralCode,
-      uplineName: customer.referredByCustomerName || 'Belum Terikat',
-      uplineCode,
-      uplineCustomerId: customer.referredByCustomerId ?? '',
-      uplineBoundDate: customer.referralBoundAt ? formatDateID(customer.referralBoundAt) : null,
-      isBound: !!(customer.referredByCustomerId || customer.referredByCustomerName),
+      uplineName: upline?.name ?? '',
+      uplineCode: upline?.referralCode ?? '',
+      uplineCustomerId: upline?.id ?? '',
+      uplineBoundDate: upline && customer.referralBoundAt ? formatDateID(customer.referralBoundAt) : null,
+      isBound: !!upline,
       availableBalance: Math.max(totalEarnings - totalWithdrawn - totalPending, 0),
       totalEarnings,
       totalWithdrawn,

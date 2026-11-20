@@ -46,6 +46,46 @@ export class CustomerUseCases {
     return expiry;
   }
 
+  private async toCustomerResponse(
+    customer: Customer,
+    uplineCache = new Map<string, Promise<Customer | null>>()
+  ): Promise<CustomerResponseDto> {
+    const response = customer.toJSON();
+    const uplineId = customer.referredByCustomerId;
+
+    if (!uplineId || uplineId === customer.id) {
+      return {
+        ...response,
+        referredByCustomerId: null,
+        referredByCustomerName: '',
+        referredByBusinessName: '',
+        referralBoundAt: null,
+      };
+    }
+
+    if (!uplineCache.has(uplineId)) {
+      uplineCache.set(uplineId, this.customerRepository.findById(uplineId));
+    }
+    const upline = await uplineCache.get(uplineId);
+
+    if (!upline) {
+      return {
+        ...response,
+        referredByCustomerId: null,
+        referredByCustomerName: '',
+        referredByBusinessName: '',
+        referralBoundAt: null,
+      };
+    }
+
+    return {
+      ...response,
+      referredByCustomerId: upline.id,
+      referredByCustomerName: upline.name,
+      referredByBusinessName: upline.businessName,
+    };
+  }
+
   /**
    * Catat transaksi pemasukan kas secara otomatis ke tabel CashTransaction
    */
@@ -249,7 +289,7 @@ export class CustomerUseCases {
     }
 
     const finalCustomer = await this.customerRepository.findById(newCustomer.id);
-    return (finalCustomer || newCustomer).toJSON();
+    return this.toCustomerResponse(finalCustomer || newCustomer);
   }
 
   public async getAllCustomers(filter?: {
@@ -258,7 +298,8 @@ export class CustomerUseCases {
     packageId?: string;
   }): Promise<CustomerResponseDto[]> {
     const list = await this.customerRepository.findAll(filter);
-    return list.map((c) => c.toJSON());
+    const uplineCache = new Map<string, Promise<Customer | null>>();
+    return Promise.all(list.map((customer) => this.toCustomerResponse(customer, uplineCache)));
   }
 
   public async getCustomerById(id: string): Promise<CustomerResponseDto> {
@@ -266,7 +307,7 @@ export class CustomerUseCases {
     if (!customer) {
       throw new NotFoundError(`Pelanggan dengan ID '${id}' tidak ditemukan.`);
     }
-    return customer.toJSON();
+    return this.toCustomerResponse(customer);
   }
 
   public async getCustomerByEmail(email: string): Promise<CustomerResponseDto> {
@@ -274,7 +315,7 @@ export class CustomerUseCases {
     if (!customer) {
       throw new NotFoundError(`Pelanggan dengan email '${email}' tidak ditemukan.`);
     }
-    return customer.toJSON();
+    return this.toCustomerResponse(customer);
   }
 
   public async updateCustomer(id: string, dto: UpdateCustomerDto): Promise<CustomerResponseDto> {
@@ -303,7 +344,7 @@ export class CustomerUseCases {
       updateData.paymentProofUrl = saveProofFileToStorage(dto.paymentProofUrl);
     }
     const updated = await this.customerRepository.update(id, updateData);
-    return updated.toJSON();
+    return this.toCustomerResponse(updated);
   }
 
   public async renewSubscription(
@@ -380,12 +421,13 @@ export class CustomerUseCases {
       });
     }
 
-    return updatedCustomer.toJSON();
+    return this.toCustomerResponse(updatedCustomer);
   }
 
   public async getExpiredCustomers(search?: string): Promise<CustomerResponseDto[]> {
     const list = await this.customerRepository.findExpired(search);
-    return list.map((c) => c.toJSON());
+    const uplineCache = new Map<string, Promise<Customer | null>>();
+    return Promise.all(list.map((customer) => this.toCustomerResponse(customer, uplineCache)));
   }
 
   public async deleteCustomer(id: string): Promise<void> {
@@ -465,10 +507,6 @@ export class CustomerUseCases {
           startedAt: isClient ? new Date() : new Date(Date.now() - 32 * 24 * 60 * 60 * 1000),
           expiresAt: isClient ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) : new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
           referralCode: isClient ? 'IKIKASIR-0WTCK' : undefined,
-          referredByCustomerName: isClient ? 'MUhib' : undefined,
-          referredByCustomerId: isClient ? 'MUB-9921' : undefined,
-          referralBoundAt: isClient ? new Date('2026-09-10') : undefined,
-          referralSource: isClient ? 'Aplikasi' : undefined,
           notes: isClient ? 'Akun lisensi IKIKASIR - Sayyid' : '[Auto-created for Testing] Akun admin@gmail.com otomatis expired untuk pengujian Android',
         });
       } catch (err) {
@@ -697,7 +735,7 @@ export class CustomerUseCases {
         expiresAt: pastDate,
         notes: `[Auto-created for Testing] Simulasi expired untuk ${cleanEmail}`,
       });
-      return newCust.toJSON();
+      return this.toCustomerResponse(newCust);
     }
 
     const updated = await this.customerRepository.update(customer.id, {
@@ -706,6 +744,6 @@ export class CustomerUseCases {
       notes: `[Simulasi Testing] Masa aktif diubah ke ${daysAgo} hari yang lalu untuk pengujian popup Android.`,
     });
 
-    return updated.toJSON();
+    return this.toCustomerResponse(updated);
   }
 }
