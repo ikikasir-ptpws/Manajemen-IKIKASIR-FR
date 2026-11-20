@@ -161,6 +161,13 @@ const canAccessMenu = (menuKey: string): boolean => {
     return menuKey === 'dashboard';
   }
 
+  if (
+    menuKey === 'listSales' &&
+    currentUser.value?.roleDetail?.permissions?.listSales?.read !== undefined
+  ) {
+    return Boolean(currentUser.value.roleDetail.permissions.listSales.read);
+  }
+
   // 1. Check latest saved roles in localStorage (from Manajemen Role updates)
   try {
     const rawRoles = localStorage.getItem('ikikasir_roles_v2');

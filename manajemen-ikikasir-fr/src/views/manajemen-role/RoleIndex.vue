@@ -910,11 +910,10 @@ const handleSaveRole = async () => {
 
   try {
     if (isEditing.value && form.value.id) {
-      // Call Backend API
-      const res = await rolesApi.update(form.value.id, payload).catch(err => {
-        console.warn('API update role failed, updating local state:', err)
-        return null
-      })
+      const response = await rolesApi.update(form.value.id, payload)
+      if (!response.success || response.data?.id !== form.value.id) {
+        throw new Error(response.message || 'Server tidak mengonfirmasi perubahan role.')
+      }
 
       // Update local state
       const idx = roles.value.findIndex(r => r.id === form.value.id)
@@ -953,25 +952,16 @@ const handleSaveRole = async () => {
       showToast(`Role '${trimmedName}' berhasil diperbarui.`, 'success')
     } else {
       // Create new role
-      let newId = 'role-' + Date.now()
-      const res = await rolesApi.create(payload).catch(err => {
-        console.warn('API create role failed, adding to local state:', err)
-        return null
-      })
-
-      if (res && res.data?.id) {
-        newId = res.data.id
+      const response = await rolesApi.create(payload)
+      if (!response.success || !response.data?.id) {
+        throw new Error(response.message || 'Server tidak mengonfirmasi role baru.')
       }
 
       const newRole: RoleItem = {
-        id: newId,
-        name: trimmedName,
-        description: form.value.description.trim() || '',
-        menuAccess: finalMenuAccess,
-        permissions: form.value.permissions,
-        userCount: 0,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        ...response.data,
+        menuAccess: response.data.menuAccess || finalMenuAccess,
+        permissions: response.data.permissions || form.value.permissions,
+        userCount: response.data.userCount ?? 0
       }
 
       roles.value.unshift(newRole)

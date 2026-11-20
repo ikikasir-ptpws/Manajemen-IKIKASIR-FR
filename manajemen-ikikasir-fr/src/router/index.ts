@@ -170,6 +170,13 @@ router.beforeEach((to, _from, next) => {
       return menuKey === 'dashboard'
     }
 
+    if (
+      menuKey === 'listSales' &&
+      userObj?.roleDetail?.permissions?.listSales?.read !== undefined
+    ) {
+      return Boolean(userObj.roleDetail.permissions.listSales.read)
+    }
+
     // 1. Check latest saved roles in localStorage (from Manajemen Role updates)
     try {
       const rawRoles = localStorage.getItem('ikikasir_roles_v2')

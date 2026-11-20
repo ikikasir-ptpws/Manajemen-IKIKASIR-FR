@@ -24,6 +24,7 @@ model RoleMenuAccess {
   roleId            String   @unique
   role              Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
   dashboard         Boolean  @default(false)
+  listSales         Boolean  @default(false)
   manajemenPengguna Boolean  @default(false)
   manajemenRole     Boolean  @default(false)
   manajemenPromo    Boolean  @default(false)
