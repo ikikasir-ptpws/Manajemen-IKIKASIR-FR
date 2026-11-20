@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 export const menuAccessSchema = z.object({
   dashboard: z.boolean().optional(),
+  listSales: z.boolean().optional(),
   manajemenPengguna: z.boolean().optional(),
   manajemenRole: z.boolean().optional(),
   manajemenPromo: z.boolean().optional(),

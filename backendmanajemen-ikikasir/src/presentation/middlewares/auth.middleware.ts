@@ -125,6 +125,45 @@ export function authorizeRoles(...allowedRoles: string[]) {
 }
 
 /**
+ * Allows Sales users to read only their own data, and other roles to read Sales data
+ * when their role grants the listSales permission.
+ */
+export async function authorizeSalesListRead(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    if (!req.user) {
+      throw new UnauthorizedError('Akses tidak diizinkan. Silakan login terlebih dahulu.');
+    }
+
+    const user = await userRepository.findById(req.user.id);
+    if (!user) {
+      throw new UnauthorizedError('Data pengguna tidak ditemukan.');
+    }
+
+    if (user.isSuperAdmin()) {
+      return next();
+    }
+
+    const role = normalizeRole(user.role);
+    if (role === 'SALES' || role === 'SELES') {
+      if (!req.params.userId || req.params.userId !== req.user.id) {
+        throw new ForbiddenError('Sales hanya dapat melihat data miliknya sendiri.');
+      }
+      return next();
+    }
+
+    if (!user.roleDetail?.permissions?.listSales?.read) {
+      throw new ForbiddenError(
+        `Akses ditolak: Akun role '${user.role}' tidak memiliki izin melihat data pada modul 'listSales'.`
+      );
+    }
+
+    next();
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
  * CRM client hanya tersedia untuk peran selain Sales.
  */
 export function denySalesCrmAccess(req: Request, res: Response, next: NextFunction): void {

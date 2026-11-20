@@ -48,6 +48,10 @@ describe('Manajemen Role dan Pengguna API', () => {
       const calonClient = res.body.data.find((m: any) => m.key === 'calonClient');
       expect(calonClient).toBeDefined();
       expect(calonClient.label).toContain('Calon Client');
+      expect(res.body.data.find((m: any) => m.key === 'listSales')).toMatchObject({
+        label: 'List Sales',
+        route: '/list-seles',
+      });
     });
 
     it('GET /api/roles - Mengambil semua role dan memastikan switch boolean sesuai syarat', async () => {
@@ -62,6 +66,7 @@ describe('Manajemen Role dan Pengguna API', () => {
       const superAdminRole = roles.find((r: any) => r.name === 'Super Admin');
       expect(superAdminRole).toBeDefined();
       expect(superAdminRole.menuAccess.dashboard).toBe(true);
+      expect(superAdminRole.menuAccess.listSales).toBe(true);
       expect(superAdminRole.menuAccess.calonClient).toBe(true);
       expect(superAdminRole.menuAccess.manajemenPengguna).toBe(true);
 
@@ -83,6 +88,7 @@ describe('Manajemen Role dan Pengguna API', () => {
           menuAccess: {
             calonClient: true,
             semuaPelanggan: true,
+            listSales: true,
             dashboard: false,
           },
         });
@@ -92,6 +98,7 @@ describe('Manajemen Role dan Pengguna API', () => {
       expect(res.body.data.name).toBe('Supervisor CRM Test');
       expect(res.body.data.menuAccess.calonClient).toBe(true);
       expect(res.body.data.menuAccess.semuaPelanggan).toBe(true);
+      expect(res.body.data.menuAccess.listSales).toBe(true);
       expect(res.body.data.menuAccess.dashboard).toBe(false);
 
       testRoleId = res.body.data.id;

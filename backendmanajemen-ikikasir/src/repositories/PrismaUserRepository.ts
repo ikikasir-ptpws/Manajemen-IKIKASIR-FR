@@ -44,6 +44,7 @@ export class PrismaUserRepository implements IUserRepository {
       const menuAccess = record.roleRef.menuAccess
         ? {
             dashboard: record.roleRef.menuAccess.dashboard,
+            listSales: Boolean(record.roleRef.menuAccess.listSales),
             manajemenPengguna: record.roleRef.menuAccess.manajemenPengguna,
             manajemenRole: record.roleRef.menuAccess.manajemenRole,
             manajemenPromo: record.roleRef.menuAccess.manajemenPromo,

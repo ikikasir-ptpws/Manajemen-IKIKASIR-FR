@@ -37,6 +37,7 @@ export class PrismaRoleRepository implements IRoleRepository {
   private defaultMenuAccess(input?: Partial<MenuAccessProps> | null): MenuAccessProps {
     return {
       dashboard: Boolean(input?.dashboard),
+      listSales: Boolean(input?.listSales),
       manajemenPengguna: Boolean(input?.manajemenPengguna),
       manajemenRole: Boolean(input?.manajemenRole),
       manajemenPromo: Boolean(input?.manajemenPromo),
@@ -59,10 +60,15 @@ export class PrismaRoleRepository implements IRoleRepository {
    */
   private mapToDomain(record: any): Role {
     const { description, permissions } = unpackDescriptionAndPermissions(record.description);
+    const isSuperAdminRole =
+      String(record.name || '').trim().toLowerCase().replace(/[\s_-]+/g, '') === 'superadmin';
 
     const menuAccess: MenuAccessProps = record.menuAccess
       ? {
         dashboard: record.menuAccess.dashboard,
+        listSales: record.menuAccess.listSales === undefined
+          ? isSuperAdminRole
+          : Boolean(record.menuAccess.listSales),
         manajemenPengguna: record.menuAccess.manajemenPengguna,
         manajemenRole: record.menuAccess.manajemenRole,
         manajemenPromo: record.menuAccess.manajemenPromo,

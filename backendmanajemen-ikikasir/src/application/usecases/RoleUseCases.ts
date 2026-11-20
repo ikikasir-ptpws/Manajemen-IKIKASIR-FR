@@ -12,6 +12,13 @@ export const MENU_CATALOG: MenuItemCatalog[] = [
     description: 'Ringkasan performa dan metrik transaksi keseluruhan',
   },
   {
+    key: 'listSales',
+    label: 'List Sales',
+    section: 'SALES',
+    route: '/list-seles',
+    description: 'Daftar sales, performa, client referral, dan penarikan komisi',
+  },
+  {
     key: 'manajemenPengguna',
     label: 'Manajemen Pengguna',
     section: 'MANAJEMEN',

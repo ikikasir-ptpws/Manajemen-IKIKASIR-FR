@@ -1,5 +1,6 @@
 export interface MenuAccessProps {
   dashboard: boolean;
+  listSales: boolean;
   manajemenPengguna: boolean;
   manajemenRole: boolean;
   manajemenPromo: boolean;
@@ -53,6 +54,7 @@ export class Role {
 
   public static defaultMenuKeys: (keyof MenuAccessProps)[] = [
     'dashboard',
+    'listSales',
     'manajemenPengguna',
     'manajemenRole',
     'manajemenPromo',
@@ -105,6 +107,7 @@ export class Role {
       description: this.description,
       menuAccess: this.menuAccess ?? {
         dashboard: false,
+        listSales: false,
         manajemenPengguna: false,
         manajemenRole: false,
         manajemenPromo: false,

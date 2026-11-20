@@ -2,6 +2,7 @@ import { httpClient } from './httpClient'
 
 export interface RoleMenuAccess {
   dashboard: boolean
+  listSales: boolean
   manajemenPengguna: boolean
   manajemenRole: boolean
   manajemenPromo: boolean

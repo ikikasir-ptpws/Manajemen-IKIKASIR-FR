@@ -54,6 +54,14 @@ const MENU_CATALOG: MenuCatalogItem[] = [
     icon: LayoutDashboard
   },
   {
+    key: 'listSales',
+    label: 'List Sales',
+    section: 'SALES',
+    route: '/list-seles',
+    description: 'Daftar sales, performa, client referral, dan penarikan komisi',
+    icon: Users
+  },
+  {
     key: 'manajemenPengguna',
     label: 'Manajemen Pengguna',
     section: 'MANAJEMEN',
@@ -189,6 +197,7 @@ const createFullPermissions = (): RolePermissions => {
 const createBlankMenuAccess = (): RoleMenuAccess => {
   return {
     dashboard: false,
+    listSales: false,
     manajemenPengguna: false,
     manajemenRole: false,
     manajemenPromo: false,
@@ -214,6 +223,7 @@ const initialRoles: RoleItem[] = [
     description: 'Hak akses penuh ke seluruh modul, aksi CRUD, dan konfigurasi sistem.',
     menuAccess: {
       dashboard: true,
+      listSales: true,
       manajemenPengguna: true,
       manajemenRole: true,
       manajemenPromo: true,
@@ -239,6 +249,7 @@ const initialRoles: RoleItem[] = [
     description: 'Akses konfirmasi pembayaran CRM, rekap tagihan, dan laporan keuangan.',
     menuAccess: {
       dashboard: false,
+      listSales: false,
       manajemenPengguna: false,
       manajemenRole: false,
       manajemenPromo: false,
@@ -274,6 +285,7 @@ const initialRoles: RoleItem[] = [
     description: 'Setup akun kasir, penerbitan surat perjanjian, dan aktivasi merchant.',
     menuAccess: {
       dashboard: false,
+      listSales: false,
       manajemenPengguna: false,
       manajemenRole: false,
       manajemenPromo: false,
@@ -304,6 +316,7 @@ const initialRoles: RoleItem[] = [
     description: 'Operasional harian, kelola paket, promo diskon, dan monitoring client.',
     menuAccess: {
       dashboard: true,
+      listSales: false,
       manajemenPengguna: false,
       manajemenRole: false,
       manajemenPromo: true,
@@ -343,6 +356,7 @@ const initialRoles: RoleItem[] = [
     description: 'Input pendaftaran calon client dan pengelolaan voucher diskon.',
     menuAccess: {
       dashboard: true,
+      listSales: false,
       manajemenPengguna: false,
       manajemenRole: false,
       manajemenPromo: true,
@@ -376,6 +390,7 @@ const initialRoles: RoleItem[] = [
     description: 'Akses transaksi kasir dan rekapan penjualan harian.',
     menuAccess: {
       dashboard: true,
+      listSales: false,
       manajemenPengguna: false,
       manajemenRole: false,
       manajemenPromo: false,

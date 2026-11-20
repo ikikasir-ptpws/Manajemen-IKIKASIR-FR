@@ -61,10 +61,6 @@ const isSalesRole = computed(() => {
   return role === 'sales' || role === 'seles'
 })
 
-const canManageSales = computed(() =>
-  (currentRole.value || '').trim().toLowerCase().includes('super')
-)
-
 const isRoleDropdownOpen = ref(false);
 const isNotificationOpen = ref(false);
 
@@ -195,6 +191,10 @@ const canAccessMenu = (menuKey: string): boolean => {
         return hasAccess;
       }
     }
+  }
+
+  if (menuKey === 'listSales') {
+    return false
   }
 
   // 3. Fallback defaults by role
@@ -371,7 +371,7 @@ const confirmLogout = () => {
             </RouterLink>
           </div>
 
-          <div v-if="canManageSales">
+          <div v-if="canAccessMenu('listSales')">
             <RouterLink
               to="/list-seles"
               @click="isMobileDrawerOpen = false"
@@ -907,7 +907,7 @@ const confirmLogout = () => {
       </RouterLink>
 
       <RouterLink
-        v-if="canManageSales"
+        v-if="canAccessMenu('listSales')"
         to="/list-seles"
         class="flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition-colors group"
         :class="

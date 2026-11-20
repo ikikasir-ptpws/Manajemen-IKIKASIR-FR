@@ -10,7 +10,7 @@ import {
   getSalesWithdrawals,
   confirmWithdrawal,
 } from '../controllers/SalesController.js';
-import { authenticate, authorizeRoles } from '../middlewares/auth.middleware.js';
+import { authenticate, authorizeRoles, authorizeSalesListRead } from '../middlewares/auth.middleware.js';
 
 const router = Router();
 
@@ -20,7 +20,7 @@ router.use(authenticate);
 
 router.get(
   '/',
-  authorizeRoles('SUPERADMIN', 'Super Admin'),
+  authorizeSalesListRead,
   listSales
 );
 
@@ -38,13 +38,13 @@ router.post(
 
 router.get(
   '/:userId/dashboard',
-  authorizeRoles('SUPERADMIN', 'Super Admin', 'SALES', 'Sales', 'SELES', 'Seles'),
+  authorizeSalesListRead,
   getSalesDashboard
 );
 
 router.get(
   '/:userId/clients',
-  authorizeRoles('SUPERADMIN', 'Super Admin', 'SALES', 'Sales', 'SELES', 'Seles'),
+  authorizeSalesListRead,
   getSalesClients
 );
 
@@ -56,7 +56,7 @@ router.post(
 
 router.get(
   '/:userId/withdrawals',
-  authorizeRoles('SUPERADMIN', 'Super Admin', 'SALES', 'Sales', 'SELES', 'Seles'),
+  authorizeSalesListRead,
   getSalesWithdrawals
 );
 

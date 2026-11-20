@@ -166,10 +166,6 @@ router.beforeEach((to, _from, next) => {
 
   // Helper checking if a menu is permitted
   const isMenuAllowed = (menuKey: string): boolean => {
-    if (menuKey === 'listSales') {
-      return false
-    }
-
     if (isSalesRole) {
       return menuKey === 'dashboard'
     }
@@ -199,6 +195,10 @@ router.beforeEach((to, _from, next) => {
       if (userObj.roleDetail.menuAccess && typeof userObj.roleDetail.menuAccess[menuKey] === 'boolean') {
         return userObj.roleDetail.menuAccess[menuKey]
       }
+    }
+
+    if (menuKey === 'listSales') {
+      return false
     }
 
     // 3. Fallback defaults

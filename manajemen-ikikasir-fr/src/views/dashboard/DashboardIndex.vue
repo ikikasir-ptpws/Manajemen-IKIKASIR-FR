@@ -29,8 +29,14 @@ import DateRangePicker from "../../components/common/DateRangePicker.vue";
 import type { ActivityItem, Customer, DashboardCustomerRow } from "../../types/dashboard";
 
 import { useDashboard } from "../../composables/useDashboard";
+import { useAppData } from "../../composables/useAppData";
 
 const router = useRouter();
+const { currentUser, currentRole } = useAppData();
+const displayName = computed(
+  () => currentUser.value?.name?.trim() || currentRole.value?.trim() || "Pengguna",
+);
+const displayRole = computed(() => currentRole.value?.trim() || "Pengguna");
 const {
   summary,
   metrics,
@@ -256,7 +262,7 @@ watch([startDate, endDate], () => {
         <h1
           class="text-xl sm:text-2xl font-extrabold text-slate-800 dark:text-white tracking-tight"
         >
-          {{ greeting }}, Admin! 👋
+          {{ greeting }}, {{ displayName }}! 👋
         </h1>
         <p
           class="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 mt-0.5 sm:mt-1 font-medium"
@@ -366,7 +372,7 @@ watch([startDate, endDate], () => {
               </div>
               <span
                 class="text-xs font-semibold text-slate-700 hidden sm:inline"
-                >Super Admin</span
+                >{{ displayRole }}</span
               >
               <ChevronDown class="w-3 h-3 text-slate-400" />
             </button>
