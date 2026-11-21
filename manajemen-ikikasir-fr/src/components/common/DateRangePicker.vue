@@ -290,19 +290,19 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div ref="containerRef" class="relative inline-block text-left select-none" :class="isOpen ? 'z-[9999]' : 'z-20'">
+  <div ref="containerRef" class="relative inline-block max-w-full text-left select-none" :class="isOpen ? 'z-[9999]' : 'z-20'">
     
     <!-- TRIGGER BUTTON -->
     <button 
       type="button"
       @click="isOpen = !isOpen"
-      class="flex items-center gap-2 px-3 py-2 rounded-xl border transition-all cursor-pointer shadow-2xs text-xs font-semibold"
+      class="flex max-w-full items-center gap-2 px-3 py-2 rounded-xl border transition-all cursor-pointer shadow-2xs text-xs font-semibold"
       :class="hasValue 
         ? 'border-indigo-300 bg-indigo-50/50 text-indigo-700 hover:bg-indigo-50 hover:border-indigo-400' 
         : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'"
     >
       <Calendar class="w-3.5 h-3.5 text-indigo-600 shrink-0" />
-      <span class="truncate max-w-[200px] sm:max-w-none">{{ displayLabel }}</span>
+      <span class="truncate max-w-[calc(100vw-8rem)] sm:max-w-none">{{ displayLabel }}</span>
       
       <!-- Clear button (x) inside trigger if active -->
       <button 
@@ -324,7 +324,7 @@ onUnmounted(() => {
     <!-- FLOATING DROPDOWN POPOVER (Elevated z-index to stay above table) -->
     <div 
       v-if="isOpen"
-      class="absolute left-0 mt-2 z-[9999] bg-white rounded-3xl shadow-2xl border border-slate-200 p-4 sm:p-5 w-[320px] sm:w-[490px] max-w-[calc(100vw-2rem)] animate-in fade-in zoom-in-95 duration-150"
+      class="fixed inset-x-3 top-1/2 z-[9999] max-h-[calc(100dvh-1.5rem)] w-auto -translate-y-1/2 overflow-y-auto rounded-3xl border border-slate-200 bg-white p-4 shadow-2xl animate-in fade-in zoom-in-95 duration-150 sm:absolute sm:inset-x-auto sm:left-0 sm:top-auto sm:mt-2 sm:max-h-[calc(100vh-2rem)] sm:w-[490px] sm:max-w-[calc(100vw-2rem)] sm:translate-y-0 sm:p-5"
     >
       <div class="flex flex-col sm:flex-row gap-4">
         

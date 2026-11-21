@@ -273,10 +273,10 @@ watch([startDate, endDate], () => {
 
       <!-- Right Header Actions (Bell, User, Date) -->
       <div
-        class="flex items-center justify-between sm:justify-end gap-2.5 sm:gap-3 flex-wrap"
+        class="flex w-full flex-wrap items-center justify-start gap-2.5 sm:w-auto sm:justify-end sm:gap-3"
       >
         <!-- Filter Rentang Tanggal -->
-        <div class="flex items-center gap-2">
+        <div class="flex w-full items-center gap-2 sm:w-auto">
           <DateRangePicker
             v-model:startDate="startDate"
             v-model:endDate="endDate"
@@ -319,7 +319,7 @@ watch([startDate, endDate], () => {
             <!-- Notification Dropdown -->
             <div
               v-if="showNotificationDropdown"
-              class="absolute right-0 mt-2 w-72 bg-white rounded-2xl shadow-xl border border-slate-100 p-3 z-30 animate-in fade-in zoom-in-95 duration-100 text-xs"
+              class="absolute left-0 right-auto mt-2 w-72 bg-white rounded-2xl shadow-xl border border-slate-100 p-3 z-30 animate-in fade-in zoom-in-95 duration-100 text-xs sm:left-auto sm:right-0"
             >
               <div
                 class="flex items-center justify-between pb-2 border-b border-slate-100 mb-2"
@@ -380,7 +380,7 @@ watch([startDate, endDate], () => {
             <!-- Profile Dropdown -->
             <div
               v-if="showProfileDropdown"
-              class="absolute right-0 mt-2 w-44 bg-white rounded-2xl shadow-xl border border-slate-100 py-1.5 z-30 animate-in fade-in zoom-in-95 duration-100 text-xs"
+              class="absolute left-0 right-auto mt-2 w-44 bg-white rounded-2xl shadow-xl border border-slate-100 py-1.5 z-30 animate-in fade-in zoom-in-95 duration-100 text-xs sm:left-auto sm:right-0"
             >
               <a
                 href="#"

@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, nextTick, ref } from 'vue'
 import { ChevronLeft, ChevronRight } from 'lucide-vue-next'
+
+const paginationRef = ref<HTMLElement | null>(null)
 
 const props = withDefaults(
   defineProps<{
@@ -18,6 +20,34 @@ const emit = defineEmits<{
   (e: 'update:currentPage', page: number): void
   (e: 'update:pageSize', size: number): void
 }>()
+
+const preserveScroll = (update: () => void) => {
+  const scrollPositions: { element: HTMLElement; top: number }[] = []
+  let ancestor = paginationRef.value?.parentElement ?? null
+
+  while (ancestor) {
+    const overflowY = window.getComputedStyle(ancestor).overflowY
+    if (
+      ['auto', 'scroll', 'overlay'].includes(overflowY) &&
+      ancestor.scrollHeight > ancestor.clientHeight
+    ) {
+      scrollPositions.push({ element: ancestor, top: ancestor.scrollTop })
+    }
+    ancestor = ancestor.parentElement
+  }
+
+  update()
+
+  if (scrollPositions.length > 0) {
+    void nextTick(() => {
+      requestAnimationFrame(() => {
+        scrollPositions.forEach(({ element, top }) => {
+          element.scrollTop = top
+        })
+      })
+    })
+  }
+}
 
 const totalPages = computed(() => {
   return Math.ceil(props.totalItems / props.pageSize) || 1
@@ -52,31 +82,33 @@ const displayedPages = computed(() => {
 
 const goToPage = (p: number | string) => {
   if (typeof p === 'number' && p >= 1 && p <= totalPages.value && p !== props.currentPage) {
-    emit('update:currentPage', p)
+    preserveScroll(() => emit('update:currentPage', p))
   }
 }
 
 const prevPage = () => {
   if (props.currentPage > 1) {
-    emit('update:currentPage', props.currentPage - 1)
+    preserveScroll(() => emit('update:currentPage', props.currentPage - 1))
   }
 }
 
 const nextPage = () => {
   if (props.currentPage < totalPages.value) {
-    emit('update:currentPage', props.currentPage + 1)
+    preserveScroll(() => emit('update:currentPage', props.currentPage + 1))
   }
 }
 
 const handlePageSizeChange = (e: Event) => {
   const newSize = Number((e.target as HTMLSelectElement).value)
-  emit('update:pageSize', newSize)
-  emit('update:currentPage', 1)
+  preserveScroll(() => {
+    emit('update:pageSize', newSize)
+    emit('update:currentPage', 1)
+  })
 }
 </script>
 
 <template>
-  <div class="px-4 py-3 bg-white dark:bg-slate-800 border-t border-slate-100 dark:border-slate-700/60 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs select-none">
+  <div ref="paginationRef" class="px-4 py-3 bg-white dark:bg-slate-800 border-t border-slate-100 dark:border-slate-700/60 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs select-none">
     <!-- Info & Page Size Selector -->
     <div class="flex items-center gap-3 text-slate-500 dark:text-slate-400 font-medium">
       <span>
@@ -103,6 +135,7 @@ const handlePageSizeChange = (e: Event) => {
     <!-- Pagination Buttons -->
     <div class="flex items-center gap-1.5">
       <button 
+        type="button"
         @click="prevPage"
         :disabled="currentPage <= 1"
         class="px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 font-bold flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
@@ -113,6 +146,7 @@ const handlePageSizeChange = (e: Event) => {
 
       <div class="flex items-center gap-1">
         <button 
+          type="button"
           v-for="(page, idx) in displayedPages" 
           :key="idx"
           @click="goToPage(page)"
@@ -125,6 +159,7 @@ const handlePageSizeChange = (e: Event) => {
       </div>
 
       <button 
+        type="button"
         @click="nextPage"
         :disabled="currentPage >= totalPages"
         class="px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 font-bold flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
