@@ -14,7 +14,10 @@ import {
   useAppData,
   getPackageDurationMonths,
 } from "../../composables/useAppData";
-import { usePagination } from "../../composables/usePagination";
+import {
+  preserveScrollPosition,
+  usePagination,
+} from "../../composables/usePagination";
 import GlobalPagination from "../../components/common/GlobalPagination.vue";
 import DateRangePicker from "../../components/common/DateRangePicker.vue";
 import type { PackageType } from "../../types/dashboard";
@@ -121,6 +124,17 @@ const {
 watch([searchQuery, startDate, endDate], () => {
   resetPage();
 });
+
+const changePage = (page: number, event: Event) => {
+  if (page < 1 || page > totalPages.value || page === currentPage.value) return;
+  const source = event.currentTarget;
+  preserveScrollPosition(
+    source instanceof HTMLElement ? source : null,
+    () => {
+      currentPage.value = page;
+    },
+  );
+};
 
 // Rule 12 & 15: WhatsApp Follow Up opens CUSTOMER'S WhatsApp number
 const sendWhatsAppFollowUp = (cust: any) => {
@@ -397,7 +411,8 @@ const confirmRenew = () => {
       <!-- Mobile Pagination Control -->
       <div v-if="totalPages > 1" class="flex items-center justify-between bg-white rounded-2xl p-3 border border-slate-100 shadow-xs text-xs">
         <button 
-          @click="currentPage--"
+          type="button"
+          @click="changePage(currentPage - 1, $event)"
           :disabled="currentPage <= 1"
           class="px-3 py-1.5 rounded-xl border border-slate-200 text-slate-600 font-bold disabled:opacity-40 cursor-pointer"
         >
@@ -405,7 +420,8 @@ const confirmRenew = () => {
         </button>
         <span class="font-bold text-slate-700">Hal {{ currentPage }} / {{ totalPages }}</span>
         <button 
-          @click="currentPage++"
+          type="button"
+          @click="changePage(currentPage + 1, $event)"
           :disabled="currentPage >= totalPages"
           class="px-3 py-1.5 rounded-xl border border-slate-200 text-slate-600 font-bold disabled:opacity-40 cursor-pointer"
         >

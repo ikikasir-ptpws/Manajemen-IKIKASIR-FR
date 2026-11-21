@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed, nextTick, ref } from 'vue'
+import { computed, ref } from 'vue'
 import { ChevronLeft, ChevronRight } from 'lucide-vue-next'
+import { preserveScrollPosition } from '../../composables/usePagination'
 
 const paginationRef = ref<HTMLElement | null>(null)
 
@@ -20,34 +21,6 @@ const emit = defineEmits<{
   (e: 'update:currentPage', page: number): void
   (e: 'update:pageSize', size: number): void
 }>()
-
-const preserveScroll = (update: () => void) => {
-  const scrollPositions: { element: HTMLElement; top: number }[] = []
-  let ancestor = paginationRef.value?.parentElement ?? null
-
-  while (ancestor) {
-    const overflowY = window.getComputedStyle(ancestor).overflowY
-    if (
-      ['auto', 'scroll', 'overlay'].includes(overflowY) &&
-      ancestor.scrollHeight > ancestor.clientHeight
-    ) {
-      scrollPositions.push({ element: ancestor, top: ancestor.scrollTop })
-    }
-    ancestor = ancestor.parentElement
-  }
-
-  update()
-
-  if (scrollPositions.length > 0) {
-    void nextTick(() => {
-      requestAnimationFrame(() => {
-        scrollPositions.forEach(({ element, top }) => {
-          element.scrollTop = top
-        })
-      })
-    })
-  }
-}
 
 const totalPages = computed(() => {
   return Math.ceil(props.totalItems / props.pageSize) || 1
@@ -82,25 +55,29 @@ const displayedPages = computed(() => {
 
 const goToPage = (p: number | string) => {
   if (typeof p === 'number' && p >= 1 && p <= totalPages.value && p !== props.currentPage) {
-    preserveScroll(() => emit('update:currentPage', p))
+    preserveScrollPosition(paginationRef.value, () => emit('update:currentPage', p))
   }
 }
 
 const prevPage = () => {
   if (props.currentPage > 1) {
-    preserveScroll(() => emit('update:currentPage', props.currentPage - 1))
+    preserveScrollPosition(paginationRef.value, () =>
+      emit('update:currentPage', props.currentPage - 1),
+    )
   }
 }
 
 const nextPage = () => {
   if (props.currentPage < totalPages.value) {
-    preserveScroll(() => emit('update:currentPage', props.currentPage + 1))
+    preserveScrollPosition(paginationRef.value, () =>
+      emit('update:currentPage', props.currentPage + 1),
+    )
   }
 }
 
 const handlePageSizeChange = (e: Event) => {
   const newSize = Number((e.target as HTMLSelectElement).value)
-  preserveScroll(() => {
+  preserveScrollPosition(paginationRef.value, () => {
     emit('update:pageSize', newSize)
     emit('update:currentPage', 1)
   })

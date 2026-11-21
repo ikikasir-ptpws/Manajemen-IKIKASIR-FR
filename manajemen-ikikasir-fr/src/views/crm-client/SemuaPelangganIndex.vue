@@ -61,6 +61,7 @@ import {
 } from '../../composables/useAppData'
 import { customersApi, leadsApi, referralApi, uploadApi } from '../../api'
 import { normalizeWaNumber } from '../../composables/useReferralWithdrawal'
+import { preserveScrollPosition } from '../../composables/usePagination'
 import type { ReferralOverview, ReferralWithdrawalItem } from '../../types/referral'
 import { resolveReceiptUrl } from '../../utils/storage'
 
@@ -379,6 +380,17 @@ const endIndex = computed(() => {
 const paginatedCustomers = computed(() => {
   return filteredCustomers.value.slice(startIndex.value, startIndex.value + pageSize.value)
 })
+
+const changePage = (page: number, event: Event) => {
+  if (page < 1 || page > totalPages.value || page === currentPage.value) return
+  const source = event.currentTarget
+  preserveScrollPosition(
+    source instanceof HTMLElement ? source : null,
+    () => {
+      currentPage.value = page
+    },
+  )
+}
 
 const resetFilter = () => {
   searchQuery.value = ''
@@ -1762,7 +1774,8 @@ const openAgreementPreview = (user?: any) => {
       <!-- Mobile Pagination Control -->
       <div v-if="totalPages > 1" class="flex items-center justify-between bg-white rounded-2xl p-3 border border-slate-100 shadow-xs text-xs">
         <button 
-          @click="currentPage--"
+          type="button"
+          @click="changePage(currentPage - 1, $event)"
           :disabled="currentPage <= 1"
           class="px-3 py-1.5 rounded-xl border border-slate-200 text-slate-600 font-bold disabled:opacity-40"
         >
@@ -1770,7 +1783,8 @@ const openAgreementPreview = (user?: any) => {
         </button>
         <span class="font-bold text-slate-700">Hal {{ currentPage }} / {{ totalPages }}</span>
         <button 
-          @click="currentPage++"
+          type="button"
+          @click="changePage(currentPage + 1, $event)"
           :disabled="currentPage >= totalPages"
           class="px-3 py-1.5 rounded-xl border border-slate-200 text-slate-600 font-bold disabled:opacity-40"
         >

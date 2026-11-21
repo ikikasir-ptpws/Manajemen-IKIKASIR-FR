@@ -46,6 +46,7 @@ import GoogleFormIntegrationModal from '../../components/crm/GoogleFormIntegrati
 import { uploadApi, resolveReceiptUrl } from '../../api/upload.api'
 import DateRangePicker from '../../components/common/DateRangePicker.vue'
 import { useAppData, SAMPLE_RECEIPT_BCA } from '../../composables/useAppData'
+import { preserveScrollPosition } from '../../composables/usePagination'
 import type { ClientLead, LeadStatus, LeadSource } from '../../types/crm'
 
 const router = useRouter()
@@ -280,6 +281,17 @@ const displayedPages = computed(() => {
   }
   return pages
 })
+
+const changePage = (page: number, event: Event) => {
+  if (page < 1 || page > totalPages.value || page === currentPage.value) return
+  const source = event.currentTarget
+  preserveScrollPosition(
+    source instanceof HTMLElement ? source : null,
+    () => {
+      currentPage.value = page
+    },
+  )
+}
 
 // ==========================================
 // FINANCE VERIFICATION ACTIONS
@@ -1097,7 +1109,8 @@ const handleClientSaved = (client: ClientLead) => {
         <!-- Pagination Buttons -->
         <div class="flex items-center gap-1.5">
           <button 
-            @click="currentPage--"
+            type="button"
+            @click="changePage(currentPage - 1, $event)"
             :disabled="currentPage <= 1"
             class="px-2.5 py-1.5 rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 font-bold flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
           >
@@ -1107,9 +1120,10 @@ const handleClientSaved = (client: ClientLead) => {
 
           <div class="flex items-center gap-1">
             <button 
+              type="button"
               v-for="(page, idx) in displayedPages" 
               :key="idx"
-              @click="typeof page === 'number' && (currentPage = page)"
+              @click="typeof page === 'number' && changePage(page, $event)"
               :disabled="typeof page !== 'number'"
               class="w-7 h-7 rounded-xl font-bold text-xs flex items-center justify-center transition-all"
               :class="currentPage === page ? 'bg-indigo-600 text-white shadow-xs' : (typeof page === 'number' ? 'text-slate-600 hover:bg-slate-100 cursor-pointer' : 'text-slate-300 cursor-default')"
@@ -1119,7 +1133,8 @@ const handleClientSaved = (client: ClientLead) => {
           </div>
 
           <button 
-            @click="currentPage++"
+            type="button"
+            @click="changePage(currentPage + 1, $event)"
             :disabled="currentPage >= totalPages"
             class="px-2.5 py-1.5 rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 font-bold flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
           >
@@ -1273,7 +1288,8 @@ const handleClientSaved = (client: ClientLead) => {
       <!-- Mobile Pagination Control -->
       <div v-if="totalPages > 1" class="flex items-center justify-between bg-white rounded-2xl p-3 border border-slate-100 shadow-xs text-xs">
         <button 
-          @click="currentPage--"
+          type="button"
+          @click="changePage(currentPage - 1, $event)"
           :disabled="currentPage <= 1"
           class="px-3 py-1.5 rounded-xl border border-slate-200 text-slate-600 font-bold disabled:opacity-40"
         >
@@ -1281,7 +1297,8 @@ const handleClientSaved = (client: ClientLead) => {
         </button>
         <span class="font-bold text-slate-700">Hal {{ currentPage }} / {{ totalPages }}</span>
         <button 
-          @click="currentPage++"
+          type="button"
+          @click="changePage(currentPage + 1, $event)"
           :disabled="currentPage >= totalPages"
           class="px-3 py-1.5 rounded-xl border border-slate-200 text-slate-600 font-bold disabled:opacity-40"
         >

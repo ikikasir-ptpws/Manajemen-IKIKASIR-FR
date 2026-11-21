@@ -30,7 +30,7 @@ describe('GlobalPagination', () => {
     scrollContainer.addEventListener('click', () => {
       scrollContainer.scrollTop = 0
     })
-    vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
+    vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
       callback(0)
       return 1
     })
